@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>WorldGold — Tap (DEMO)</title>
+<meta name="theme-color" content="#1b103a">
+<style>
+:root{
+  --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
+  --gold:#F4C542; --gold-soft:#FFD872;
+  /* MÁS GRANDE y calzada */
+  --heroSize: clamp(340px, 82vw, 620px);
+  --coinSize: clamp(340px, 82vw, 620px);
+}
+
+/* Base */
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0; color:var(--ink);
+  font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial;
+  /* negro carbón con leve degradado vertical */
+  background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
+}
+
+/* Noise overlay (opcional) */
+.noise{
+  position:fixed; inset:0; pointer-events:none; opacity:0.06; mix-blend-mode:soft-light;
+  background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
+  z-index:0;
+}
+
+/* Topbar */
+.topbar{
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; justify-content:center;
+  padding:max(10px,env(safe-area-inset-top)) 12px 8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0)); backdrop-filter:blur(4px)
+}
+.topbar h1{margin:0; font-size:28px}
+.top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top)); font-size:12px; color:var(--mut); text-align:right}
+
+/* Left FABs */
+.floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
+.fab{width:48px; height:48px; border:none; border-radius:50%; display:grid; place-items:center; color:#fff;
+  box-shadow:0 10px 24px rgba(0,0,0,.35); cursor:pointer}
+.fab.profile{background:#06d6a0; color:#08251b}
+.fab.trophy{background:#ffd166; color:#2b2005}
+.fab.inbox{background:#7c5cff}
+.badge{position:absolute; top:-6px; right:-6px; background:#ff3b3b; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; font-weight:700; padding:0 6px}
+
+/* Hero */
+.hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
+  padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
+.pill{
+  z-index:3;
+  background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.22);
+  border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
+  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px)
+}
+.pill img{width:22px; height:22px; display:inline-block}
+
+/* Coin area */
+.coinWrap{
+  position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
+  background:radial-gradient(60% 60% at 50% 40%,#352b74,#1a1340 70%);
+  box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
+}
+.ring{position:absolute; inset:0; border-radius:50%;
+  box-shadow:
+    inset 0 0 0 22px rgba(255,255,255,.03),  /* aro más grueso */
+    inset 0 0 0 2px rgba(255,255,255,.10)
+}
+.coin{
+  width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
+  background:linear-gradient(145deg,#2a2555,#1c143f); border:1px solid rgba(255,255,255,.12); transition:transform .08s ease; position:relative; overflow:hidden
+}
+.coin:active{transform:scale(.98)}
+.coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
+.coinFallback{font-size:52px}
+.gain{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-weight:900; font-size:20px; opacity:0; pointer-events:none}
+.gain.show{animation:float .6s ease-out forwards}
+@keyframes float{from{opacity:0; transform:translate(-50%,-10px) scale(.9)}50%{opacity:1}to{opacity:0; transform:translate(-50%,-40px) scale(1.05)}}
+#fx{position:absolute; inset:0; pointer-events:none}
+
+/* Dock (Refill + Booster) debajo de la moneda */
+.action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
+.btn-icon{
+  display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
+  background:rgba(23,19,39,.45); border:1px solid rgba(255,255,255,.14); border-radius:12px; color:var(--gold-soft);
+  backdrop-filter:blur(6px)
+}
+.btn-icon img{width:34px; height:34px; display:block}
+.price-pill{
+  font-weight:600; font-size:15px; line-height:20px; color:var(--gold-soft);
+  padding:5px 10px; border-radius:10px; background:rgba(10,8,24,.65); border:1px solid rgba(255,255,255,.16)
+}
+.btn-icon:disabled{opacity:.5; pointer-events:none}
+.btn-icon.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.btn-icon.shake{animation:shake .25s linear}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+
+/* Energy bar */
+.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
+.energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
+.energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
+@keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
+.energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
+
+/* Drawer simple */
+.backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:50}
+.backdrop.show{opacity:1; pointer-events:auto}
+.drawer{position:fixed; top:0; right:-380px; width:min(360px,92vw); height:100dvh; background:rgba(10,8,24,.98);
+  border-left:1px solid rgba(255,255,255,.1); padding:16px 16px calc(24px + env(safe-area-inset-bottom)); transition:right .28s ease; overflow:auto; z-index:55}
+.drawer.show{right:0}
+.drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
+  background:transparent; color:#fff; cursor:pointer; font-size:18px}
+
+/* Demo card */
+.card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
+
+/* Ajustes pantallas estrechas */
+@media (max-width:360px){
+  .btn-icon img{width:28px; height:28px}
+  .price-pill{font-size:13px; padding:3px 6px}
+  .action-dock{gap:10px}
+}/* === Estrellas sutiles === */
+.stars, .stars2{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  z-index: 0;
+}
+
+.stars{
+  background-image: radial-gradient(rgba(255,255,255,.30) 2.1px, transparent 1px);
+  background-size: 70px 70px;   /* menos densas */
+  opacity: .40;                   /* más suave */
+  animation: stars-pan 160s linear infinite;
+}
+
+.stars2{
+  background-image: radial-gradient(rgba(173,216,230,.2) 1.76px, transparent 1px);
+  background-size: 30px 30px;     /* un poco más densas que la capa 1 */
+  opacity: .30;
+  animation: stars-pan 220s linear infinite reverse;
+}
+@keyframes stars-pan {
+  from { background-position: 0 0; }
+  to   { background-position: -2000px -1200px; }
+}
+
+/* Noise va encima */
+.noise{ z-index: 1; }
+
+</style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="stars2"></div>
+  <div class="noise" aria-hidden="true"></div>
+<!-- Left FABs -->
+<div class="floatCol">
+  <button id="profileBtn" class="fab profile" title="Perfil">👤</button>
+</div>
+
+<!-- Topbar -->
+<div class="topbar">
+ <h1>
+  <img src="img/mi-logo.png"alt="WorldGold" style="height:30px">
+</h1>
+
+ <div class="top-actions">
+  <div>WLD Balance:</div>
+  <div><b id="balWLD">0.00</b> WLD</div>
+  <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end">
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard">🏆</button>
+<button id="inboxBtn" class="fab inbox" title="Inbox">
+  ✉️ <span id="inboxBadge" class="badge" style="display:none">0</span>
+</button>
+
+  </div>	
+</div>
+
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="pill">
+    <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
+    WLGp: <b id="balWLGp">0.000</b>
+  </div>
+
+  <div class="coinWrap" id="coinBox">
+    <div class="ring"></div>
+    <canvas id="fx"></canvas>
+    <div id="coin" class="coin" aria-label="Tap">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
+      <div id="fallback" class="coinFallback" style="display:none">🪙</div>
+      <div id="gain" class="gain">+0.40</div>
+    </div>
+  </div>
+
+  <!-- DOCK bajo la moneda -->
+  <div class="action-dock" aria-label="acciones rápidas">
+    <button id="refillBtn" class="btn-icon" aria-label="Refill">
+      <img src="img/ico-refill.png" alt="">
+      <span id="refillPrice" class="price-pill">0.10 WLD</span>
+    </button>
+    <button id="openUp" class="btn-icon" aria-label="Boosters">
+      <img src="img/icon-gear.png" alt="">
+    </button>
+  </div>
+
+  <div class="energyWrap">
+    <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
+    <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
+  </div>
+</section>
+
+<!-- Drawers (Boosters simple + Inbox placeholder) -->
+<div id="backdropUP" class="backdrop"></div>
+<aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">×</button>
+  <h3 style="margin:0 0 8px">Boosters</h3>
+  <p style="opacity:.85">Soon: Power, Battery, Speed and AUTOTAP.</p>
+</aside>
+
+<div id="backdropIN" class="backdrop"></div>
+<aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">×</button>
+  <h3 style="margin:0 0 8px">Inbox</h3>
+  <p style="opacity:.8">Pro Tip: farm what you can, your WLGp will give you an advantage in Play-&-Earn. 🎮✨</p>
+</aside>
+
+<!-- Demo tools -->
+<section class="card">
+  <h3 style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button id="btnAddWLD">+5 WLD</button>
+    <button id="btnReset">Reset</button>
+  </div>
+</section>
+
+<script>
+/* ===== Helpers ===== */
+const $=q=>document.querySelector(q);
+let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
+
+/* ===== Estado base (demo) ===== */
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.8, POWER_BASE=0.40;
+let wld = +localStorage.getItem('wld') || 0;
+let wlgp= +localStorage.getItem('wlgp')|| 0;
+let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
+let lastTs=+localStorage.getItem('last_ts')||Date.now();
+
+/* ===== Derivados ===== */
+function capMax(){return BASE_CAP}
+function regenPerSec(){return BASE_REGEN_PER_SEC}
+function priceRefill(){return +(capMax()/1000).toFixed(2)} // 0.1% capacidad
+function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
+
+/* ===== Refs ===== */
+const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
+const coin=$('#coin'), gain=$('#gain');
+const fx=$('#fx'), ctx=fx.getContext('2d');
+const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
+const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
+const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
+const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
+const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
+
+/* ===== Canvas del tamaño de la moneda ===== */
+function sizeCanvasToCoin(){
+  const r = coin.getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  fx.width  = Math.round(r.width * scale);
+  fx.height = Math.round(r.height * scale);
+  fx.style.width  = r.width + 'px';
+  fx.style.height = r.height + 'px';
+}
+addEventListener('resize', sizeCanvasToCoin);
+
+/* ===== Partículas con fallback ===== */
+const sparkle = new Image(); sparkle.src = 'img/sparkle.png';
+let parts=[];
+function spawn(x,y){for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
+  parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});}}
+function stepFX(dt){
+  ctx.clearRect(0,0,fx.width,fx.height);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.life-=dt; if(p.life<=0){parts.splice(i,1); continue;}
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.alpha=Math.max(0,p.life/700);
+    ctx.globalAlpha=p.alpha;
+    if(sparkle.complete){
+      ctx.drawImage(sparkle, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+    }else{
+      ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,.9)';
+      ctx.arc(p.x,p.y, Math.max(2, p.size*0.15), 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ===== UI render ===== */
+function render(){
+  balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
+  const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
+  energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
+
+  const cost=priceRefill(); refillPrice.textContent=cost.toFixed(2)+' WLD';
+  const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
+  refillBtn.classList.toggle('pulse', low && canPay);
+  refillBtn.disabled = energy>=eMax-1e-6;
+}
+
+/* ===== Tap logic ===== */
+function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
+coin.addEventListener('click',(e)=>{
+  lazyRegen();
+  const ok=addTap();
+  if(ok){
+    gain.textContent=`+${POWER_BASE.toFixed(2)}`; gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
+    tone(820,0.05,'triangle',.07);
+    // Posición del tap dentro del canvas
+    const rect=fx.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
+    const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
+    spawn(x,y);
+    coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
+  }else{
+    refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+  }
+  render();
+});
+
+/* ===== Refill ===== */
+function doRefill(){
+  const cost=priceRefill(), eMax=capMax();
+  if(energy>=eMax-1e-6) return;
+  if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
+  wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
+  tone(620,0.08,'sine',.08); render();
+}
+refillBtn.onclick=doRefill;
+
+/* ===== Boosters drawer (placeholder) ===== */
+openUp.onclick=()=>openDrawer('UP');
+inboxBtn.onclick=()=>openDrawer('IN');
+function openDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.add('show'); bd.classList.add('show');}
+function closeDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.remove('show'); bd.classList.remove('show');}
+backdropUP.onclick=()=>closeDrawer('UP'); backdropIN.onclick=()=>closeDrawer('IN');
+
+/* ===== Demo buttons ===== */
+$('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();}
+$('#btnReset').onclick =()=>{if(confirm('¿Reiniciar demo?')){localStorage.clear(); location.reload();}}
+
+/* ===== Main loop ===== */
+let tPrev=performance.now();
+function tick(t){
+  const dt=t-tPrev; tPrev=t;
+  // regen
+  lazyRegen();
+  // fx
+  stepFX(dt);
+  // render UI
+  render();
+  requestAnimationFrame(tick);
+}
+
+/* ===== Init ===== */
+(function init(){
+  sizeCanvasToCoin();
+  // Partículas de arranque para confirmar que se ven
+  setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
