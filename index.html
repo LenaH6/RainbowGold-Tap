@@ -259,6 +259,16 @@ body{
   opacity: 1;
   transform: translateY(-14px); /* sube un poquito y aparece */
 }
+/* === Inbox: variantes de mensaje === */
+.msg-system{
+  border: 1px solid rgba(244, 197, 66, .65);
+  background: linear-gradient(180deg, rgba(255,224,150,.10), rgba(0,0,0,.10));
+  box-shadow:
+     0 0 0 1px rgba(244,197,66,.15) inset,
+     0 8px 24px rgba(244,197,66,.12),
+     0 0 14px rgba(244,197,66,.25);
+}
+.msg-system .msg-time{ color: #ffd872; }
 
 </style>
 </head>
@@ -430,15 +440,41 @@ function renderInbox(){
   const box = document.getElementById('inboxList');
   if (!box) return;
 
+  const cur = getLang();
+  const locale = (cur === 'en') ? 'en-US' : 'es-PE';
+  const T = I18N[cur] || I18N.es;
+
   if (msgs.length === 0){
-    box.innerHTML = '<p style="opacity:.7">Sin mensajes.</p>';
+    // "Sin mensajes" también se traduce:
+    box.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.opacity = '.7';
+    p.textContent = (cur === 'en') ? 'No messages.' : 'Sin mensajes.';
+    box.appendChild(p);
   } else {
-    box.innerHTML = msgs.map(m => `
-      <div class="msg ${m.type === 'system' ? 'msg-system' : ''}">
-        <div class="msg-time">${new Date(m.ts).toLocaleString()}</div>
-        <div class="msg-text">${m.text}</div>
-      </div>
-    `).join('');
+    box.innerHTML = '';
+    msgs.forEach(m => {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg' + (m.type === 'system' ? ' msg-system' : '');
+
+      const time = document.createElement('div');
+      time.className = 'msg-time';
+      time.textContent = new Date(m.ts).toLocaleString(locale);
+
+      const txt = document.createElement('div');
+      txt.className = 'msg-text';
+
+      // Si el mensaje tiene "key", se traduce; si no, usa el texto literal
+      if (m.key && T[m.key] != null){
+        txt.textContent = T[m.key];
+      } else {
+        txt.textContent = String(m.text || '');
+      }
+
+      wrap.appendChild(time);
+      wrap.appendChild(txt);
+      box.appendChild(wrap);
+    });
   }
 
   if (unread > 0){
@@ -449,14 +485,25 @@ function renderInbox(){
   }
 }
 
-
-function addMessage(text, type='user'){
-  msgs.unshift({ text, ts: Date.now(), type });
+// Mensaje con TEXTO literal (no se traduce al cambiar idioma)
+function addMessage(text, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ text: String(text || ''), ts: Date.now(), type });
   unread++;
   saveMsgs();
   renderInbox();
 }
 
+// Mensaje por CLAVE del diccionario (sí se traduce al cambiar idioma)
+function addMessageKey(key, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ key: String(key || ''), ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
 
 // Abrir Inbox = mostrar y limpiar contador
 if (inboxBtn) inboxBtn.onclick = () => {
@@ -473,17 +520,6 @@ if (markRead) markRead.onclick = () => {
   saveMsgs();
   renderInbox();
 };
-
-// Dibujar al inicio
-renderInbox();
-// ===== Mensajes iniciales (solo si aún no hay) =====
-if (msgs.length === 0) {
-  addMessage('✨ Stay tuned for more updates very SOON.', 'system');
-  addMessage('✨ Get your wallet ready to earn WLD.', 'system');
-  addMessage('✨ Farming Time $WLG Lovers! Get ready for TGE and take the lead. 🎮', 'system');
-}
-
-
 
 /* ===== Canvas del tamaño de la moneda ===== */
 function sizeCanvasToCoin(){
@@ -665,7 +701,11 @@ const I18N = {
     claim_soon:   'Reclamar (Pronto)',
     demo_title:   'Herramientas de prueba (demo)',
     save:         'Guardar',
-    saved:        'Guardado'
+    saved:        'Guardado' ,   
+    seed_stay_tuned: 'Novedades MUY pronto. Mantente atento. ✨',
+    seed_get_wallet: 'Prepara tu billetera para ganar WLD. ✨',
+    seed_farming_time: '¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+
   },
   en: {
     wld_balance:  'WLD Balance:',
@@ -677,7 +717,11 @@ const I18N = {
     claim_soon:   'Claim (Soon)',
     demo_title:   'Demo tools',
     save:         'Save',
-    saved:        'Saved'
+    saved:        'Saved',
+    seed_stay_tuned: 'Stay tuned — big updates soon. ✨',
+    seed_get_wallet: 'Get your wallet ready to earn WLD. ✨',
+    seed_farming_time: 'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
+
   }
 };
 
@@ -690,6 +734,8 @@ function applyLang(){
     if (T[key] != null) el.textContent = T[key];
   });
   document.documentElement.lang = cur;
+  renderInbox(); // 👈 re-dibuja el Inbox con el idioma actual
+
 }
 
 /* Carga campos del Perfil + botón Guardar */
@@ -721,7 +767,6 @@ function loadProfileFields(){
           clearTimeout(savedBadge._t);
           savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
         }
-        addMessage((getLang()==='es' ? '👤 Nombre guardado: ' : '👤 Name saved: ') + normalized, 'system');
       };
     }
     // Auto-guardar al salir del input
@@ -738,7 +783,6 @@ function loadProfileFields(){
     langSelect.onchange = (e)=>{
       setLang(e.target.value);
       applyLang();
-      addMessage(getLang()==='es' ? '🌐 Idioma cambiado a Español' : '🌐 Language changed to English', 'system');
     };
   }
 
@@ -766,6 +810,16 @@ function renderProfile(){
   render();               // primer pintado
   loadProfileFields();    // engancha Perfil (username/idioma)
   if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
+  // Mensajes iniciales con CLAVE (se traducen)
+  if (msgs.length === 0) {
+  addMessageKey('seed_stay_tuned', 'system');
+  addMessageKey('seed_get_wallet', 'system');
+  addMessageKey('seed_farming_time', 'system');
+}
+
+// Primer pintado del Inbox (ahora sí, I18N ya existe)
+renderInbox();
+
 })(); // 👈 MUY IMPORTANTE: cerrar la IIFE
 
 
