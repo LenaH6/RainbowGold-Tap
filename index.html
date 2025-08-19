@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<title>WorldGold — Tap (DEMO)</title>
+<title>WorldGold — Tap</title>
 <meta name="theme-color" content="#1b103a">
 <style>
 :root{
@@ -31,12 +31,25 @@ body{
 }
 
 /* Topbar */
+
 .topbar{
   position:sticky; top:0; z-index:5;
-  display:flex; align-items:center; justify-content:center;
-  padding:max(10px,env(safe-area-inset-top)) 12px 8px;
-  background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0)); backdrop-filter:blur(4px)
+  display:flex; align-items:center; justify-content:center; height: 60px;
+  padding:0 12px;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
 }
+.logo-text{
+  margin: 0;
+  font-size: 30px;       /* tamaño elegante */
+  font-weight: 800;      /* bien marcado */
+  color: #ffea70;        /* dorado */
+  letter-spacing: 1.5px;   /* espacio entre letras */
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgba(255,234,112,0.7), /* glow dorado */
+               0 0 6px rgba(255,234,112,0.4);
+}
+
+
 .topbar h1{margin:0; font-size:28px}
 .top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top)); font-size:12px; color:var(--mut); text-align:right}
 
@@ -54,26 +67,33 @@ body{
   padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
 .pill{
   z-index:3;
-  background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.22);
+  background: #e0e0e0; border:1px solid #b5b5b5;
   border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
-  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px)
+  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #1a1a1a;
 }
 .pill img{width:22px; height:22px; display:inline-block}
 
 /* Coin area */
 .coinWrap{
   position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
-  background:radial-gradient(60% 60% at 50% 40%,#352b74,#1a1340 70%);
+  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
   box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
 }
 .ring{position:absolute; inset:0; border-radius:50%;
   box-shadow:
     inset 0 0 0 22px rgba(255,255,255,.03),  /* aro más grueso */
-    inset 0 0 0 2px rgba(255,255,255,.10)
+    inset 0 0 0 2px rgba(255,255,255,0.15),
+    0 0 25px rgba(255, 230, 150, 0.4),
+    0 0 60px rgba(255, 220, 120, 0.25);
 }
 .coin{
   width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
-  background:linear-gradient(145deg,#2a2555,#1c143f); border:1px solid rgba(255,255,255,.12); transition:transform .08s ease; position:relative; overflow:hidden
+  background:linear-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%); border:2px solid rgba(255,255,255,0.15); 
+  box-shadow: 
+    0 0 15px rgba(255, 223, 120, 0.7)
+    0 0 35px rgba(255, 200, 80, 0.4)
+    0 0 60px rgba(255, 180, 60, 0.25);
+   transition:transform .08s ease; position:relative; overflow:hidden;
 }
 .coin:active{transform:scale(.98)}
 .coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
@@ -87,7 +107,7 @@ body{
 .action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
 .btn-icon{
   display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-  background:rgba(23,19,39,.45); border:1px solid rgba(255,255,255,.14); border-radius:12px; color:var(--gold-soft);
+  background:#b5b5b5; border:1px solid #b5b5b5; border-radius:12px; color:var(--gold-soft);
   backdrop-filter:blur(6px)
 }
 .btn-icon img{width:34px; height:34px; display:block}
@@ -165,12 +185,10 @@ body{
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Perfil">👤</button>
 </div>
-
-<!-- Topbar -->
 <div class="topbar">
- <h1>
-  <img src="img/mi-logo.png"alt="WorldGold" style="height:30px">
-</h1>
+  <h1 class="logo-text">WorldGold</h1>
+</div>
+
 
  <div class="top-actions">
   <div>WLD Balance:</div>
