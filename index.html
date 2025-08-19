@@ -339,7 +339,7 @@ body{
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
-  <h3 style="margin:0 0 8px">Impulsores</h3>
+  <h3 data-i18n="boosters_title">Impulsores</h3>
   <p style="opacity:.85">Any ideas what this could be?</p>
 </aside>
 
@@ -349,7 +349,7 @@ body{
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
 <h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
 <div id="inboxList" class="inbox-list"></div>
-<button id="markRead" class="btn-icon" style="margin-top:10px">Marcar como leído</button>
+<button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
 </aside>
 <!-- Drawer Perfil -->
 <div id="backdropPF" class="backdrop"></div>
@@ -647,7 +647,6 @@ setInterval(() => {
 
 /* ===== Perfil: nombre de usuario + idioma ===== */
 let username = localStorage.getItem('username') || 'Player';
-let lang = localStorage.getItem('lang') || 'es';
 function applyLang(){
   // === i18n minimalista ===
 const I18N = {
@@ -675,46 +674,68 @@ const I18N = {
 
 // Aplica traducciones a TODOS los [data-i18n]
 function applyLang(){
-  const T = I18N[lang] || I18N.es;
+  const cur = getLang();
+  const T = I18N[cur] || I18N.es;
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const key = el.getAttribute('data-i18n');
     if (T[key] != null) el.textContent = T[key];
   });
-  document.documentElement.lang = (lang === 'en' ? 'en' : 'es');
+  document.documentElement.lang = cur;
 }
+}
+// === Perfil helpers (sin variables globales) ===
+function getUsername(){ return localStorage.getItem('username') || 'Player'; }
+function setUsername(v){
+  const s = (v || '').slice(0, 20);
+  localStorage.setItem('username', s);
+  return s; // por si quieres normalizar el valor en el input
+}
+
+// === Helpers de idioma (sin TDZ, sin globales) ===
+function getLang(){ 
+  return localStorage.getItem('lang') || 'es'; 
+}
+function setLang(v){
+  const val = (v === 'en' ? 'en' : 'es');
+  localStorage.setItem('lang', val);
+  // opcional: expón en window por si algo externo la leyera
+  window.lang = val;
 }
 
 
 function loadProfileFields(){
-  // 👉 Se consultan aquí, al momento de usarla (sin TDZ)
   const usernameInput = document.getElementById('usernameInput');
-  const langSelect    = document.getElementById('langSelect');
 
+  // --- USERNAME ---
   if (usernameInput){
-    usernameInput.value = username;
+    usernameInput.value = getUsername();
+
     usernameInput.oninput = (e)=>{
-      username = (e.target.value || '').slice(0,20);
-      localStorage.setItem('username', username);
+      const normalized = setUsername(e.target.value);   // guarda y recorta a 20
+      if (usernameInput.value !== normalized) usernameInput.value = normalized;
     };
+
     usernameInput.onblur = ()=>{
-      if (username.trim()){
-        addMessage(`👤 Nombre actualizado a: ${username}`, 'system');
-      }
+      const u = getUsername();
+      if (u.trim()) addMessage(`👤 Nombre actualizado a: ${u}`, 'system');
     };
   }
-
+  const langSelect    = document.getElementById('langSelect');
+  // --- IDIOMA ---
   if (langSelect){
-    langSelect.value = lang;
+    langSelect.value = getLang(); // usa tus helpers de idioma
     langSelect.onchange = (e)=>{
-      lang = e.target.value;
-      localStorage.setItem('lang', lang);
-      applyLang();
-      addMessage(lang==='es' ? '🌐 Idioma cambiado a Español' : '🌐 Language changed to English', 'system');
+      setLang(e.target.value);
+      applyLang(); // traduce en caliente
+      addMessage(getLang()==='es' ? '🌐 Idioma cambiado a Español'
+                                  : '🌐 Language changed to English', 'system');
     };
   }
 
+  // Primera aplicación al cargar el drawer
   applyLang();
 }
+
 
 
 // Añade el nombre al render del perfil si quieres mostrarlo en algún sitio
