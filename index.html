@@ -153,10 +153,19 @@ body{
 .energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
 
 /* Drawer simple */
-.backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:99}
+.backdrop{position:fixed; inset:0;
+   background:rgba(0,0,0,.35);
+    opacity:0; pointer-events:none;
+     transition:opacity .2s;
+      z-index:40}
 .backdrop.show{opacity:1; pointer-events:auto}
-.drawer{position:fixed; top:0; right:-380px; width:min(360px,92vw); height:100dvh; background:rgba(10,8,24,.98);
-  border-left:1px solid rgba(255,255,255,.1); padding:16px 16px calc(24px + env(safe-area-inset-bottom)); transition:right .28s ease; overflow:auto; z-index:55}
+.drawer{position:fixed; top:0; right:-380px;
+   width:min(360px,92vw); height:100dvh;
+    background:rgba(10,8,24,.98);
+  border-left:1px solid rgba(255,255,255,.1);
+   padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+    transition:right .28s ease; overflow:auto;
+     z-index:60}
 .drawer.show{right:0}
 .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
   background:transparent; color:#fff; cursor:pointer; font-size:18px}
@@ -215,16 +224,18 @@ body{
 }
 .msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
 .msg-text { white-space: pre-line; line-height: 1.45; }
-/* Tooltip sutil para el trofeo */
-.trophyWrap{ position: relative; display: inline-block; }
-
+/* Tooltip del trofeo (limpio y sutil) */
+.trophyWrap{
+  position: relative;
+  display: inline-block;
+}
 .tip{
   position: absolute;
-  right: 0;                  /* aparece sobre el botón hacia la derecha */
-  top: -10px;                /* un poquito arriba */
+  right: 0;
+  top: -10px;                 /* nace un poco arriba del botón */
   transform: translateY(-6px);
   opacity: 0;
-  pointer-events: none;      /* no bloquea clics */
+  pointer-events: none;       /* no bloquea clics al botón */
   background: rgba(0,0,0,.85);
   color: #ffd872;
   border: 1px solid rgba(255,223,120,.5);
@@ -234,29 +245,19 @@ body{
   line-height: 1;
   box-shadow: 0 6px 14px rgba(0,0,0,.35);
   transition: opacity .18s ease, transform .18s ease;
-  z-index: 50;
+  z-index: 999;               /* por encima de todo */
 }
-.tip::after{                 /* flechita */
-  content:"";
-  position:absolute;
+.tip::after{
+  content: "";
+  position: absolute;
   right: 10px;
   top: 100%;
   border: 6px solid transparent;
-  border-top-color: rgba(0,0,0,.85);
+  border-top-color: rgba(0,0,0,.85); /* flechita */
 }
-
 .tip.show{
   opacity: 1;
-  transform: translateY(-14px);
-}
-/* Mensajes del sistema (anuncios oficiales) */
-.msg-system {
-  border: 1px solid rgba(255,223,120,0.6); /* borde dorado */
-  background: rgba(255,223,120,0.08);
-}
-.msg-system .msg-text {
-  color: #ffd872;
-  font-weight: 600;
+  transform: translateY(-14px); /* sube un poquito y aparece */
 }
 
 </style>
@@ -278,20 +279,23 @@ body{
 
 <!-- Topbar -->
 <div class="topbar">
-  <h1 class="logo-text">WorldGold</h1>
+  <h1 class="logo-text"></h1>
 </div>
 
 <!-- Botón trofeo en top-actions -->
- <div class="top-actions">
-  <div>WLD Balance:</div>
+<div class="top-actions" style="overflow:visible">
+  <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
   <div><b id="balWLD">0.00</b> WLD</div>
+
+  <!-- WRAP del trofeo: el tip vive junto al botón -->
   <div class="trophyWrap">
-    <button id="trophyBtn" class="fab trophy" title="Leaderboard">
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
       <img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;">
     </button>
-    <div id="trophyTip" class="tip">Coming&nbsp;Soon</div>
+    <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
   </div>
 </div>
+
 
 
 
@@ -307,7 +311,8 @@ body{
     <div class="ring"></div>
     <canvas id="fx"></canvas>
     <div id="coin" class="coin" aria-label="Tap">
-      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
+      document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
       <div id="gain" class="gain">+0.40</div>
     </div>
@@ -334,15 +339,15 @@ body{
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
-  <h3 style="margin:0 0 8px">Boosters</h3>
-  <p style="opacity:.85">Soon: Power, Battery, Speed and AUTOTAP.</p>
+  <h3 style="margin:0 0 8px">Impulsores</h3>
+  <p style="opacity:.85">Any ideas what this could be?</p>
 </aside>
 
 
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
-<h3 style="margin:0 0 8px">Inbox</h3>
+<h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
 <div id="inboxList" class="inbox-list"></div>
 <button id="markRead" class="btn-icon" style="margin-top:10px">Marcar como leído</button>
 </aside>
@@ -350,7 +355,7 @@ body{
 <div id="backdropPF" class="backdrop"></div>
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
-  <h3 style="margin:0 0 12px">Perfil</h3>
+  <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
   
   <label style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
   <input id="usernameInput" type="text" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;" placeholder="Tu nombre">
@@ -367,13 +372,13 @@ body{
     <p style="opacity:.7;">WLD Balance: <b id="profWLD">--</b> 🔒</p>
   </div>
   
-  <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;">Claim (Soon)</button>
+  <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 </aside>
 
 
 <!-- Demo tools -->
 <section class="card">
-  <h3 style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
+  <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
   <div style="display:flex;gap:10px;justify-content:flex-end">
     <button id="btnAddWLD">+5 WLD</button>
     <button id="btnReset">Reset</button>
@@ -592,104 +597,112 @@ if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
 
 
 
-/* ===== Demo buttons ===== */
-$('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();loadProfileFields();
-renderProfile();
- }
-$('#btnReset').onclick =()=>{if(confirm('¿Reiniciar demo?')){localStorage.clear(); location.reload();}}
-
-/* ===== Main loop ===== */
-let tPrev=performance.now();
-function tick(t){
-  const dt=t-tPrev; tPrev=t;
-  // regen
-  lazyRegen();
-  // fx
-  stepFX(dt);
-  // render UI
-  render();
-  requestAnimationFrame(tick);
+// === Demo buttons (handlers seguros) ===
+const addWldBtn = document.getElementById('btnAddWLD');
+if (addWldBtn) {
+  addWldBtn.addEventListener('click', () => {
+    wld += 5;                                   // suma 5 WLD
+    localStorage.setItem('wld', String(wld));   // persiste
+    render();                                   // refresca balances/energía
+    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
+  });
 }
 
+const resetBtn = document.getElementById('btnReset');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    if (confirm('¿Reiniciar demo?')) {
+      localStorage.clear();
+      location.reload();
+    }
+  });
+}
+
+/* ===== Main loop (FX + regeneración visible) ===== */
+let tPrev = performance.now();
+function frame(t){
+  const dt = t - tPrev; tPrev = t;
+  stepFX(dt);             // partículas/sombras
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Regeneración y UI cada 250 ms (sube 1 en 1 a su ritmo)
+const REGEN_UI_MS = 250;
+setInterval(() => {
+  lazyRegen();            // calcula energía con tiempo real
+  render();               // actualiza barra y números
+}, REGEN_UI_MS);
 /* ===== Init ===== */
 (function init(){
   sizeCanvasToCoin();
   // Partículas de arranque para confirmar que se ven
   setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
-  render();
-  loadProfileFields();   // ← habilita nombre/idioma desde el inicio
-  requestAnimationFrame(tick);
-})();
+
+  render();               // primer pintado
+  loadProfileFields();    // engancha Perfil (username/idioma)
+  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
+})(); // 👈 MUY IMPORTANTE: cerrar la IIFE
 
 
-
-// === Trofeo ===
-// === Trofeo: tooltip sutil ===
-const trophyBtn = document.getElementById('trophyBtn');
-if (trophyBtn) {
-  const tip = document.getElementById('trophyTip');
-  trophyBtn.onclick = () => {
-    if (!tip) return;
-    tip.classList.add('show');
-    clearTimeout(tip._t);
-    tip._t = setTimeout(() => tip.classList.remove('show'), 1600); // se oculta solo
-  };
-}
 /* ===== Perfil: nombre de usuario + idioma ===== */
 let username = localStorage.getItem('username') || 'Player';
 let lang = localStorage.getItem('lang') || 'es';
-
-const usernameInput = document.getElementById('usernameInput');
-const langSelect = document.getElementById('langSelect');
-
 function applyLang(){
-  // Textos mínimos para no romper tu UI
-  const STR = {
-    es: {
-      inbox: 'Mensaje',
-      boosters: 'Impulso',
-      profile: 'Perfil',
-      markRead: 'Marcar como leído',
-      claimSoon: 'Reclamar (Pronto)'
-    },
-    en: {
-      inbox: 'Inbox',
-      boosters: 'Boosters',
-      profile: 'Profile',
-      markRead: 'Mark as read',
-      claimSoon: 'Claim (Soon)'
-    }
-  };
-  const T = STR[lang] || STR.es;
+  // === i18n minimalista ===
+const I18N = {
+  es: {
+    wld_balance:  'Saldo WLD:',
+    coming_soon:  'Próximamente',
+    inbox_title:  'Buzón',
+    boosters_title:'Impulsores',
+    profile_title:'Perfil',
+    mark_read:    'Marcar como leído',
+    claim_soon:   'Reclamar (Pronto)',
+    demo_title:   'Herramientas de prueba (demo)'
+  },
+  en: {
+    wld_balance:  'WLD Balance:',
+    coming_soon:  'Coming Soon',
+    inbox_title:  'Inbox',
+    boosters_title:'Boosters',
+    profile_title:'Profile',
+    mark_read:    'Mark as read',
+    claim_soon:   'Claim (Soon)',
+    demo_title:   'Demo tools'
+  }
+};
 
-  const hInbox   = document.querySelector('#drawerIN h3');
-  const hBoost   = document.querySelector('#drawerUP h3');
-  const hProfile = document.querySelector('#drawerPF h3');
-  const btnMark  = document.getElementById('markRead');
-  const btnClaim = document.getElementById('claimBtn');
-
-  if (hInbox)   hInbox.textContent   = T.inbox;
-  if (hBoost)   hBoost.textContent   = T.boosters;
-  if (hProfile) hProfile.textContent = T.profile;
-  if (btnMark)  btnMark.textContent  = T.markRead;
-  if (btnClaim) btnClaim.textContent = T.claimSoon;
+// Aplica traducciones a TODOS los [data-i18n]
+function applyLang(){
+  const T = I18N[lang] || I18N.es;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if (T[key] != null) el.textContent = T[key];
+  });
+  document.documentElement.lang = (lang === 'en' ? 'en' : 'es');
+}
 }
 
+
 function loadProfileFields(){
+  // 👉 Se consultan aquí, al momento de usarla (sin TDZ)
+  const usernameInput = document.getElementById('usernameInput');
+  const langSelect    = document.getElementById('langSelect');
+
   if (usernameInput){
     usernameInput.value = username;
-    // Guardar al escribir (máx 20 chars)
     usernameInput.oninput = (e)=>{
       username = (e.target.value || '').slice(0,20);
       localStorage.setItem('username', username);
     };
-    // Mensaje elegante al confirmar con Enter o salir del campo
     usernameInput.onblur = ()=>{
       if (username.trim()){
         addMessage(`👤 Nombre actualizado a: ${username}`, 'system');
       }
     };
   }
+
   if (langSelect){
     langSelect.value = lang;
     langSelect.onchange = (e)=>{
@@ -699,15 +712,40 @@ function loadProfileFields(){
       addMessage(lang==='es' ? '🌐 Idioma cambiado a Español' : '🌐 Language changed to English', 'system');
     };
   }
+
   applyLang();
 }
 
+
 // Añade el nombre al render del perfil si quieres mostrarlo en algún sitio
+function renderProfile(){
+  const pWLD  = document.getElementById('profWLD');
+  const pWLGp = document.getElementById('profWLGp');
+  if (pWLD)  pWLD.textContent  = wld.toFixed(2);
+  if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
+}
 
   // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
 
 
 
 </script>
+<script>
+(function setupTrophyTip(){
+  const btn = document.getElementById('trophyBtn');
+  const tip = document.getElementById('trophyTip');
+  if (!btn || !tip) return;
+
+  let timer;
+  btn.addEventListener('click', () => {
+    tip.classList.add('show');     // aparece
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      tip.classList.remove('show'); // se desvanece
+    }, 1600); // 1.6s visible
+  });
+})();
+</script>
+
 </body>
 </html>
