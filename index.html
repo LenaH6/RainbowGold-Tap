@@ -65,6 +65,8 @@ body{
   box-shadow: none;
   cursor:pointer;
   transition: transform 0.2s ease, filter 0.3s ease;
+  position: relative;
+
 }
 
 .fab.profile, .fab.trophy, .fab.inbox {
@@ -72,7 +74,15 @@ body{
   box-shadow: none;
 }
 
-.badge{position:absolute; top:-6px; right:-6px; background:#ff3b3b; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; font-weight:700; padding:0 6px}
+.badge{position:absolute;
+   top:-6px;
+    right:-6px;
+     background:#ff3b3b;
+      color:#fff;
+       border-radius:999px;
+        min-width:18px; height:18px;
+         display:grid; place-items:center;
+          font-size:11px; font-weight:700; padding:0 6px}
 
 /* Hero */
 .hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
@@ -196,6 +206,58 @@ body{
   transform: scale(1.15);
   filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
 }
+/* Estilo de lista de mensajes (Inbox) */
+.inbox-list { display: grid; gap: 10px; }
+.msg {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 10px;
+}
+.msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
+.msg-text { white-space: pre-line; line-height: 1.45; }
+/* Tooltip sutil para el trofeo */
+.trophyWrap{ position: relative; display: inline-block; }
+
+.tip{
+  position: absolute;
+  right: 0;                  /* aparece sobre el botón hacia la derecha */
+  top: -10px;                /* un poquito arriba */
+  transform: translateY(-6px);
+  opacity: 0;
+  pointer-events: none;      /* no bloquea clics */
+  background: rgba(0,0,0,.85);
+  color: #ffd872;
+  border: 1px solid rgba(255,223,120,.5);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 50;
+}
+.tip::after{                 /* flechita */
+  content:"";
+  position:absolute;
+  right: 10px;
+  top: 100%;
+  border: 6px solid transparent;
+  border-top-color: rgba(0,0,0,.85);
+}
+
+.tip.show{
+  opacity: 1;
+  transform: translateY(-14px);
+}
+/* Mensajes del sistema (anuncios oficiales) */
+.msg-system {
+  border: 1px solid rgba(255,223,120,0.6); /* borde dorado */
+  background: rgba(255,223,120,0.08);
+}
+.msg-system .msg-text {
+  color: #ffd872;
+  font-weight: 600;
+}
 
 </style>
 </head>
@@ -205,9 +267,12 @@ body{
   <div class="noise" aria-hidden="true"></div>
 <!-- Left FABs -->
 <div class="floatCol">
-  <button id="profileBtn" class="fab profile" title="Perfil"><img src="img/icon-profile.png" alt="Perfil" style="width:50px;height:50px;"></button>
+  <button id="profileBtn" class="fab profile" title="Profile">
+    <img src="img/icon-profile.png" alt="Perfil" style="width:50px;height:50px;">
+  </button>
   <button id="inboxBtn" class="fab inbox" title="Inbox">
-    <img src="img/icon-inbox.png" alt="Inbox" style="width:50px;height:50px;"><span id="inboxBadge" class="badge" style="display:none">0</span>
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:50px;height:50px;">
+    <span id="inboxBadge" class="badge" style="display:none">0</span>
   </button>
 </div>
 
@@ -220,11 +285,14 @@ body{
  <div class="top-actions">
   <div>WLD Balance:</div>
   <div><b id="balWLD">0.00</b> WLD</div>
-  <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end">
-    <button id="trophyBtn" class="fab trophy" title="Leaderboard"><img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;"></button>
-    
+  <div class="trophyWrap">
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard">
+      <img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;">
+    </button>
+    <div id="trophyTip" class="tip">Coming&nbsp;Soon</div>
   </div>
 </div>
+
 
 
 <!-- HERO -->
@@ -232,6 +300,7 @@ body{
   <div class="pill">
     <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
     WLGp: <b id="balWLGp">0.000</b>
+    
   </div>
 
   <div class="coinWrap" id="coinBox">
@@ -273,11 +342,9 @@ body{
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
-  <h3 style="margin:0 0 8px">Inbox</h3>
-  <p style="opacity:.8">✨"Farming Time $WLG Lovers!, Get ready for TGE and take the lead." 🎮 <br>
-  ✨"Get Ready your wallet ready to earn WLD." <br>
-  ✨"Stay tuned for more updates very SOON."
-  </p>
+<h3 style="margin:0 0 8px">Inbox</h3>
+<div id="inboxList" class="inbox-list"></div>
+<button id="markRead" class="btn-icon" style="margin-top:10px">Marcar como leído</button>
 </aside>
 <!-- Drawer Perfil -->
 <div id="backdropPF" class="backdrop"></div>
@@ -341,6 +408,73 @@ const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
+// ===== Inbox: estado y render =====
+let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
+let unread = +localStorage.getItem('unread') || 0;
+
+function saveMsgs(){
+  localStorage.setItem('msgs', JSON.stringify(msgs));
+  localStorage.setItem('unread', String(unread));
+}
+
+function renderInbox(){
+  const box = document.getElementById('inboxList');
+  if (!box) return;
+
+  if (msgs.length === 0){
+    box.innerHTML = '<p style="opacity:.7">Sin mensajes.</p>';
+  } else {
+    box.innerHTML = msgs.map(m => `
+      <div class="msg ${m.type === 'system' ? 'msg-system' : ''}">
+        <div class="msg-time">${new Date(m.ts).toLocaleString()}</div>
+        <div class="msg-text">${m.text}</div>
+      </div>
+    `).join('');
+  }
+
+  if (unread > 0){
+    inboxBadge.style.display = 'grid';
+    inboxBadge.textContent = unread;
+  } else {
+    inboxBadge.style.display = 'none';
+  }
+}
+
+
+function addMessage(text, type='user'){
+  msgs.unshift({ text, ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
+
+
+// Abrir Inbox = mostrar y limpiar contador
+if (inboxBtn) inboxBtn.onclick = () => {
+  openDrawer('IN');
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+// Botón "Marcar como leído"
+const markRead = document.getElementById('markRead');
+if (markRead) markRead.onclick = () => {
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+// Dibujar al inicio
+renderInbox();
+// ===== Mensajes iniciales (solo si aún no hay) =====
+if (msgs.length === 0) {
+  addMessage('✨ Stay tuned for more updates very SOON.', 'system');
+  addMessage('✨ Get your wallet ready to earn WLD.', 'system');
+  addMessage('✨ Farming Time $WLG Lovers! Get ready for TGE and take the lead. 🎮', 'system');
+}
+
+
 
 /* ===== Canvas del tamaño de la moneda ===== */
 function sizeCanvasToCoin(){
@@ -384,7 +518,9 @@ function render(){
   const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
   refillBtn.classList.toggle('pulse', low && canPay);
   refillBtn.disabled = energy>=eMax-1e-6;
+    if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
 }
+
 
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
@@ -416,9 +552,10 @@ function doRefill(){
 }
 refillBtn.onclick=doRefill;
 
+
 /* ===== Boosters drawer (placeholder) ===== */
 openUp.onclick=()=>openDrawer('UP');
-if (inboxBtn) inboxBtn.onclick=()=>openDrawer('IN');
+
 function openDrawer(which){
   const map = {
     UP: [drawerUP, backdropUP],
@@ -449,9 +586,16 @@ if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
 if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
 if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
 
+/* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
+if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
+
+
+
 
 /* ===== Demo buttons ===== */
-$('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();}
+$('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();loadProfileFields();
+renderProfile();
+ }
 $('#btnReset').onclick =()=>{if(confirm('¿Reiniciar demo?')){localStorage.clear(); location.reload();}}
 
 /* ===== Main loop ===== */
@@ -473,24 +617,96 @@ function tick(t){
   // Partículas de arranque para confirmar que se ven
   setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
   render();
+  loadProfileFields();   // ← habilita nombre/idioma desde el inicio
   requestAnimationFrame(tick);
 })();
-if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
 
-// Actualizar balances dentro del perfil
-function renderProfile(){
-  const profWLGp = document.getElementById('profWLGp');
-  if (profWLGp) profWLGp.textContent = wlgp.toFixed(3);
-  const profWLD = document.getElementById('profWLD');
-  if (profWLD) profWLD.textContent = wld.toFixed(2);
-}
-renderProfile();
+
 
 // === Trofeo ===
+// === Trofeo: tooltip sutil ===
 const trophyBtn = document.getElementById('trophyBtn');
-if (trophyBtn) trophyBtn.onclick = () => {
-  alert('🏆 Coming Soon');
-};
+if (trophyBtn) {
+  const tip = document.getElementById('trophyTip');
+  trophyBtn.onclick = () => {
+    if (!tip) return;
+    tip.classList.add('show');
+    clearTimeout(tip._t);
+    tip._t = setTimeout(() => tip.classList.remove('show'), 1600); // se oculta solo
+  };
+}
+/* ===== Perfil: nombre de usuario + idioma ===== */
+let username = localStorage.getItem('username') || 'Player';
+let lang = localStorage.getItem('lang') || 'es';
+
+const usernameInput = document.getElementById('usernameInput');
+const langSelect = document.getElementById('langSelect');
+
+function applyLang(){
+  // Textos mínimos para no romper tu UI
+  const STR = {
+    es: {
+      inbox: 'Mensaje',
+      boosters: 'Impulso',
+      profile: 'Perfil',
+      markRead: 'Marcar como leído',
+      claimSoon: 'Reclamar (Pronto)'
+    },
+    en: {
+      inbox: 'Inbox',
+      boosters: 'Boosters',
+      profile: 'Profile',
+      markRead: 'Mark as read',
+      claimSoon: 'Claim (Soon)'
+    }
+  };
+  const T = STR[lang] || STR.es;
+
+  const hInbox   = document.querySelector('#drawerIN h3');
+  const hBoost   = document.querySelector('#drawerUP h3');
+  const hProfile = document.querySelector('#drawerPF h3');
+  const btnMark  = document.getElementById('markRead');
+  const btnClaim = document.getElementById('claimBtn');
+
+  if (hInbox)   hInbox.textContent   = T.inbox;
+  if (hBoost)   hBoost.textContent   = T.boosters;
+  if (hProfile) hProfile.textContent = T.profile;
+  if (btnMark)  btnMark.textContent  = T.markRead;
+  if (btnClaim) btnClaim.textContent = T.claimSoon;
+}
+
+function loadProfileFields(){
+  if (usernameInput){
+    usernameInput.value = username;
+    // Guardar al escribir (máx 20 chars)
+    usernameInput.oninput = (e)=>{
+      username = (e.target.value || '').slice(0,20);
+      localStorage.setItem('username', username);
+    };
+    // Mensaje elegante al confirmar con Enter o salir del campo
+    usernameInput.onblur = ()=>{
+      if (username.trim()){
+        addMessage(`👤 Nombre actualizado a: ${username}`, 'system');
+      }
+    };
+  }
+  if (langSelect){
+    langSelect.value = lang;
+    langSelect.onchange = (e)=>{
+      lang = e.target.value;
+      localStorage.setItem('lang', lang);
+      applyLang();
+      addMessage(lang==='es' ? '🌐 Idioma cambiado a Español' : '🌐 Language changed to English', 'system');
+    };
+  }
+  applyLang();
+}
+
+// Añade el nombre al render del perfil si quieres mostrarlo en algún sitio
+
+  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
+
+
 
 </script>
 </body>
