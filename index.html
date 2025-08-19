@@ -241,14 +241,14 @@ body{
 <!-- Drawers (Boosters simple + Inbox placeholder) -->
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
-  <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">×</button>
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 style="margin:0 0 8px">Boosters</h3>
   <p style="opacity:.85">Soon: Power, Battery, Speed and AUTOTAP.</p>
 </aside>
 
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
-  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">×</button>
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
   <h3 style="margin:0 0 8px">Inbox</h3>
   <p style="opacity:.8">Pro Tip: farm what you can, your WLGp will give you an advantage in Play-&-Earn. 🎮✨</p>
 </aside>
@@ -366,10 +366,10 @@ refillBtn.onclick=doRefill;
 
 /* ===== Boosters drawer (placeholder) ===== */
 openUp.onclick=()=>openDrawer('UP');
-inboxBtn.onclick=()=>openDrawer('IN');
+if (inboxBtn) inboxBtn.onclick=()=>openDrawer('IN');
 function openDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.add('show'); bd.classList.add('show');}
 function closeDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.remove('show'); bd.classList.remove('show');}
-backdropUP.onclick=()=>closeDrawer('UP'); backdropIN.onclick=()=>closeDrawer('IN');
+if (backdropUP) backdropUP.onclick=()=>closeDrawer('UP'); if (backdropIN) backdropIN.onclick=()=>closeDrawer('IN');
 
 /* ===== Demo buttons ===== */
 $('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();}
