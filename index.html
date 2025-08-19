@@ -57,11 +57,21 @@ body{
 
 /* Left FABs */
 .floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
-.fab{width:48px; height:48px; border:none; border-radius:50%; display:grid; place-items:center; color:#fff;
-  box-shadow:0 10px 24px rgba(0,0,0,.35); cursor:pointer}
-.fab.profile{background:#06d6a0; color:#08251b}
-.fab.trophy{background:#ffd166; color:#2b2005}
-.fab.inbox{background:#7c5cff}
+.fab {
+  width:48px; height:48px;
+  border:none;
+  display:grid; place-items:center;
+  background: transparent;
+  box-shadow: none;
+  cursor:pointer;
+  transition: transform 0.2s ease, filter 0.3s ease;
+}
+
+.fab.profile, .fab.trophy, .fab.inbox {
+  background: transparent;
+  box-shadow: none;
+}
+
 .badge{position:absolute; top:-6px; right:-6px; background:#ff3b3b; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; font-weight:700; padding:0 6px}
 
 /* Hero */
@@ -90,13 +100,15 @@ body{
 }
 .coin{
   width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
-  background:linear-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%); border:2px solid rgba(255,255,255,0.15); 
-  box-shadow: 
-    0 0 15px rgba(255, 223, 120, 0.7)
-    0 0 35px rgba(255, 200, 80, 0.4)
+  background:radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%);
+  border:2px solid rgba(255,255,255,0.15);
+  box-shadow:
+    0 0 15px rgba(255, 223, 120, 0.7),
+    0 0 35px rgba(255, 200, 80, 0.4),
     0 0 60px rgba(255, 180, 60, 0.25);
-   transition:transform .08s ease; position:relative; overflow:hidden;
+  transition:transform .08s ease; position:relative; overflow:hidden;
 }
+
 .coin:active{transform:scale(.98)}
 .coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
 .coinFallback{font-size:52px}
@@ -176,6 +188,14 @@ body{
 
 /* Noise va encima */
 .noise{ z-index: 1; }
+/* Hover suave dorado en iconos */
+.fab img {
+  transition: transform 0.25s ease, filter 0.3s ease;
+}
+.fab:hover img {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
+}
 
 </style>
 </head>
@@ -185,26 +205,27 @@ body{
   <div class="noise" aria-hidden="true"></div>
 <!-- Left FABs -->
 <div class="floatCol">
-  <button id="profileBtn" class="fab profile" title="Perfil">👤</button>
+  <button id="profileBtn" class="fab profile" title="Perfil"><img src="img/icon-profile.png" alt="Perfil" style="width:50px;height:50px;"></button>
+  <button id="inboxBtn" class="fab inbox" title="Inbox">
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:50px;height:50px;"><span id="inboxBadge" class="badge" style="display:none">0</span>
+  </button>
 </div>
+
+<!-- Topbar -->
 <div class="topbar">
   <h1 class="logo-text">WorldGold</h1>
 </div>
 
-
+<!-- Botón trofeo en top-actions -->
  <div class="top-actions">
   <div>WLD Balance:</div>
   <div><b id="balWLD">0.00</b> WLD</div>
   <div style="margin-top:6px; display:flex; gap:8px; justify-content:flex-end">
-    <button id="trophyBtn" class="fab trophy" title="Leaderboard">🏆</button>
-<button id="inboxBtn" class="fab inbox" title="Inbox">
-  ✉️ <span id="inboxBadge" class="badge" style="display:none">0</span>
-</button>
-
-  </div>	
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard"><img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;"></button>
+    
+  </div>
 </div>
 
-</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -240,13 +261,14 @@ body{
   </div>
 </section>
 
-<!-- Drawers (Boosters simple + Inbox placeholder) -->
+<!-- Drawers (Boosters simple + Inbox placeholder+Perfil) -->
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 style="margin:0 0 8px">Boosters</h3>
   <p style="opacity:.85">Soon: Power, Battery, Speed and AUTOTAP.</p>
 </aside>
+
 
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
@@ -257,6 +279,30 @@ body{
   ✨"Stay tuned for more updates very SOON."
   </p>
 </aside>
+<!-- Drawer Perfil -->
+<div id="backdropPF" class="backdrop"></div>
+<aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
+  <h3 style="margin:0 0 12px">Perfil</h3>
+  
+  <label style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
+  <input id="usernameInput" type="text" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;" placeholder="Tu nombre">
+  
+  <label style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
+  <select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
+    <option value="es">Español</option>
+    <option value="en">English</option>
+  </select>
+  
+  <div style="margin:16px 0;">
+    <p>WLGp Balance: <b id="profWLGp">0.000</b></p>
+    <p style="opacity:.7;">WLG Balance: <b id="profWLG">--</b> 🔒</p>
+    <p style="opacity:.7;">WLD Balance: <b id="profWLD">--</b> 🔒</p>
+  </div>
+  
+  <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;">Claim (Soon)</button>
+</aside>
+
 
 <!-- Demo tools -->
 <section class="card">
@@ -293,6 +339,7 @@ const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#ener
 const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
 const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
+const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
 
 /* ===== Canvas del tamaño de la moneda ===== */
@@ -372,9 +419,36 @@ refillBtn.onclick=doRefill;
 /* ===== Boosters drawer (placeholder) ===== */
 openUp.onclick=()=>openDrawer('UP');
 if (inboxBtn) inboxBtn.onclick=()=>openDrawer('IN');
-function openDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.add('show'); bd.classList.add('show');}
-function closeDrawer(which){const dr=which==='UP'?drawerUP:drawerIN; const bd=which==='UP'?backdropUP:backdropIN; dr.classList.remove('show'); bd.classList.remove('show');}
-if (backdropUP) backdropUP.onclick=()=>closeDrawer('UP'); if (backdropIN) backdropIN.onclick=()=>closeDrawer('IN');
+function openDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
+  };
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.add('show');
+  bd.classList.add('show');
+}
+function closeDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
+  };
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.remove('show');
+  bd.classList.remove('show');
+}
+
+/* Cerrar tocando el fondo */
+if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
+if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
+if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
+
 
 /* ===== Demo buttons ===== */
 $('#btnAddWLD').onclick=()=>{wld+=5; localStorage.setItem('wld',String(wld)); render();}
@@ -401,6 +475,23 @@ function tick(t){
   render();
   requestAnimationFrame(tick);
 })();
+if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
+
+// Actualizar balances dentro del perfil
+function renderProfile(){
+  const profWLGp = document.getElementById('profWLGp');
+  if (profWLGp) profWLGp.textContent = wlgp.toFixed(3);
+  const profWLD = document.getElementById('profWLD');
+  if (profWLD) profWLD.textContent = wld.toFixed(2);
+}
+renderProfile();
+
+// === Trofeo ===
+const trophyBtn = document.getElementById('trophyBtn');
+if (trophyBtn) trophyBtn.onclick = () => {
+  alert('🏆 Coming Soon');
+};
+
 </script>
 </body>
 </html>
