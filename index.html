@@ -486,8 +486,23 @@ body{
 @media (max-width: 480px){
   .coinWrap .ring, .ideaBtn:hover .ideaIcon { filter:none !important; }
 }
-
-
+/* ===== Ideas (opciones + barras) ===== */
+.option-row{
+  display:grid; grid-template-columns:auto 1fr auto;
+  gap:10px; align-items:center; padding:8px;
+  background:#181a22; border:1px solid #2a2f3f; border-radius:10px;
+}
+.option-row input{ accent-color:#6d58ff; }
+.opt-main{ display:grid; gap:6px; }
+.opt-label{ font-weight:700; }
+.progress{
+  height:8px; background:#252a3a; border-radius:999px; overflow:hidden;
+}
+.progress>span{
+  display:block; height:100%;
+  background: linear-gradient(90deg,#6d58ff,#f4c542);
+}
+.pct{ min-width:46px; text-align:right; font-weight:700; opacity:.9; }
 
 
 </style>
@@ -1486,131 +1501,149 @@ if (submitIdeaBtn){
   setTimeout(hideSplash, 5000);
 })();
 </script>
-<script type="module">
-  // 1) Lazy-load del MiniKit (solo cuando se necesite)
-  let MiniKit, tokenToDecimals, Tokens, VerificationLevel;
-  async function getMiniKit(){
-    if (MiniKit) return { MiniKit, tokenToDecimals, Tokens, VerificationLevel };
-    const sources = [
-      'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
-      'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
-      'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
-    ];
-    for (const url of sources){
-      try{
-        const m = await import(url);
-        MiniKit = m.MiniKit; tokenToDecimals = m.tokenToDecimals; Tokens = m.Tokens; VerificationLevel = m.VerificationLevel;
-        console.log('[MiniKit] Loaded from', url);
-        break;
-      }catch(e){ console.warn('[MiniKit] Failed:', url); }
-    }
-    if (!MiniKit) throw new Error('MiniKit no cargó desde CDNs');
-    return { MiniKit, tokenToDecimals, Tokens, VerificationLevel };
+<script>
+(function(){
+  // Usa TU botón original #ideaBtn para abrir tu drawer 'IDG'
+  var btn = document.getElementById('ideaBtn');
+  if (btn) {
+    btn.addEventListener('click', function(){
+      if (typeof openDrawer === 'function') openDrawer('IDG');
+    }, { once: false });
   }
 
-  // 2) Tu config
-  const ACTION = 'worldgoldideas';
-  const PAY_TO = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-
-  // 3) UI helpers (toasts)
-  function toast(txt, ms=1600){
-    let el = document.getElementById('toastWG');
-    if(!el){
-      el = document.createElement('div');
-      el.id='toastWG';
-      el.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111a;backdrop-filter:blur(6px);color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.1 system-ui,Segoe UI,Roboto,sans-serif;z-index:9999;box-shadow:0 6px 18px #0006';
-      document.body.appendChild(el);
-    }
-    el.textContent = txt;
-    clearTimeout(el._t); el.style.opacity='1'; el.style.transition='opacity .25s';
-    el._t = setTimeout(()=>{ el.style.opacity='0'; }, ms);
-  }
-
-  // 4) Flujos
-  async function ensureHuman(){
-    const { MiniKit, VerificationLevel } = await getMiniKit();
-    if (localStorage.getItem('isHuman') === '1') return true;
-    if (!MiniKit.isInstalled()){ toast('Open in World App'); return false; }
-    const { finalPayload } = await MiniKit.commandsAsync.verify({ action: ACTION, verification_level: VerificationLevel.Orb });
-    if (finalPayload?.status === 'success'){ localStorage.setItem('isHuman','1'); return true; }
-    toast('Verification failed'); return false;
-  }
-
-  async function payWLD(amount, description){
-    const { MiniKit, tokenToDecimals, Tokens } = await getMiniKit();
-    if (!MiniKit.isInstalled()){ toast('Open in World App'); return false; }
-    const reference = crypto.randomUUID().replace(/-/g,''); // dev
-    const { finalPayload } = await MiniKit.commandsAsync.pay({
-      reference, to: PAY_TO,
-      tokens: [{ symbol: Tokens.WLD, token_amount: tokenToDecimals(amount, Tokens.WLD).toString() }],
-      description
-    });
-    if (finalPayload?.status === 'success') return true;
-    toast('Payment failed'); return false;
-  }
-
-  // 5) Conectar tu botón de Refill (ya existe en tu HTML)
-  const $refillBtn   = document.getElementById('refillBtn');
-  const $refillPrice = document.getElementById('refillPrice');
-
-  function flashPrice(text, ms=1200){
-    if(!$refillPrice) return;
-    const prev = $refillPrice.textContent;
-    $refillPrice.textContent = text;
-    clearTimeout($refillPrice._t);
-    $refillPrice._t = setTimeout(()=> $refillPrice.textContent = prev, ms);
-  }
-
-  $refillBtn && ($refillBtn.onclick = async ()=>{
-  const ok = await ensureHuman();
-  if (!ok) return;
-
-  // precio dinámico según energyMax
-  const amount = refillPriceWLD();
-  const paid = await payWLD(amount, `Energy Refill (${amount} WLD)`);
-  if (!paid) return;
-
-  // ✅ Llenar toda la energía
-  if (typeof window.refillEnergy === 'function') {
-    window.refillEnergy(); // usa tu lógica propia si ya la tienes
-  } else {
-    const max = getEnergyMax();
-    window.energy = max;
-    localStorage.setItem('energy', String(max));
-    if (typeof window.render === 'function') window.render();
-  }
-
-  // feedback visual
-  flashPrice('MAX ⚡', 1000);
-  toast('Energía al máximo');
-
-    // ===== Precio dinámico del refill (0.1% del energyMax) =====
-function getEnergyMax(){
-  return Number(window.energyMax || 100); // tu juego ya maneja energyMax; por defecto 100
-}
-function refillPriceWLD(){
-  const max = getEnergyMax();
-  const price = max * 0.001;        // 0.1% de la energía máxima
-  return Number(price.toFixed(3));   // mostramos 3 decimales
-}
-
-// Actualiza la etiqueta del precio en la UI (id="refillPrice")
-const $refillPrice = document.getElementById('refillPrice');
-function updateRefillPriceLabel(){
-  if ($refillPrice) $refillPrice.textContent = `${refillPriceWLD()} WLD`;
-}
-// Llamada inicial
-updateRefillPriceLabel();
-// (Opcional) si tu juego cambia energyMax con boosters, vuelve a llamar updateRefillPriceLabel()
-
-  });
-
-  // 6) Acelerar splash: si tienes el script del splash, baja el mínimo a 900ms
-  window.MIN_SPLASH && (window.MIN_SPLASH = 900);
+  // Si por accidente quedó un segundo botón flotante (ideasFab), lo ocultamos
+  var fab = document.getElementById('ideasFab');
+  if (fab) fab.style.display = 'none';
+})();
 </script>
+<script type="module">
+/* ==== WorldGold · Ideas con MiniKit (usa TU icono #ideaBtn) ==== */
 
+// 0) Carga perezosa de MiniKit con fallbacks (v1.9.6)
+let MiniKit, tokenToDecimals, Tokens, VerificationLevel;
+async function loadMiniKit(){
+  if (MiniKit) return;
+  const sources = [
+    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
+  ];
+  for (const url of sources){
+    try{
+      const m = await import(url);
+      MiniKit = m.MiniKit; tokenToDecimals = m.tokenToDecimals; Tokens = m.Tokens; VerificationLevel = m.VerificationLevel;
+      console.log('[MiniKit] loaded from', url);
+      return;
+    }catch(e){ console.warn('[MiniKit] failed', url); }
+  }
+  throw new Error('MiniKit no cargó desde CDNs');
+}
 
+// 1) Config
+const ACTION = 'worldgoldideas';                           // Identifier que creaste
+const PAY_TO = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a'; // Tu wallet
+const IDEA_PRICE = 1.2;                                    // 1.2 WLD fijos
+const ACCESS_KEY = 'wg_ideas_access_v1';                   // flag de acceso
 
+// 2) Utilidades UI (toast pequeño)
+function wgToast(txt, ms=1600){
+  let el = document.getElementById('wgToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id='wgToast';
+    el.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111a;backdrop-filter:blur(6px);color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.1 system-ui,Segoe UI,Roboto,sans-serif;z-index:9999;box-shadow:0 6px 18px #0006;opacity:0;transition:opacity .25s';
+    document.body.appendChild(el);
+  }
+  el.textContent = txt; clearTimeout(el._t); el.style.opacity='1';
+  el._t = setTimeout(()=> el.style.opacity='0', ms);
+}
+
+// 3) Hoja mínima de pago (se inyecta por JS para no tocar tu HTML)
+function ensurePaySheet(){
+  if (document.getElementById('wgIdeasSheet')) return;
+  const sheet = document.createElement('div');
+  sheet.id = 'wgIdeasSheet';
+  sheet.setAttribute('role','dialog');
+  sheet.setAttribute('aria-modal','true');
+  sheet.style.cssText = 'position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:60';
+  sheet.innerHTML = `
+    <div style="width:min(520px,92vw);background:#12131a;color:#f5f6fb;border:1px solid #ffffff10;border-radius:16px;box-shadow:0 18px 60px #0009;padding:16px 16px 14px">
+      <h3 style="margin:0 0 8px;font:800 20px/1.2 system-ui,Segoe UI,Roboto,sans-serif">Participa en la encuesta de desarrolladores</h3>
+      <p style="margin:0 0 12px;opacity:.9">Envía sugerencias privadas y vota por próximos boosters.</p>
+      <div style="display:flex;gap:10px">
+        <button id="wgIdeasPay" style="appearance:none;border:none;cursor:pointer;padding:10px 14px;border-radius:12px;font-weight:800;background:#6d58ff;color:#fff;display:flex;align-items:center;gap:8px">
+          Participar ahora — <b style="color:#F4C542">${IDEA_PRICE} WLD</b>
+        </button>
+        <button id="wgIdeasCancel" style="appearance:none;border:none;cursor:pointer;padding:10px 14px;border-radius:12px;font-weight:800;background:#1a1c26;color:#e7e8f2">Cancelar</button>
+      </div>
+      <div id="wgIdeasMsg" style="min-height:1.2em;margin-top:6px;font-weight:700;opacity:.9"></div>
+    </div>`;
+  document.body.appendChild(sheet);
+
+  // Cerrar al tocar backdrop
+  sheet.addEventListener('click', (e)=>{ if(e.target===sheet) sheet.style.display='none'; });
+  document.getElementById('wgIdeasCancel').onclick = ()=> sheet.style.display='none';
+
+  // Pago
+  document.getElementById('wgIdeasPay').onclick = async ()=>{
+    const msg = document.getElementById('wgIdeasMsg'); msg.textContent='';
+    try{
+      await loadMiniKit();
+      if (!MiniKit.isInstalled()){ wgToast('Open in World App'); return; }
+
+      // 1) Verificación Orb
+      const { finalPayload: v } = await MiniKit.commandsAsync.verify({
+        action: ACTION, verification_level: VerificationLevel.Orb
+      });
+      if (v?.status!=='success'){ msg.textContent='Verificación fallida.'; return; }
+
+      // 2) Pago 1.2 WLD
+      const reference = crypto.randomUUID().replace(/-/g,''); // ref dev
+      const { finalPayload: p } = await MiniKit.commandsAsync.pay({
+        reference,
+        to: PAY_TO,
+        tokens: [{ symbol: Tokens.WLD, token_amount: tokenToDecimals(IDEA_PRICE, Tokens.WLD).toString() }],
+        description: 'Idea Ticket (1.2 WLD)'
+      });
+      if (p?.status!=='success'){ msg.textContent='Pago fallido.'; return; }
+
+      // 3) Acceso concedido
+      localStorage.setItem(ACCESS_KEY, '1');
+      sheet.style.display='none';
+      wgToast('¡Acceso a Ideas habilitado!');
+      openIdeasPanel();
+    }catch(err){
+      console.error(err);
+      msg.textContent = 'Error inesperado.';
+    }
+  };
+}
+
+// 4) Abrir panel de ideas (tu panel existente)
+function openIdeasPanel(){
+  // Si tienes drawer 'ID' para ideas, lo abrimos
+  if (typeof openDrawer === 'function') { try{ openDrawer('ID'); return; }catch(e){} }
+  // Si no existe, al menos avisamos
+  wgToast('Ideas unlocked');
+}
+
+// 5) Conectar tu icono original (#ideaBtn) y anular handlers viejos
+(function hookIdeaBtn(){
+  const el = document.getElementById('ideaBtn');
+  if (!el) return;
+
+  // Clonamos el botón para quitar cualquier listener previo
+  const clone = el.cloneNode(true);
+  el.parentNode.replaceChild(clone, el);
+
+  // Nuevo handler: si ya tiene acceso, abre Ideas; si no, abre hoja de pago
+  clone.addEventListener('click', ()=>{
+    if (localStorage.getItem(ACCESS_KEY)==='1'){ openIdeasPanel(); return; }
+    ensurePaySheet(); document.getElementById('wgIdeasSheet').style.display='flex';
+  });
+})();
+
+</script>
 
 </body>
 </html>
