@@ -384,6 +384,72 @@ body{
 #ideaPayBtn:hover{
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--participateTextColor), transparent 65%));
 }
+/* ===== Splash (pantalla de carga) ===== */
+:root{
+  --splashLogoSize: 300px;            /* ← cambia tamaño del logo aquí */
+  --splashBg1: #0b0a1a;               /* fondo 1 */
+  --splashBg2: #151230;               /* fondo 2 */
+  --splashGlow: rgba(255,215,130,.55);/* brillo del logo */
+}
+
+#splash{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(1200px 600px at 50% 35%, var(--splashBg2), transparent 70%),
+    linear-gradient(180deg, var(--splashBg1), #080712 60%);
+  transition: opacity .5s ease, visibility 0s linear .55s;
+  opacity: 1;
+  visibility: visible;
+}
+
+#splash.hide{
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash-inner{
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.splash-logo{
+  width: var(--splashLogoSize);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 18px var(--splashGlow));
+  animation: splash-pop .6s ease both;
+}
+
+/* aro suave detrás del logo (opcional) */
+.splash-ring{
+  position: absolute;
+  width: calc(var(--splashLogoSize) * 1.8);
+  height: calc(var(--splashLogoSize) * 1.8);
+  border-radius: 50%;
+  box-shadow: 0 0 60px 8px rgba(255,255,255,.06) inset,
+              0 0 90px 12px rgba(124,92,255,.08);
+  animation: ring-fade 1.2s ease both .15s;
+}
+
+/* Respeta usuarios que prefieren menos animación */
+@media (prefers-reduced-motion: reduce){
+  .splash-logo, .splash-ring{ animation: none; }
+}
+
+/* Keyframes */
+@keyframes splash-pop{
+  0%{ transform: scale(.94); opacity:.0 }
+  100%{ transform: scale(1); opacity:1 }
+}
+@keyframes ring-fade{
+  0%{ transform: scale(.92); opacity:.0 }
+  100%{ transform: scale(1);  opacity:1 }
+}
 
 
 
@@ -391,6 +457,16 @@ body{
 </style>
 </head>
 <body>
+  <!-- ===== Splash (pantalla de carga) ===== -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-inner">
+    <!-- Reemplaza la ruta por la de TU logo -->
+    <img id="splashLogo" class="splash-logo" src="img/logo-splash.png" alt="WorldGold">
+
+    <div class="splash-ring" aria-hidden="true"></div>
+  </div>
+</div>
+
   <div class="stars"></div>
   <div class="stars2"></div>
   <div class="noise" aria-hidden="true"></div>
@@ -1329,6 +1405,49 @@ if (submitIdeaBtn){
 }
 
 
+})();
+</script>
+  <script>
+(function(){
+  const splash = document.getElementById('splash');
+  const logo   = document.getElementById('splashLogo');
+
+  // 📁 Ruta principal y fallback (Coin.png existe en tu repo)
+  const PRIMARY  = 'img/logo-splash.png'; // tu logo
+  const FALLBACK = 'img/Coin.png';        // respaldo si falla
+
+  // ⏱️ Tiempo mínimo que el splash debe permanecer visible
+  const MIN_SHOW = 3000; // ms (sube a 3000 si lo quieres más largo)
+  const t0 = performance.now();
+
+  function reallyHide(){
+    if (!splash || splash.classList.contains('hide')) return;
+    splash.classList.add('hide');
+    setTimeout(()=> splash.remove?.(), 650);
+  }
+  function hideSplash(){
+    // Respeta el tiempo mínimo visible
+    const dt   = performance.now() - t0;
+    const wait = Math.max(0, MIN_SHOW - dt);
+    setTimeout(reallyHide, wait);
+  }
+
+  // Si tu logo falla, usa fallback (evita que aparezca el ALT)
+  if (logo){
+    // Si ya venía con otra ruta, la normalizamos
+    logo.src = PRIMARY;
+
+    logo.addEventListener('error', () => {
+      // Cambiamos a la imagen de respaldo
+      logo.src = FALLBACK;
+    });
+  }
+
+  // Cierra cuando la página termina de cargar… pero respetando MIN_SHOW
+  window.addEventListener('load', hideSplash);
+
+  // Salvavidas adicional: cierre duro a los 5s si algo queda colgado
+  setTimeout(hideSplash, 5000);
 })();
 </script>
 
