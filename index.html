@@ -38,19 +38,6 @@ body{
   padding:0 12px;
   background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
 }
-.logo-text{
-  margin: 0;
-  font-size: 30px;       /* tamaño elegante */
-  font-weight: 800;      /* bien marcado */
-  color: #ffea70;        /* dorado */
-  letter-spacing: 1.5px;   /* espacio entre letras */
-  text-transform: uppercase;
-  text-shadow: 0 0 3px rgba(255,234,112,0.7), /* glow dorado */
-               0 0 6px rgba(255,234,112,0.4);
-  display: inline-block;  /*hace que no se estire todo el ancho*/
-  pointer-events: none; /*el texto no captura clicks*/
-}
-
 
 .topbar h1{margin:0; font-size:28px}
 .top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
@@ -269,6 +256,31 @@ body{
      0 0 14px rgba(244,197,66,.25);
 }
 .msg-system .msg-time{ color: #ffd872; }
+/* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
+:root{
+  /* Ajusta aquí sin miedo */
+  --logoSize: 20px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
+  --logoColor: #fffff;      /* color del texto */
+}
+
+/* Más específico + !important para ganar siempre */
+.topbar .logo-text{
+  font-size: var(--logoSize) !important;
+  color: var(--logoColor) !important;
+ }
+ .logo-text{
+  margin: 0;
+  font-size: var(--logoSize);
+  font-weight: 800;
+  color: var(--logoColor);
+  letter-spacing: 1.5px;
+  text-shadow:
+    0 0 3px var(--logoGlow1),
+    0 0 6px var(--logoGlow2);
+  display: inline-block;
+  pointer-events: none;
+}
+
 
 </style>
 </head>
@@ -366,27 +378,32 @@ body{
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
   <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
-  
-  <label style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
-  <input id="usernameInput" type="text" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;" placeholder="Tu nombre">
-  <div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+
+<label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
+<input id="usernameInput" type="text"
+  style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
+  data-i18n-placeholder="username_placeholder"
+  placeholder="Tu nombre">
+
+<div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
   <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
   <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
 </div>
 
-  <label style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
-  <select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
-    <option value="es">Español</option>
-    <option value="en">English</option>
-  </select>
-  
-  <div style="margin:16px 0;">
-    <p>WLGp Balance: <b id="profWLGp">0.000</b></p>
-    <p style="opacity:.7;">WLG Balance: <b id="profWLG">--</b> 🔒</p>
-    <p style="opacity:.7;">WLD Balance: <b id="profWLD">--</b> 🔒</p>
-  </div>
-  
-  <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
+<label data-i18n="language_label" style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
+<select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
+  <option value="es" data-i18n="option_es">Español</option>
+  <option value="en" data-i18n="option_en">Inglés</option>
+</select>
+
+<div style="margin:16px 0;">
+  <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
+  <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
+  <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
+</div>
+
+<button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
+
 </aside>
 
 
@@ -689,54 +706,113 @@ function setUsername(v){
   return s;
 }
 
+// === Saludo en el logo (NIVEL RAÍZ, fuera de cualquier función) ===
+function renderLogoGreeting(){
+  try{
+    const cur = (typeof getLang === 'function') ? getLang() : 'es';
+    const hasI18N = typeof I18N !== 'undefined' && I18N && I18N[cur];
+    const T = hasI18N ? I18N[cur] : { hello_user: (cur==='en' ? 'Hello {name}!' : 'Hola {name}!') };
+    const user = (typeof getUsername === 'function') ? getUsername() : 'Player';
+    const h1 = document.querySelector('.logo-text');
+    if (!h1) return;
+    const text = (T.hello_user || (cur==='en' ? 'Hello {name}!' : 'Hola {name}!')).replace('{name}', user || 'Player');
+    h1.textContent = text;
+  }catch(e){ console.error('[greeting] error:', e); }
+}
+
+
+/* Diccionario i18n (UNA sola vez) */
 /* Diccionario i18n (UNA sola vez) */
 const I18N = {
   es: {
-    wld_balance:  'Saldo WLD:',
-    coming_soon:  'Próximamente',
-    inbox_title:  'Buzón',
+    wld_balance:   'Saldo WLD:',
+    coming_soon:   'Próximamente',
+    inbox_title:   'Buzón',
     boosters_title:'Impulsores',
-    profile_title:'Perfil',
-    mark_read:    'Marcar como leído',
-    claim_soon:   'Reclamar (Pronto)',
-    demo_title:   'Herramientas de prueba (demo)',
-    save:         'Guardar',
-    saved:        'Guardado' ,   
-    seed_stay_tuned: 'Novedades MUY pronto. Mantente atento. ✨',
-    seed_get_wallet: 'Prepara tu billetera para ganar WLD. ✨',
-    seed_farming_time: '¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+    profile_title: 'Perfil',
+    mark_read:     'Marcar como leído',
+    claim_soon:    'Reclamar (Pronto)',
+    demo_title:    'Herramientas de prueba (demo)',
+    save:          'Guardar',
+    saved:         'Guardado',
 
+    // 👇 NUEVO: Perfil
+    username_label:        'Nombre de usuario',
+    username_placeholder:  'Tu nombre',
+    language_label:        'Idioma',
+    option_es:             'Español',
+    option_en:             'Inglés',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+    // 👇 Saludo del logo
+    hello_user:            'Hola {name}!',
+
+    // 👇 Seeds del Inbox (si usas addMessageKey)
+    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
+    seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
+    seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
   },
   en: {
-    wld_balance:  'WLD Balance:',
-    coming_soon:  'Coming Soon',
-    inbox_title:  'Inbox',
+    wld_balance:   'WLD Balance:',
+    coming_soon:   'Coming Soon',
+    inbox_title:   'Inbox',
     boosters_title:'Boosters',
-    profile_title:'Profile',
-    mark_read:    'Mark as read',
-    claim_soon:   'Claim (Soon)',
-    demo_title:   'Demo tools',
-    save:         'Save',
-    saved:        'Saved',
-    seed_stay_tuned: 'Stay tuned — big updates soon. ✨',
-    seed_get_wallet: 'Get your wallet ready to earn WLD. ✨',
-    seed_farming_time: 'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
+    profile_title: 'Profile',
+    mark_read:     'Mark as read',
+    claim_soon:    'Claim (Soon)',
+    demo_title:    'Demo tools',
+    save:          'Save',
+    saved:         'Saved',
 
+    // 👇 NEW: Profile
+    username_label:        'Username',
+    username_placeholder:  'Your name',
+    language_label:        'Language',
+    option_es:             'Spanish',
+    option_en:             'English',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+    // 👇 Logo greeting
+    hello_user:            'Hello {name}!',
+
+    // 👇 Inbox seeds
+    seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
+    seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
+    seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
   }
 };
 
+
 /* Aplica i18n a todos los [data-i18n] */
+/* Aplica i18n a todos los [data-i18n] y placeholders */
 function applyLang(){
   const cur = getLang();
   const T = I18N[cur] || I18N.es;
+
+  // 1) Textos
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const key = el.getAttribute('data-i18n');
     if (T[key] != null) el.textContent = T[key];
   });
-  document.documentElement.lang = cur;
-  renderInbox(); // 👈 re-dibuja el Inbox con el idioma actual
 
+  // 2) Placeholders (inputs/textarea)
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (T[key] != null) el.setAttribute('placeholder', T[key]);
+  });
+
+  document.documentElement.lang = cur;
+
+  // Redibuja partes dependientes de idioma
+  renderInbox();                         // Inbox por clave
+  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // Hola/Hello {name}
 }
+
+
 
 /* Carga campos del Perfil + botón Guardar */
 function loadProfileFields(){
@@ -759,15 +835,17 @@ function loadProfileFields(){
 
     if (saveBtn){
       saveBtn.onclick = ()=>{
-        const normalized = setUsername(usernameInput.value);
-        usernameInput.value = normalized;
-        saveBtn.style.display = 'none';
-        if (savedBadge){
-          savedBadge.style.display = 'inline';
-          clearTimeout(savedBadge._t);
-          savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
-        }
-      };
+  const normalized = setUsername(usernameInput.value);
+  usernameInput.value = normalized;
+  saveBtn.style.display = 'none';
+  if (savedBadge){
+    savedBadge.style.display = 'inline';
+    clearTimeout(savedBadge._t);
+    savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
+  }
+  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // una sola vez
+};
+
     }
     // Auto-guardar al salir del input
     usernameInput.addEventListener('blur', ()=>{
@@ -811,7 +889,7 @@ function renderProfile(){
   loadProfileFields();    // engancha Perfil (username/idioma)
   if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
   // Mensajes iniciales con CLAVE (se traducen)
-  if (msgs.length === 0) {
+if (msgs.length === 0) {
   addMessageKey('seed_stay_tuned', 'system');
   addMessageKey('seed_get_wallet', 'system');
   addMessageKey('seed_farming_time', 'system');
@@ -819,6 +897,8 @@ function renderProfile(){
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
+renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
+
 
 })(); // 👈 MUY IMPORTANTE: cerrar la IIFE
 
