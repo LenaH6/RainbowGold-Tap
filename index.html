@@ -290,25 +290,20 @@ body{
   background: transparent; border: none; cursor: pointer;
 }
 .ideaBtn img { width: 50px; height: 50px; display: block; }
-.ideaPrice {
-  position: absolute;
-  left: 44px; bottom: 12px;
-  font-weight: 600; font-size: 13px; line-height: 1;
-  color: var(--gold-soft);
-  padding: 4px 8px; border-radius: 10px;
-  background: rgba(10,8,24,.65);
-  border: 1px solid rgba(255,255,255,.16);
-  pointer-events: none;
-}
+
+/* ==== OVERRIDE: Icono de Ideas con fallback visible ==== */
 :root{
-  /* Tamaño del ícono de Ideas: cambia aquí y listo */
-  --ideaSize: 50px;             /* por ejemplo: 44px, 56px, clamp(40px,6vw,60px) */
-  --ideaOffsetX: -12px;         /* ajuste fino horizontal (negativo = más a la izquierda) */
-  --ideaOffsetY: 18px;          /* ajuste fino vertical   (más alto = más arriba) */
+  /* Ajustes rápidos */
+  --ideaSize: 56px;          /* tamaño del icono */
+  --ideaOffsetX: -12px;      /* negativo = más a la izq.; positivo = a la der. */
+  --ideaOffsetY: 24px;       /* más grande = más arriba */
+  --ideaColor: #ffd872;      /* 🎨 color del icono */
+  --ideaGlow: rgba(255,216,114,.75);
 }
 
-/* Botón Ideas (junto a la moneda) */
-.ideaBtn {
+/* Botón anclado a la moneda */
+.coinWrap { position: relative; }
+.ideaBtn{
   position: absolute;
   left: var(--ideaOffsetX);
   bottom: var(--ideaOffsetY);
@@ -316,12 +311,29 @@ body{
   height: var(--ideaSize);
   display: grid; place-items: center;
   background: transparent; border: none; cursor: pointer;
+  z-index: 6;
 }
-.ideaBtn img {
+
+/* Ícono con máscara + fallback */
+.ideaBtn .ideaIcon{
   width: var(--ideaSize);
   height: var(--ideaSize);
-  display: block;
+
+  /* 1) Color (si la máscara carga) + 2) PNG como fallback visible */
+  background:
+    linear-gradient(var(--ideaColor), var(--ideaColor)) center/contain no-repeat,
+    url('img/icon-idea.png?v=4') center/contain no-repeat;
+
+  /* Máscara (si falla, se verá la 2ª capa = PNG) */
+  -webkit-mask-image: url('img/icon-idea.png?v=4');
+          mask-image: url('img/icon-idea.png?v=4');
+  -webkit-mask-size: contain;   mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center;  mask-position: center;
 }
+.ideaBtn:hover .ideaIcon{ filter: drop-shadow(0 0 10px var(--ideaGlow)); }
+
+
 
 
 </style>
@@ -372,18 +384,20 @@ body{
   </div>
 
   <div class="coinWrap" id="coinBox">
-    <div class="ring"></div>
-    <canvas id="fx"></canvas>
-    <div id="coin" class="coin" aria-label="Tap">
-      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
+  <div class="ring"></div>
+  <canvas id="fx"></canvas>
+  <div id="coin" class="coin" aria-label="Tap">
+    <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
       document.getElementById('fallback').style.display='block'">
-      <div id="fallback" class="coinFallback" style="display:none">🪙</div>
-      <div id="gain" class="gain">+0.40</div>
-    </div>
-    <!-- Botón de Ideas -->
-<button id="ideaBtn" class="ideaBtn" title="Ideas">
-  <img src="img/icon-idea.png" alt="Ideas">
-</button>
+    <div id="fallback" class="coinFallback" style="display:none">🪙</div>
+    <div id="gain" class="gain">+0.40</div>
+  </div>
+
+  <!-- ÚNICO botón Ideas (tinteable por CSS) -->
+  <button id="ideaBtn" class="ideaBtn" title="Ideas" aria-label="Ideas">
+    <span class="ideaIcon"></span>
+  </button>
+</div>
 
   </div>
 
