@@ -10,8 +10,8 @@
   --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
   --gold:#F4C542; --gold-soft:#FFD872;
   /* MÁS GRANDE y calzada */
-  --heroSize: clamp(240px, 72vw, 540px);
-  --coinSize: clamp(240px, 72vw, 540px);
+  --heroSize: clamp(200px, 72vw, 440px);
+  --coinSize: clamp(200px, 72vw, 440px);
 }
 
 /* Base */
@@ -259,7 +259,7 @@ body{
 /* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
 :root{
   /* Ajusta aquí sin miedo */
-  --logoSize: 20px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
+  --logoSize: 15px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
   --logoColor: #fffff;      /* color del texto */
 }
 
@@ -449,6 +449,35 @@ body{
 @keyframes ring-fade{
   0%{ transform: scale(.92); opacity:.0 }
   100%{ transform: scale(1);  opacity:1 }
+}
+/* === Inbox badge (tamaño y posición) — pegar al FINAL del <style> === */
+:root{
+  --inboxBadgeSize: 14px;     /* ← tamaño total del circulito (prueba 12–16px) */
+  --inboxBadgeX:   -6px;      /* ← mover horizontal: + a la derecha, − a la izquierda */
+  --inboxBadgeY:   -4px;      /* ← mover vertical: − hacia arriba, + hacia abajo */
+}
+
+/* Contenedor del botón del buzón (asegura ancla para el badge) */
+#inboxBtn, .inboxBtn, [data-inbox]{
+  position: relative !important;
+}
+
+/* Badge rojo (cubro nombres típicos por si el tuyo es distinto) */
+#inboxBadge, .inbox-badge, .badge--inbox, .inbox .badge{
+  position: absolute !important;
+  top:  var(--inboxBadgeY);
+  right: var(--inboxBadgeX);
+  min-width: var(--inboxBadgeSize);
+  height:    var(--inboxBadgeSize);
+  padding: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #e53935;  /* rojo */
+  color: #fff;
+  line-height: 1;
+  font-weight: 700;
+  font-size: calc(var(--inboxBadgeSize) * .62); /* tamaño del número */
 }
 
 
