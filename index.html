@@ -332,6 +332,58 @@ body{
   -webkit-mask-position: center;  mask-position: center;
 }
 .ideaBtn:hover .ideaIcon{ filter: drop-shadow(0 0 10px var(--ideaGlow)); }
+/* === Overrides de colores: Votar y Precio (pegar al FINAL del <style>) === */
+/* === Overrides de colores: Votar / Enviar / Precio (pegar al FINAL del <style>) === */
+:root{
+  --voteTextColor:   #281f2b;  /* color del texto de "Votar" */
+  --submitTextColor: #281f2b;  /* color del texto de "Enviar idea" */
+  --priceTextColor:  #281f2b;  /* color del "1.2 WLD" en el gateway */
+}
+
+/* 1) Botón Votar */
+#voteBtn{
+  color: var(--voteTextColor) !important;
+}
+#voteBtn:hover{
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--voteTextColor), transparent 60%));
+}
+
+/* 2) Botón Enviar idea */
+#submitIdeaBtn{
+  color: var(--submitTextColor) !important;
+}
+#submitIdeaBtn:hover{
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--submitTextColor), transparent 60%));
+}
+
+/* 3) Precio en el CTA del gateway ("1.2 WLD") */
+#ideaPayBtn b{
+  color: var(--priceTextColor) !important;
+}
+
+/* (Opcional) si quieres que TODO el botón del gateway herede ese color:
+#ideaPayBtn{ color: var(--priceTextColor) !important; }
+*/
+/* === Colores de Participar (puedes ajustar) === */
+:root{
+  --participateTextColor:  #39275e; /* color del texto "Participar ahora —" */
+  --participatePriceColor: #39275e; /* color del "1.2 WLD" dentro del <b> */
+}
+
+/* Texto del botón (Participar) */
+#ideaPayBtn{
+  color: var(--participateTextColor) !important;
+}
+
+/* Precio dentro del botón (1.2 WLD) */
+#ideaPayBtn b{
+  color: var(--participatePriceColor) !important;
+}
+
+/* (Opcional) efecto hover suave */
+#ideaPayBtn:hover{
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--participateTextColor), transparent 65%));
+}
 
 
 
@@ -423,7 +475,7 @@ body{
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 data-i18n="boosters_title">Impulsores</h3>
-  <p style="opacity:.85">Any ideas what this could be?</p>
+  <p style="opacity:.85">Any ideas what this could be?🤑</p>
 </aside>
 
 
@@ -505,7 +557,7 @@ body{
 
   <ul style="opacity:.85; margin:10px 0 14px; padding-left:18px;">
     <li data-i18n="ideas_gw_b1">Vota por los próximos boosters</li>
-    <li data-i18n="ideas_gw_b2">Envía ideas privadas (solo el equipo las ve)</li>
+    <li data-i18n="ideas_gw_b2">Envía ideas privadas</li>
     <li data-i18n="ideas_gw_b3">Tu opinión ayuda a priorizar novedades</li>
   </ul>
 
@@ -884,14 +936,14 @@ const I18N = {
     ideas_intro: 'Comparte 1 idea o vota 1 opción por cada ticket de idea.',
     ideas_poll_title: '¿Qué booster te gustaría primero?',
     ideas_free_title: '¿Otra idea?',
-    ideas_vote_btn: 'Votar (consume 1 ticket)',
-    ideas_submit_btn: 'Enviar idea (consume 1 ticket)',
+    ideas_vote_btn: 'Votar ( 1 ticket )🎟️',
+    ideas_submit_btn: 'Enviar idea ( 1 ticket )🎟️',
     ideas_placeholder: 'Escribe tu idea...',
     ideas_privacy_note: 'Tus ideas son privadas (no se muestran a otros usuarios).',
     ideas_gw_title: 'Participa y aporta',
     ideas_gw_intro: 'Únete a la encuesta de desarrolladores y envía tus sugerencias para mejorar WorldGold.',
     ideas_gw_b1: 'Vota por los próximos boosters',
-    ideas_gw_b2: 'Envía ideas privadas (solo el equipo las ve)',
+    ideas_gw_b2: 'Envía ideas privadas',
     ideas_gw_b3: 'Tu opinión ayuda a priorizar novedades',
     ideas_gw_cta: 'Participar ahora —',
 
@@ -911,11 +963,11 @@ const I18N = {
     profile_wld_label:     'WLD Balance:',
 
     // 👇 Saludo del logo
-    hello_user:            'Hola {name}!',
+    hello_user:            'Hola {name}!🌐',
 
     // 👇 Seeds del Inbox (si usas addMessageKey)
-    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
-    seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
+    seed_stay_tuned:  'Novedades muy pronto — Mantente atento. 📢',
+    seed_get_wallet:  'Prepara tu billetera para ganar WLD. 💸',
     seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
   },
   en: {
@@ -933,14 +985,14 @@ const I18N = {
     ideas_intro: 'Share 1 idea or vote 1 option per idea ticket.',
     ideas_poll_title: 'Which booster do you want first?',
     ideas_free_title: 'Another idea?',
-    ideas_vote_btn: 'Vote (uses 1 ticket)',
-    ideas_submit_btn: 'Submit idea (uses 1 ticket)',
+    ideas_vote_btn: 'Vote ( 1 ticket )🎟️',
+    ideas_submit_btn: 'Submit idea ( 1 ticket )🎟️',
     ideas_placeholder: 'Write your idea...',
     ideas_privacy_note: 'Your ideas are private (not shown to other users).',
     ideas_gw_title: 'Participate & Contribute',
     ideas_gw_intro: 'Join the developer survey and submit suggestions to improve WorldGold.',
     ideas_gw_b1: 'Vote on upcoming boosters',
-    ideas_gw_b2: 'Send private ideas (team-only)',
+    ideas_gw_b2: 'Send private ideas',
     ideas_gw_b3: 'Your input helps prioritize updates',
     ideas_gw_cta: 'Join now —',
 
@@ -957,11 +1009,11 @@ const I18N = {
     profile_wld_label:     'WLD Balance:',
 
     // 👇 Logo greeting
-    hello_user:            'Hello {name}!',
+    hello_user:            'Hello {name}!🌐',
 
     // 👇 Inbox seeds
-    seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
-    seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
+    seed_stay_tuned:  'Stay tuned — big updates soon. 📢',
+    seed_get_wallet:  'Get your wallet ready to earn WLD. 💸',
     seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
   }
 };
