@@ -280,6 +280,48 @@ body{
   display: inline-block;
   pointer-events: none;
 }
+/* === Ideas button junto a la moneda === */
+.ideaBtn {
+  position: absolute;
+  left: -12px;            /* pega al borde izq. de la moneda */
+  bottom: 18px;           /* un poco encima de la base */
+  width: 50px; height: 50px;
+  display: grid; place-items: center;
+  background: transparent; border: none; cursor: pointer;
+}
+.ideaBtn img { width: 50px; height: 50px; display: block; }
+.ideaPrice {
+  position: absolute;
+  left: 44px; bottom: 12px;
+  font-weight: 600; font-size: 13px; line-height: 1;
+  color: var(--gold-soft);
+  padding: 4px 8px; border-radius: 10px;
+  background: rgba(10,8,24,.65);
+  border: 1px solid rgba(255,255,255,.16);
+  pointer-events: none;
+}
+:root{
+  /* Tamaño del ícono de Ideas: cambia aquí y listo */
+  --ideaSize: 50px;             /* por ejemplo: 44px, 56px, clamp(40px,6vw,60px) */
+  --ideaOffsetX: -12px;         /* ajuste fino horizontal (negativo = más a la izquierda) */
+  --ideaOffsetY: 18px;          /* ajuste fino vertical   (más alto = más arriba) */
+}
+
+/* Botón Ideas (junto a la moneda) */
+.ideaBtn {
+  position: absolute;
+  left: var(--ideaOffsetX);
+  bottom: var(--ideaOffsetY);
+  width: var(--ideaSize);
+  height: var(--ideaSize);
+  display: grid; place-items: center;
+  background: transparent; border: none; cursor: pointer;
+}
+.ideaBtn img {
+  width: var(--ideaSize);
+  height: var(--ideaSize);
+  display: block;
+}
 
 
 </style>
@@ -338,6 +380,11 @@ body{
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
       <div id="gain" class="gain">+0.40</div>
     </div>
+    <!-- Botón de Ideas -->
+<button id="ideaBtn" class="ideaBtn" title="Ideas">
+  <img src="img/icon-idea.png" alt="Ideas">
+</button>
+
   </div>
 
   <!-- DOCK bajo la moneda -->
@@ -403,6 +450,59 @@ body{
 </div>
 
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
+<div id="backdropID" class="backdrop"></div>
+<aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
+  <h3 data-i18n="ideas_title" style="margin:0 0 10px">Ideas de la comunidad</h3>
+
+  <p id="ideasIntro" style="opacity:.85" data-i18n="ideas_intro">
+    Comparte 1 idea o vota 1 opción por cada ticket de idea.
+  </p>
+  <p id="privacyNote" style="opacity:.75" data-i18n="ideas_privacy_note">
+  Tus ideas son privadas (no se muestran a otros usuarios).
+  </p>
+  <div id="ticketInfo" style="margin:10px 0;opacity:.85"></div>
+
+  <h4 data-i18n="ideas_poll_title" style="margin:12px 0 6px">¿Qué booster te gustaría primero?</h4>
+  <div id="pollList" style="display:grid;gap:8px;margin-bottom:14px"></div>
+  <button id="voteBtn" class="btn-icon" style="min-height:auto;padding:8px 12px" data-i18n="ideas_vote_btn">
+    Votar (consume 1 ticket)
+  </button>
+
+  <h4 data-i18n="ideas_free_title" style="margin:16px 0 6px">¿Otra idea?</h4>
+  <textarea id="ideaInput" data-i18n-placeholder="ideas_placeholder"
+    placeholder="Escribe tu idea..."
+    style="width:100%;height:90px;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"></textarea>
+  <button id="submitIdeaBtn" class="btn-icon" style="min-height:auto;padding:8px 12px;margin-top:8px" data-i18n="ideas_submit_btn">
+    Enviar idea (consume 1 ticket)
+  </button>
+
+  <div id="ideasMsg" style="margin-top:10px;opacity:.9"></div>
+  <!-- GATEWAY de Ideas: primero se abre este -->
+<div id="backdropIDG" class="backdrop"></div>
+<aside id="drawerIDG" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IDG')">x</button>
+
+  <h3 data-i18n="ideas_gw_title" style="margin:0 0 10px">Participa y aporta</h3>
+
+  <p data-i18n="ideas_gw_intro" style="opacity:.85">
+    Únete a la encuesta de desarrolladores y envía tus sugerencias para mejorar WorldGold.
+  </p>
+
+  <ul style="opacity:.85; margin:10px 0 14px; padding-left:18px;">
+    <li data-i18n="ideas_gw_b1">Vota por los próximos boosters</li>
+    <li data-i18n="ideas_gw_b2">Envía ideas privadas (solo el equipo las ve)</li>
+    <li data-i18n="ideas_gw_b3">Tu opinión ayuda a priorizar novedades</li>
+  </ul>
+
+  <button id="ideaPayBtn" class="btn-icon" style="min-height:auto;padding:10px 12px;">
+    <span data-i18n="ideas_gw_cta">Participar ahora —</span>&nbsp;<b>1.2 WLD</b>
+  </button>
+
+  <p id="ideasGwMsg" style="margin-top:10px;opacity:.9"></p>
+</aside>
+
+</aside>
 
 </aside>
 
@@ -444,6 +544,31 @@ const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
+/* ===== Ideas: refs, estado y costo ===== */
+const ideaBtn = document.getElementById('ideaBtn');
+const drawerID = document.getElementById('drawerID');
+const backdropID = document.getElementById('backdropID');
+const ticketInfo = document.getElementById('ticketInfo');
+const pollList = document.getElementById('pollList');
+const voteBtn = document.getElementById('voteBtn');
+const ideaInput = document.getElementById('ideaInput');
+const submitIdeaBtn = document.getElementById('submitIdeaBtn');
+const ideasMsg = document.getElementById('ideasMsg');
+const IDEA_COST = 1.2;
+let ideaTickets = +localStorage.getItem('idea_tickets') || 0;
+/* ===== Gateway de Ideas (pago previo) ===== */
+const drawerIDG = document.getElementById('drawerIDG');
+const backdropIDG = document.getElementById('backdropIDG');
+const ideaPayBtn = document.getElementById('ideaPayBtn');
+const ideasGwMsg = document.getElementById('ideasGwMsg');
+
+const POLL_OPTIONS = [
+  { id: 'boost_energy',  key_es: 'Energía +10%',     key_en: 'Energy +10%',         votes: +(localStorage.getItem('poll_boost_energy')||0) },
+  { id: 'auto_tap',      key_es: 'Auto-tap',         key_en: 'Auto-tap',           votes: +(localStorage.getItem('poll_auto_tap')||0) },
+  { id: 'wld_multiplier',key_es: 'Multiplicador WLD',key_en: 'WLD Multiplier',     votes: +(localStorage.getItem('poll_wld_multiplier')||0) },
+];
+let selectedPoll = null;
+
 // ===== Inbox: estado y render =====
 let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
 let unread = +localStorage.getItem('unread') || 0;
@@ -623,6 +748,8 @@ function openDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID], // 👈 añadido
+    IDG:[drawerIDG, backdropIDG], // Ideas Gateway (pago)
   };
   const pair = map[which];
   if (!pair) return;
@@ -635,6 +762,8 @@ function closeDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID], // 👈 añadido
+    IDG:[drawerIDG, backdropIDG],
   };
   const pair = map[which];
   if (!pair) return;
@@ -647,6 +776,8 @@ function closeDrawer(which){
 if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
 if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
 if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
+if (backdropID) backdropID.onclick = () => closeDrawer('ID');
+if (backdropIDG) backdropIDG.onclick = () => closeDrawer('IDG');
 
 /* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
 if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
@@ -735,6 +866,25 @@ const I18N = {
     demo_title:    'Herramientas de prueba (demo)',
     save:          'Guardar',
     saved:         'Guardado',
+    ideas_title: 'Ideas de la comunidad',
+    ideas_intro: 'Comparte 1 idea o vota 1 opción por cada ticket de idea.',
+    ideas_poll_title: '¿Qué booster te gustaría primero?',
+    ideas_free_title: '¿Otra idea?',
+    ideas_vote_btn: 'Votar (consume 1 ticket)',
+    ideas_submit_btn: 'Enviar idea (consume 1 ticket)',
+    ideas_placeholder: 'Escribe tu idea...',
+    ideas_privacy_note: 'Tus ideas son privadas (no se muestran a otros usuarios).',
+    ideas_gw_title: 'Participa y aporta',
+    ideas_gw_intro: 'Únete a la encuesta de desarrolladores y envía tus sugerencias para mejorar WorldGold.',
+    ideas_gw_b1: 'Vota por los próximos boosters',
+    ideas_gw_b2: 'Envía ideas privadas (solo el equipo las ve)',
+    ideas_gw_b3: 'Tu opinión ayuda a priorizar novedades',
+    ideas_gw_cta: 'Participar ahora —',
+
+
+
+
+
 
     // 👇 NUEVO: Perfil
     username_label:        'Nombre de usuario',
@@ -765,6 +915,22 @@ const I18N = {
     demo_title:    'Demo tools',
     save:          'Save',
     saved:         'Saved',
+    ideas_title: 'Community Ideas',
+    ideas_intro: 'Share 1 idea or vote 1 option per idea ticket.',
+    ideas_poll_title: 'Which booster do you want first?',
+    ideas_free_title: 'Another idea?',
+    ideas_vote_btn: 'Vote (uses 1 ticket)',
+    ideas_submit_btn: 'Submit idea (uses 1 ticket)',
+    ideas_placeholder: 'Write your idea...',
+    ideas_privacy_note: 'Your ideas are private (not shown to other users).',
+    ideas_gw_title: 'Participate & Contribute',
+    ideas_gw_intro: 'Join the developer survey and submit suggestions to improve WorldGold.',
+    ideas_gw_b1: 'Vote on upcoming boosters',
+    ideas_gw_b2: 'Send private ideas (team-only)',
+    ideas_gw_b3: 'Your input helps prioritize updates',
+    ideas_gw_cta: 'Join now —',
+
+
 
     // 👇 NEW: Profile
     username_label:        'Username',
@@ -918,6 +1084,185 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
       tip.classList.remove('show'); // se desvanece
     }, 1600); // 1.6s visible
   });
+  function saveIdeaTickets(){
+  localStorage.setItem('idea_tickets', String(ideaTickets));
+}
+function showIdeasMsg(text, ms=1400){
+  ideasMsg.textContent = text || '';
+  if (!text) return;
+  clearTimeout(ideasMsg._t);
+  ideasMsg._t = setTimeout(()=> ideasMsg.textContent = '', ms);
+}
+function formatTickets(){ return `Tickets: ${ideaTickets}`; }
+
+function renderPoll(){
+  pollList.innerHTML = '';
+
+  // Total de votos para calcular %
+  const total = POLL_OPTIONS.reduce((a,o)=>a + (o.votes||0), 0);
+
+  const cur = getLang();
+  POLL_OPTIONS.forEach(opt=>{
+    const label = (cur==='en') ? opt.key_en : opt.key_es;
+    const votes = opt.votes || 0;
+    const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+
+    const wrap = document.createElement('div');
+    wrap.style.display = 'grid';
+    wrap.style.gap = '6px';
+
+    // Fila de selección + números
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+
+    const left = document.createElement('label');
+    left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'poll_id';
+    input.value = opt.id;
+    input.onchange = ()=> { selectedPoll = opt.id; };
+
+    const span = document.createElement('span');
+    span.textContent = label;
+
+    left.appendChild(input);
+    left.appendChild(span);
+
+    const right = document.createElement('div');
+    right.style.display='flex';
+    right.style.gap='10px';
+    right.style.alignItems='center';
+
+    const votesEl = document.createElement('span');
+    votesEl.style.opacity = '.75';
+    votesEl.textContent = votes;       // número de votos
+
+    const pctEl = document.createElement('span');
+    pctEl.style.opacity = '.75';
+    pctEl.textContent = pct + '%';     // porcentaje
+
+    right.appendChild(votesEl);
+    right.appendChild(pctEl);
+
+    row.appendChild(left);
+    row.appendChild(right);
+
+    // Barra de porcentaje
+    const bar = document.createElement('div');
+    bar.style.height = '8px';
+    bar.style.borderRadius = '999px';
+    bar.style.border = '1px solid rgba(255,255,255,.16)';
+    bar.style.background = 'rgba(255,255,255,.06)';
+    bar.style.overflow = 'hidden';
+
+    const fill = document.createElement('div');
+    fill.style.height = '100%';
+    fill.style.width = pct + '%';
+    fill.style.background = 'linear-gradient(90deg,#7c5cff,#bdb3ff)';
+    bar.appendChild(fill);
+
+    wrap.appendChild(row);
+    wrap.appendChild(bar);
+    pollList.appendChild(wrap);
+  });
+}
+
+function renderIdeasUI(){
+  if (ticketInfo) ticketInfo.textContent = formatTickets();
+  renderPoll();
+}
+function buyIdeaTicket(){
+  if (wld < IDEA_COST){
+    if (refillBtn){ refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); }
+    return false;
+  }
+  wld -= IDEA_COST;
+  localStorage.setItem('wld', String(wld));
+  ideaTickets += 1;
+  saveIdeaTickets();
+  render();
+  return true;
+}
+
+// 🔧 Handler del botón de pago (FUERA de la función)
+if (ideaPayBtn){
+  ideaPayBtn.onclick = ()=>{
+    const ok = buyIdeaTicket();
+    if (!ok){
+      if (ideasGwMsg){
+        ideasGwMsg.textContent = (getLang()==='en') ? 'Not enough WLD.' : 'No tienes WLD suficiente.';
+        clearTimeout(ideasGwMsg._t);
+        ideasGwMsg._t = setTimeout(()=> ideasGwMsg.textContent='', 1600);
+      }
+      return;
+    }
+    closeDrawer('IDG');
+    openIdeas();
+  };
+}
+
+function openIdeas(){ renderIdeasUI(); openDrawer('ID'); }
+
+if (ideaBtn){
+  ideaBtn.onclick = ()=>{
+    if (ideaTickets > 0){
+      // Ya tiene ticket: abrir directamente el contenido de Ideas
+      openIdeas(); // tu función que abre 'ID' y renderiza encuesta/sugerencias
+    }else{
+      // No tiene ticket: abrir Gateway (pago 1.2 WLD)
+      openDrawer('IDG');
+    }
+  };
+}
+
+if (voteBtn){
+  voteBtn.onclick=()=>{
+    if (ideaTickets<=0){ showIdeasMsg(getLang()==='en'?'You need a ticket.':'Necesitas un ticket.'); return; }
+    if (!selectedPoll){ showIdeasMsg(getLang()==='en'?'Choose an option.':'Elige una opción.'); return; }
+    const opt=POLL_OPTIONS.find(o=>o.id===selectedPoll); if (!opt) return;
+    opt.votes++; localStorage.setItem('poll_'+opt.id, String(opt.votes));
+    ideaTickets--; saveIdeaTickets(); renderIdeasUI();
+    showIdeasMsg(getLang()==='en'?'Thanks for voting!':'¡Gracias por votar!');
+  };
+}
+if (submitIdeaBtn){
+  submitIdeaBtn.onclick = ()=>{
+    if (ideaTickets <= 0){
+      showIdeasMsg(getLang()==='en'?'You need a ticket.':'Necesitas un ticket.');
+      return;
+    }
+    const txt = (ideaInput?.value || '').trim();
+    if (!txt){
+      showIdeasMsg(getLang()==='en'?'Write your idea first.':'Escribe tu idea primero.');
+      return;
+    }
+
+    // === PRIVADO: guarda localmente para el admin (no se publica ni va al Inbox)
+    const key = 'ideas_private';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.unshift({
+      text: txt,
+      ts: Date.now(),
+      user: (typeof getUsername==='function' ? getUsername() : 'Player')
+    });
+    localStorage.setItem(key, JSON.stringify(list));
+
+    ideaInput.value = '';
+    ideaTickets -= 1;
+    saveIdeaTickets();
+    renderIdeasUI();
+
+    // Mensaje claro de privacidad
+    showIdeasMsg(getLang()==='en' ? 'Idea saved (private).' : 'Idea guardada (privada).');
+  };
+}
+
+
 })();
 </script>
 
