@@ -1511,7 +1511,6 @@ if (submitIdeaBtn){
   // 2) Tu config
   const ACTION = 'worldgoldideas';
   const PAY_TO = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-  const PRICES = { refill: 0.1 };
 
   // 3) UI helpers (toasts)
   function toast(txt, ms=1600){
@@ -1563,15 +1562,47 @@ if (submitIdeaBtn){
   }
 
   $refillBtn && ($refillBtn.onclick = async ()=>{
-    const ok = await ensureHuman();    if (!ok) return;
-    const paid = await payWLD(PRICES.refill, 'Energy Refill (0.1 WLD)');
-    if (!paid) return;
-    // aplicar recarga
-    window.energy = Math.min((window.energyMax||100), (window.energy||0)+20);
-    localStorage.setItem('energy', String(window.energy));
-    if (typeof window.render==='function') window.render();
-    flashPrice('+20 ⚡', 1000);
-    toast('Refill complete');
+  const ok = await ensureHuman();
+  if (!ok) return;
+
+  // precio dinámico según energyMax
+  const amount = refillPriceWLD();
+  const paid = await payWLD(amount, `Energy Refill (${amount} WLD)`);
+  if (!paid) return;
+
+  // ✅ Llenar toda la energía
+  if (typeof window.refillEnergy === 'function') {
+    window.refillEnergy(); // usa tu lógica propia si ya la tienes
+  } else {
+    const max = getEnergyMax();
+    window.energy = max;
+    localStorage.setItem('energy', String(max));
+    if (typeof window.render === 'function') window.render();
+  }
+
+  // feedback visual
+  flashPrice('MAX ⚡', 1000);
+  toast('Energía al máximo');
+
+    // ===== Precio dinámico del refill (0.1% del energyMax) =====
+function getEnergyMax(){
+  return Number(window.energyMax || 100); // tu juego ya maneja energyMax; por defecto 100
+}
+function refillPriceWLD(){
+  const max = getEnergyMax();
+  const price = max * 0.001;        // 0.1% de la energía máxima
+  return Number(price.toFixed(3));   // mostramos 3 decimales
+}
+
+// Actualiza la etiqueta del precio en la UI (id="refillPrice")
+const $refillPrice = document.getElementById('refillPrice');
+function updateRefillPriceLabel(){
+  if ($refillPrice) $refillPrice.textContent = `${refillPriceWLD()} WLD`;
+}
+// Llamada inicial
+updateRefillPriceLabel();
+// (Opcional) si tu juego cambia energyMax con boosters, vuelve a llamar updateRefillPriceLabel()
+
   });
 
   // 6) Acelerar splash: si tienes el script del splash, baja el mínimo a 900ms
