@@ -339,7 +339,105 @@ body{
   transform: translateY(6px);   /* pequeño empuje hacia abajo */
   transition: opacity .8s ease, transform .8s ease;
 }
+/* === Botones pro: loading/success/error y focus visible === */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 14px; gap: 8px;
+  border-radius: 12px; border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06);
+  color: #fff; font-weight: 700; cursor: pointer;
+  transition: transform .15s ease, filter .2s ease, background .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:active { transform: translateY(1px) scale(.99); }
+.btn[disabled] { opacity:.55; pointer-events:none; }
 
+/* Variante primaria dorada */
+.btn.primary {
+  background: linear-gradient(180deg, #F4C542, #CF982C);
+  color: #1a1200; border-color: rgba(0,0,0,.15);
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+/* Estado loading con spinner */
+.btn.is-loading { position: relative; color: transparent !important; }
+.btn.is-loading::after{
+  content:""; position:absolute; width:18px; height:18px; border-radius:50%;
+  border:3px solid rgba(255,255,255,.35); border-top-color:#fff;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Toast minimal */
+.toast {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 9999;
+  background: rgba(10,8,24,.92); color: #ffd872;
+  border: 1px solid rgba(255,223,120,.45); border-radius: 12px;
+  padding: 10px 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+}
+.toast.show { opacity: 1; pointer-events:auto; transform: translate(-50%, -4px); }
+
+/* Focus accesible */
+:focus-visible {
+  outline: 2px solid #ffd872;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+/* === Refill tooltip centrado sobre el botón === */
+.refillWrap{ position: relative; display: inline-block; }
+.refillTip{
+  position: absolute;
+  left: 50%; top: -10px;
+  transform: translate(-50%, -6px);
+  opacity: 0; pointer-events: none;
+  background: rgba(0,0,0,.85); color: #ffd872;
+  border: 1px solid rgba(255,223,120,.5);
+  border-radius: 10px; padding: 6px 10px;
+  font-size: 12px; line-height: 1;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 999;
+}
+.refillTip::after{
+  content:""; position:absolute; left:50%; transform:translateX(-50%);
+  top: 100%; border: 6px solid transparent; border-top-color: rgba(0,0,0,.85);
+}
+.refillTip.show{ opacity: 1; transform: translate(-50%, -14px); }
+/* Refill “fantasma”: se ve pero no interactúa (siente que desaparece) */
+.btn-icon.ghost{
+  opacity: .50 ;
+  pointer-events: none;   /* no clickeable */
+  filter: grayscale(100%);
+  transition: opacity .2s ease, filter .2s ease, transform .2s ease;
+}
+
+/* === Spinner para botones .btn-icon === */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-icon.is-loading{
+  position: relative;
+  pointer-events: none;         /* no clickeable mientras carga */
+  opacity: .9;                  /* leve atenuación */
+}
+
+.btn-icon.is-loading::after{
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 20px; height: 20px;
+  margin: -10px 0 0 -10px;      /* centra el spinner */
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.35);
+  border-top-color: #fff;       /* “punta” blanca */
+  animation: spin .8s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(255,223,120,.6));
+}
+
+/* Opcional: baja un poco el contenido mientras carga */
+.btn-icon.is-loading img,
+.btn-icon.is-loading .price-pill{ opacity: .25; }
 
 
 
@@ -410,14 +508,19 @@ body{
       <div id="gain" class="gain">+0.40</div>
     </div>
   </div>
-
+ 
   <!-- DOCK bajo la moneda -->
   <div class="action-dock" aria-label="acciones rápidas">
+    <!-- WRAP para el refill + tip -->
+  <div class="refillWrap">
     <button id="refillBtn" class="btn-icon" aria-label="Refill">
-      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
+      <img src="img/ico-refill.png" alt="Refill" style="width:40px;height:40px;">
       <span id="refillPrice" class="price-pill">0.10 WLD</span>
     </button>
-    <button id="openUp" class="btn-icon" aria-label="Boosters">
+    <!-- 👇 Tooltip oculto que aparece cuando recargas -->
+    <div id="refillTip" class="refillTip" data-i18n="energy_full">Energía recargada</div>
+  </div>
+    <button id="openUp" class="btn btn-icon" aria-label="Boosters">
       <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
     </button>
   </div>
@@ -442,7 +545,7 @@ body{
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
 <h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
 <div id="inboxList" class="inbox-list"></div>
-<button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
+<button id="markRead" class="btn btn-icon" data-i18n="mark_read">Marcar como leído</button>
 </aside>
 <!-- Drawer Perfil -->
 <div id="backdropPF" class="backdrop"></div>
@@ -457,7 +560,7 @@ body{
   placeholder="Tu nombre">
 
 <div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-  <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
+  <button id="saveUsernameBtn" class="btn btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
   <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
 </div>
 
@@ -488,6 +591,16 @@ body{
 </section>
 
 <script>
+  // === Bandera de demo ===
+const DEMO_ENABLED = true; // ⚠️ cambia a false en producción
+
+(function toggleDemo(){
+  const title = document.getElementById('demoTitle');
+  if (!title) return;
+  const card = title.closest('section');
+  if (!card) return;
+  card.style.display = DEMO_ENABLED ? '' : 'none';
+})();
 (function splashController(){
   const splash = document.getElementById('splash');
   if (!splash) return;
@@ -687,47 +800,136 @@ function stepFX(dt){
 
 /* ===== UI render ===== */
 function render(){
-  balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
-  const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
-  energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
+  balWLD.textContent = wld.toFixed(2);
+  balWLGp.textContent = wlgp.toFixed(3);
 
-  const cost=priceRefill(); refillPrice.textContent=cost.toFixed(2)+' WLD';
-  const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
-  refillBtn.classList.toggle('pulse', low && canPay);
-  refillBtn.disabled = energy>=eMax-1e-6;
-    if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
+  const eMax = capMax();
+  const pct  = Math.max(0, Math.min(100, (energy / eMax) * 100));
+  energyFill.style.width = pct.toFixed(1) + '%';
+  energyNow.textContent = Math.floor(energy);
+  energyMax.textContent = eMax;
+
+  const cost   = priceRefill();
+  refillPrice.textContent = cost.toFixed(2) + ' WLD';
+
+  const eMaxed = energy >= eMax - 1e-6;  // energía llena
+  const canPay = wld >= cost;            // saldo suficiente
+
+  // 1) Nunca ocultamos el botón
+  refillBtn.style.display = 'flex';
+
+  // 2) Estado fantasma si NO hay WLD y aún falta energía
+  const needsEnergy = !eMaxed;
+  const ghost = needsEnergy && !canPay;
+  refillBtn.classList.toggle('ghost', ghost);
+
+  // 3) Pulse solo cuando puede pagar y falta energía
+  const pulse = needsEnergy && canPay;
+  refillBtn.classList.toggle('pulse', pulse);
+
+  // 4) Deshabilitado cuando está al máximo (se ve, pero no clickea)
+  refillBtn.disabled = eMaxed;
+
+  if (typeof renderProfile === 'function') renderProfile();
 }
+
+
 
 
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
-coin.addEventListener('click',(e)=>{
-  lazyRegen();
-  const ok=addTap();
-  if(ok){
-    gain.textContent=`+${POWER_BASE.toFixed(2)}`; gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
-    tone(820,0.05,'triangle',.07);
-    // Posición del tap dentro del canvas
-    const rect=fx.getBoundingClientRect();
-    const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
-    const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
-    spawn(x,y);
-    coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
-  }else{
-    refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+/* ===== Tap logic (pointerdown para mejor respuesta en WebView) ===== */
+(function setupTap(){
+  let lastTap = 0;
+  function handleTap(e){
+    e.preventDefault?.();
+    lazyRegen();
+    const ok = addTap();
+    if (ok){
+      gain.textContent = `+${POWER_BASE.toFixed(2)}`;
+      gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
+      tone(820,0.05,'triangle',.07);
+      // Partículas en el punto de toque
+      const rect = fx.getBoundingClientRect();
+      const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? rect.left + rect.width/2;
+      const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? rect.top  + rect.height/2;
+      const x = (clientX - rect.left)/(rect.width||1)*fx.width;
+      const y = (clientY - rect.top )/(rect.height||1)*fx.height;
+      spawn(x,y);
+      coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
+    }else{
+      refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+    }
+    render();
+    lastTap = performance.now();
   }
-  render();
-});
+
+  // Limpia listeners previos de click si existieran (defensivo)
+  coin.replaceWith(coin.cloneNode(true));
+  const coin2 = document.getElementById('coin');
+
+  coin2.addEventListener('pointerdown', handleTap, { passive: true });
+  // Por compatibilidad si pointer no está disponible:
+  coin2.addEventListener('touchstart', handleTap, { passive: true });
+  coin2.addEventListener('mousedown', handleTap);
+})();
+/* === Tooltip de refill (muestra y auto-oculta) === */
+function showRefillTip(){
+  const tip = document.getElementById('refillTip');
+  if (!tip) return;
+  // Texto según idioma
+  const cur = (typeof getLang === 'function') ? getLang() : 'es';
+  const T = (typeof I18N !== 'undefined' && I18N[cur]) ? I18N[cur] : { energy_full: 'Energía recargada' };
+  tip.textContent = T.energy_full || 'Energía recargada';
+
+  tip.classList.add('show');
+  clearTimeout(tip._t);
+  tip._t = setTimeout(()=> tip.classList.remove('show'), 1600);
+}
 
 /* ===== Refill ===== */
 function doRefill(){
   const cost=priceRefill(), eMax=capMax();
   if(energy>=eMax-1e-6) return;
-  if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
-  wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
-  tone(620,0.08,'sine',.08); render();
+
+  // Si NO alcanza WLD: NO recarga, NO mensaje de éxito, solo shake
+  if(wld<cost){
+    refillBtn.classList.add('shake');
+    setTimeout(()=>refillBtn.classList.remove('shake'),260);
+    return;
+  }
+
+  // ÉXITO: descuenta, recarga, renderiza y muestra tooltip
+  wld-=cost; energy=eMax;
+  localStorage.setItem('wld',String(wld));
+  localStorage.setItem('energy',String(energy));
+  tone(620,0.08,'sine',.08);
+  render();
+  showRefillTip(); // 👈 solo aquí (éxito)
 }
-refillBtn.onclick=doRefill;
+
+// Helper que muestra el spinner del botón durante la acción
+function withLoading(btn, fn){
+  return async function(...args){
+    btn.classList.add('is-loading');
+    btn.setAttribute('aria-busy','true');
+    try{
+      // Si doRefill es síncrona, igual dejamos el spinner unos ms para que se vea
+      const maybePromise = fn.apply(this, args);
+      await Promise.resolve(maybePromise);
+    } finally {
+      // Mantenemos el spinner un instante para que el usuario lo perciba
+      setTimeout(()=>{
+        btn.classList.remove('is-loading');
+        btn.removeAttribute('aria-busy');
+      }, 450);
+    }
+  }
+}
+
+// Usamos el wrapper en lugar de asignar la función directa
+refillBtn.onclick = withLoading(refillBtn, doRefill);
+
 
 
 /* ===== Boosters drawer (placeholder) ===== */
@@ -868,6 +1070,7 @@ const I18N = {
     seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
     seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
     seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+    energy_full: '⚡ Energía 100%',
   },
   en: {
     wld_balance:   'WLD Balance:',
@@ -898,6 +1101,7 @@ const I18N = {
     seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
     seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
     seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
+    energy_full: '⚡ Energy 100%',
   }
 };
 
@@ -992,7 +1196,6 @@ function renderProfile(){
 }
 
 
-  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
 
 /* ===== Init ===== */
 (function init(){
@@ -1033,6 +1236,98 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
       tip.classList.remove('show'); // se desvanece
     }, 1600); // 1.6s visible
   });
+})();
+</script>
+<script>
+// === Feature flag: activa pagos reales cuando conectes la Action de World App ===
+const PAYMENTS_ENABLED = false; // TODO: pon true cuando termines el whitelisting
+
+// === Adaptador de pagos: reemplaza aquí por tu integración real ===
+const Payments = {
+  /**
+   * Simula una compra de "refill" por cost WLD.
+   * Cuando tengas tu actionId y address whitelisted:
+   * - Llama al SDK/bridge de World App aquí.
+   * - Valida recibo/tx y resuelve si fue éxito, rechaza si falla.
+   */
+  async buyRefill({ costWLD, timeoutMs = 12000 }) {
+    if (!PAYMENTS_ENABLED) {
+      // Modo demo: “paga” sin red
+      await new Promise(r => setTimeout(r, 600)); // pequeña espera
+      return { ok: true, txId: "demo-local" };
+    }
+    // TODO: integrar SDK real
+    // Ejemplo de estructura (pseudocódigo):
+    // return await world.pay({actionId, to: address, amount: costWLD});
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+      // Elimina esto cuando integres el real:
+      setTimeout(() => { clearTimeout(t); resolve({ ok:true, txId:"stub" }); }, 1200);
+    });
+  }
+};
+
+// === Toast utilitario ===
+function showToast(msg, ms = 1800) {
+  const n = document.createElement('div');
+  n.className = 'toast'; n.textContent = msg;
+  n.setAttribute('role','status'); n.setAttribute('aria-live','polite');
+  document.body.appendChild(n);
+  requestAnimationFrame(() => n.classList.add('show'));
+  setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 220); }, ms);
+}
+
+// === Re-wire del Refill: pagar -> aplicar refill local ===
+(function enhanceRefill(){
+  const btn = document.getElementById('refillBtn');
+  if (!btn) return;
+
+  // Reutilizamos tu cálculo de precio global:
+  const getCost = () => typeof priceRefill === 'function' ? priceRefill() : 0.10;
+
+  async function onRefillClick(){
+    // Si ya está al máximo, conserva tu lógica:
+    if (typeof capMax === 'function'
+     && typeof energy !== 'undefined'
+     && energy >= capMax() - 1e-6) {
+      return;
+    }
+
+    // Loading on
+    btn.classList.add('is-loading');
+    btn.setAttribute('disabled','true');
+
+    try {
+      const cost = getCost();
+      const res = await Payments.buyRefill({ costWLD: cost });
+      if (!res || !res.ok) throw new Error('payment_failed');
+
+      // Aplicamos tu refill local (reutilizamos tu doRefill sin restar WLD si ya lo hará el backend):
+      if (typeof doRefill === 'function') {
+        // TEMP: evitamos doble descuento en demo (tu doRefill descuenta local)
+        doRefill();
+      } else {
+        // Fallback mínimo si alguien borró doRefill:
+        if (typeof capMax === 'function') {
+          energy = capMax();
+          if (typeof render === 'function') render();
+        }
+      }
+
+    } catch (e) {
+      // Feedback de error y sacudida suave
+      btn.classList.add('shake');
+      setTimeout(()=>btn.classList.remove('shake'), 260);
+      showToast('❌ No se pudo completar el pago');
+    } finally {
+      // Loading off
+      btn.classList.remove('is-loading');
+      btn.removeAttribute('disabled');
+    }
+  }
+
+  // Reemplaza handler existente solo para pagos (seguimos usando tu doRefill internamente)
+  btn.onclick = onRefillClick;
 })();
 </script>
 
