@@ -328,9 +328,18 @@ body{
 @keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
 
 /* Tip extra opcional */
+/* Texto del splash con transición simple (sin keyframes) */
 .splash__hint {
-  margin-top: 16px; color: var(--mut); font-size: 13px; text-align: center; opacity: .85;
+  margin-top: 16px;
+  color: var(--mut);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;                   /* inicia oculto */
+  transform: translateY(6px);   /* pequeño empuje hacia abajo */
+  transition: opacity .6s ease, transform .6s ease;
 }
+
+
 
 
 </style>
@@ -478,35 +487,50 @@ body{
 </section>
 
 <script>
-  // === Splash control ===
-// Oculta el splash con un pequeño retraso para que se vea elegante.
-// Tiene "double safety": al cargar 'load' o a los 4s máximo.
+// === Splash control (secuencia visible del hint) ===
 (function splashController(){
   const splash = document.getElementById('splash');
   if (!splash) return;
+  const hint = splash.querySelector('.splash__hint');
 
   let hidden = false;
   const hide = () => {
     if (hidden) return;
     hidden = true;
-    // Quita aria-busy y aplica clase de salida
     splash.setAttribute('aria-busy', 'false');
     splash.classList.add('splash--hide');
-    // Remueve del DOM tras la transición (limpieza)
-    setTimeout(()=> splash.remove(), 450);
+    setTimeout(()=> splash.remove(), 450); // limpia tras el fade-out
   };
 
-  // 1) Cuando termine la carga de la página y assets:
+  // Tiempos (ajústalos si quieres más/menos duración):
+  const READY_DELAY = 900;              // mostrar "Preparando..." después del logo
+  const DONE_DELAY  = READY_DELAY + 900; // cambiar a "¡Listo!" luego de 0.9s
+  const HIDE_DELAY  = DONE_DELAY + 500;  // ocultar splash 0.5s después
+
+  // Safety por si algo raro pasa (mejor 5s que 4s para asegurar ver el hint)
+  const safetyTimer = setTimeout(hide, 5000);
+
   window.addEventListener('load', () => {
-    // Pequeño delay para que el usuario perciba el logo
-    setTimeout(hide, 700);
+    // 1) Mostrar "Preparando tu sesión…" con fade-in
+    setTimeout(() => {
+      if (hint) {
+        hint.textContent = "Preparando tu sesión…";
+        hint.style.opacity = '1';
+        hint.style.transform = 'translateY(0)';
+      }
+    }, READY_DELAY);
+
+    // 2) Cambiar a "¡Listo!" poco antes de cerrar
+    setTimeout(() => {
+      if (hint) hint.textContent = "¡Listo!";
+    }, DONE_DELAY);
+
+    // 3) Cerrar splash suavemente
+    setTimeout(() => {
+      clearTimeout(safetyTimer);
+      hide();
+    }, HIDE_DELAY);
   });
-
-  // 2) Timeout de seguridad (si algo tarda/falla):
-  setTimeout(hide, 4000);
-
-  // Exponer por si quieres forzar cerrar desde consola: window.hideSplash()
-  window.hideSplash = hide;
 })();
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
