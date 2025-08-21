@@ -209,8 +209,10 @@
   .progress>span{ display:block; height:100%; background: linear-gradient(90deg,#6d58ff,#f4c542); }
   .pct{ min-width:46px; text-align:right; font-weight:700; opacity:.9; }
 
-  /* Importante: no anulamos la posición del #ideaBtn */
-  /* Eliminado: #ideaBtn { position: static !important; } */
+  /* Debug click en el CTA del gateway */
+#drawerIDG { z-index: 1000; }
+#ideaPayBtn { position: relative; z-index: 1001; pointer-events: auto; }
+
   </style>
 </head>
 <body>
@@ -840,6 +842,16 @@
     const btn = document.getElementById('ideaPayBtn');
     const msg = document.getElementById('ideasGwMsg');
     if (!btn) return;
+      // 🔎 DEBUG: confirma que el click llega
+  btn.addEventListener('click', () => {
+    try { console.log('[DBG] click ideaPayBtn'); } catch(_) {}
+    // toast simple para verlo visualmente
+    let t = document.getElementById('wgDbg');
+    if(!t){ t=document.createElement('div'); t.id='wgDbg'; t.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#111a;color:#fff;padding:6px 10px;border-radius:10px;z-index:99999'; document.body.appendChild(t); }
+    t.textContent='CLICK: ideaPayBtn';
+    setTimeout(()=>{ if(t && t.textContent==='CLICK: ideaPayBtn') t.textContent=''; }, 1200);
+  }, {capture:true}); // capture por si hay burbujeo raro
+    
     btn.onclick = null;
     btn.addEventListener('click', async ()=>{
       if (msg) msg.textContent='';
