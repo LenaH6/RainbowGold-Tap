@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
@@ -14,272 +14,35 @@
   --coinSize: clamp(100px, 60vw, 500px);
 }
 
-/* Base */
-*{box-sizing:border-box} html,body{height:100%}
+/* === Global reset + base === */
+*{box-sizing:border-box}html,body{height:100%}
 body{
-  margin:0; color:var(--ink);
-  font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial;
-  /* negro carbón con leve degradado vertical */
-  background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
+  margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial;
+  color:var(--ink); background:radial-gradient(120% 120% at 50% 20%, #0b0818 0%, #000 70%);
+  touch-action:manipulation;
 }
+img{display:block;max-width:100%}
 
-/* Noise overlay (opcional) */
-.noise{
-  position:fixed; inset:0; pointer-events:none; opacity:0.08; mix-blend-mode:soft-light;
-  background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
-  z-index:0;
-}
+/* Estrellas y ruido (decor) */
+.stars, .stars2, .noise{position:fixed; inset:0; pointer-events:none; z-index:0}
+.stars{background:radial-gradient(#fff1 1px, transparent 1px); background-size:3px 3px; opacity:.25}
+.stars2{background:radial-gradient(#fff2 1px, transparent 1px); background-size:4px 4px; opacity:.18}
+.noise{background-image:url('img/noise.png'); mix-blend-mode:overlay; opacity:.03}
 
-/* Topbar */
+/* Topbar / Acciones superiores */
+.topbar{position:sticky; top:0; z-index:10; padding:10px 14px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(10px)}
+.top-actions{position:absolute; right:8px; top:8px; display:flex; align-items:center; gap:12px}
 
-.topbar{
-  position:sticky; top:0; z-index:5;
-  display:flex; align-items:center; justify-content:center; height: 60px;
-  padding:0 12px;
-  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
-}
+/* Tip (tooltip simple) */
+.tip{position:absolute; top:36px; right:0; padding:6px 10px; font-size:12px; color:#fff; background:rgba(33,33,55,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:opacity .18s, transform .18s}
 
-.topbar h1{margin:0; font-size:28px}
-.top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
+/* FABs */
+.floatCol{position:fixed; left:10px; top:54px; display:flex; flex-direction:column; gap:12px; z-index:20}
+.fab{width:50px;height:50px; display:grid;place-items:center; border-radius:14px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04)); box-shadow:0 10px 30px rgba(0,0,0,.35); transition:transform .2s ease, filter .3s ease}
+.fab:active{transform:scale(.96)}
+.fab.profile,.fab.trophy,.fab.inbox{background:transparent; box-shadow:none}
+.badge{position:absolute; top:-6px; right:-6px; background:#ff3b3b; color:#fff; font-size:11px; padding:2px 6px; border-radius:10px}
 
-/* Left FABs */
-.floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
-.fab {
-  width:48px; height:48px;
-  border:none;
-  display:grid; place-items:center;
-  background: transparent;
-  box-shadow: none;
-  cursor:pointer;
-  transition: transform 0.2s ease, filter 0.3s ease;
-  position: relative;
-
-}
-
-.fab.profile, .fab.trophy, .fab.inbox {
-  background: transparent;
-  box-shadow: none;
-}
-
-.badge{position:absolute;
-   top:-6px;
-    right:-6px;
-     background:#ff3b3b;
-      color:#fff;
-       border-radius:999px;
-        min-width:18px; height:18px;
-         display:grid; place-items:center;
-          font-size:10px; font-weight:700; padding:0 6px}
-
-/* Hero */
-.hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
-  padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
-.pill{
-  z-index:3;
-  background: #e0e0e0; border:1px solid #b5b5b5;
-  border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
-  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #1a1a1a;
-}
-.pill img{width:22px; height:22px; display:inline-block}
-
-/* Coin area */
-.coinWrap{
-  position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
-  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
-  box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
-}
-.ring{position:absolute; inset:0; border-radius:50%;
-  box-shadow:
-    inset 0 0 0 22px rgba(255,255,255,.03),  /* aro más grueso */
-    inset 0 0 0 2px rgba(255,255,255,0.15),
-    0 0 25px rgba(255, 230, 150, 0.4),
-    0 0 60px rgba(255, 220, 120, 0.25);
-}
-.coin{
-  width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
-  background:radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%);
-  border:2px solid rgba(255,255,255,0.15);
-  box-shadow:
-    0 0 15px rgba(255, 223, 120, 0.7),
-    0 0 35px rgba(255, 200, 80, 0.4),
-    0 0 60px rgba(255, 180, 60, 0.25);
-  transition:transform .08s ease; position:relative; overflow:hidden;
-}
-
-.coin:active{transform:scale(.98)}
-.coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
-.coinFallback{font-size:52px}
-.gain{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-weight:900; font-size:20px; opacity:0; pointer-events:none}
-.gain.show{animation:float .6s ease-out forwards}
-@keyframes float{from{opacity:0; transform:translate(-50%,-10px) scale(.9)}50%{opacity:1}to{opacity:0; transform:translate(-50%,-40px) scale(1.05)}}
-#fx{position:absolute; inset:0; pointer-events:none}
-
-/* Dock (Refill + Booster) debajo de la moneda */
-.action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
-.btn-icon{
-  display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-  background:#b5b5b5; border:1px solid #b5b5b5; border-radius:12px; color:var(--gold-soft);
-  backdrop-filter:blur(6px)
-}
-.btn-icon img{width:34px; height:34px; display:block}
-.price-pill{
-  font-weight:600; font-size:15px; line-height:20px; color:var(--gold-soft);
-  padding:5px 10px; border-radius:10px; background:rgba(10,8,24,.65); border:1px solid rgba(255,255,255,.16)
-}
-.btn-icon:disabled{opacity:.5; pointer-events:none}
-.btn-icon.pulse{animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.btn-icon.shake{animation:shake .25s linear}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
-
-/* Energy bar */
-.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
-.energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
-.energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
-@keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
-.energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
-
-/* Drawer simple */
-.backdrop{position:fixed; inset:0;
-   background:rgba(0,0,0,.35);
-    opacity:0; pointer-events:none;
-     transition:opacity .2s;
-      z-index:40}
-.backdrop.show{opacity:1; pointer-events:auto}
-.drawer{position:fixed; top:0; right:-380px;
-   width:min(360px,92vw); height:100dvh;
-    background:rgba(10,8,24,.98);
-  border-left:1px solid rgba(255,255,255,.1);
-   padding:16px 16px calc(24px + env(safe-area-inset-bottom));
-    transition:right .28s ease; overflow:auto;
-     z-index:60}
-.drawer.show{right:0}
-.drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
-  background:transparent; color:#fff; cursor:pointer; font-size:18px}
-
-/* Demo card */
-.card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
-
-/* Ajustes pantallas estrechas */
-@media (max-width:360px){
-  .btn-icon img{width:28px; height:28px}
-  .price-pill{font-size:13px; padding:3px 6px}
-  .action-dock{gap:10px}
-}/* === Estrellas sutiles === */
-.stars, .stars2{
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-repeat: repeat;
-  z-index: 0;
-}
-
-.stars{
-  background-image: radial-gradient(rgba(255,255,255,.30) 2.1px, transparent 1px);
-  background-size: 70px 70px;   /* menos densas */
-  opacity: .40;                   /* más suave */
-  animation: stars-pan 160s linear infinite;
-}
-
-.stars2{
-  background-image: radial-gradient(rgba(173,216,230,.2) 1.76px, transparent 1px);
-  background-size: 30px 30px;     /* un poco más densas que la capa 1 */
-  opacity: .30;
-  animation: stars-pan 220s linear infinite reverse;
-}
-@keyframes stars-pan {
-  from { background-position: 0 0; }
-  to   { background-position: -2000px -1200px; }
-}
-
-/* Noise va encima */
-.noise{ z-index: 1; }
-/* Hover suave dorado en iconos */
-.fab img {
-  transition: transform 0.25s ease, filter 0.3s ease;
-}
-.fab:hover img {
-  transform: scale(1.15);
-  filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
-}
-/* Estilo de lista de mensajes (Inbox) */
-.inbox-list { display: grid; gap: 10px; }
-.msg {
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 12px; padding: 10px;
-}
-.msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
-.msg-text { white-space: pre-line; line-height: 1.45; }
-/* Tooltip del trofeo (limpio y sutil) */
-.trophyWrap{
-  position: relative;
-  display: inline-block;
-}
-.tip{
-  position: absolute;
-  right: 0;
-  top: -10px;                 /* nace un poco arriba del botón */
-  transform: translateY(-6px);
-  opacity: 0;
-  pointer-events: none;       /* no bloquea clics al botón */
-  background: rgba(0,0,0,.85);
-  color: #ffd872;
-  border: 1px solid rgba(255,223,120,.5);
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 1;
-  box-shadow: 0 6px 14px rgba(0,0,0,.35);
-  transition: opacity .18s ease, transform .18s ease;
-  z-index: 999;               /* por encima de todo */
-}
-.tip::after{
-  content: "";
-  position: absolute;
-  right: 10px;
-  top: 100%;
-  border: 6px solid transparent;
-  border-top-color: rgba(0,0,0,.85); /* flechita */
-}
-.tip.show{
-  opacity: 1;
-  transform: translateY(-14px); /* sube un poquito y aparece */
-}
-/* === Inbox: variantes de mensaje === */
-.msg-system{
-  border: 1px solid rgba(244, 197, 66, .65);
-  background: linear-gradient(180deg, rgba(255,224,150,.10), rgba(0,0,0,.10));
-  box-shadow:
-     0 0 0 1px rgba(244,197,66,.15) inset,
-     0 8px 24px rgba(244,197,66,.12),
-     0 0 14px rgba(244,197,66,.25);
-}
-.msg-system .msg-time{ color: #ffd872; }
-/* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
-:root{
-  /* Ajusta aquí sin miedo */
-  --logoSize: 10px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
-  --logoColor: #cf892c;      /* color del texto */
-}
-
-/* Más específico + !important para ganar siempre */
-.topbar .logo-text{
-  font-size: var(--logoSize) !important;
-  color: var(--logoColor) !important;
- }
- .logo-text{
-  margin: 0;
-  font-size: var(--logoSize);
-  font-weight: 800;
-  color: var(--logoColor);
-  letter-spacing: 1.5px;
-  text-shadow:
-    0 0 3px var(--logoGlow1),
-    0 0 6px var(--logoGlow2);
-  display: inline-block;
-  pointer-events: none;
-}
 /* === Splash / Pantalla de carga === */
 .splash {
   position: fixed; inset: 0; z-index: 9999;           /* por encima de todo */
@@ -289,84 +52,107 @@ body{
   opacity: 1;
   pointer-events: auto;                                /* bloquea la UI detrás */
 }
-
-.splash--hide {
-  opacity: 0;
-  pointer-events: none;                                /* libera la UI al ocultar */
-}
+.splash--hide { opacity:0; pointer-events:none; }      /* libera la UI al ocultar */
 
 .splash__logo {
-  width: clamp(140px, 36vw, 220px);   /* más grande que antes */
-  height: clamp(140px, 36vw, 220px);
+  width: clamp(140px, 36vw, 220px); height: clamp(140px, 36vw, 220px);
   border-radius: 28px;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.12);
   display: grid; place-items: center;
-  padding: 10px;                      /* menos padding para que la imagen crezca más */
-  box-shadow:
-    0 16px 40px rgba(0,0,0,.55),
-    0 0 28px rgba(255, 220, 120, .18);
+  padding: 10px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 28px rgba(255, 220, 120, .18);
   animation: zoom-in 1s ease forwards;
 }
+@keyframes zoom-in { 0%{transform:scale(1.3);opacity:0}60%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1} }
+.splash__logo img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(255,223,120,.35)); animation:breathe 3s ease-in-out infinite; }
+@keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
 
-
-@keyframes zoom-in {
-  0%   { transform: scale(1.3); opacity: 0; }
-  60%  { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1);   opacity: 1; }
+.splash__hint{
+  margin-top: 12px; color: var(--mut); font-size: 13px; text-align: center;
+  opacity:0; transform:translateY(6px); transition:opacity .8s ease, transform .8s ease;
 }
+/* Sign-in button on splash */
+.btn-signin{margin-top:12px; padding:10px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04)); color:#fff; font-weight:600; font-size:15px; backdrop-filter: blur(6px); box-shadow: 0 4px 24px rgba(0,0,0,.35);}
+.btn-signin:active{transform:scale(.97)}
 
+/* Hero + moneda */
+.hero{display:grid; place-items:center; margin-top:24px}
+.coinWrap{position:relative; width:var(--coinSize); height:var(--coinSize); margin:16px auto 8px; z-index:3}
+.ring{position:absolute; inset:-10px; border-radius:50%; border:1px solid rgba(255,255,255,.18); filter:blur(0.3px)}
+.coin{position:absolute; inset:0; display:grid; place-items:center; border-radius:50%; overflow:hidden; pointer-events:auto; touch-action:manipulation}
+.coinImg{width:100%; height:100%; object-fit:contain; image-rendering:-webkit-optimize-contrast}
+.coinFallback{font-size:52px}
 
+/* Gain (número del tap) */
+.gain{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-weight:900; font-size:20px; opacity:0; pointer-events:none}
+.gain.show{animation:float .6s ease-out forwards}
+@keyframes float{from{opacity:0; transform:translate(-50%,-10px) scale(.9)} 50%{opacity:1} to{opacity:0; transform:translate(-50%,-40px) scale(1.05)}}
 
-.splash__logo img {
-  width: 100%; height: 100%; object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(255, 223, 120, .35));
-  animation: breathe 3s ease-in-out infinite;
+/* Canvas FX */
+#fx{position:absolute; inset:0; pointer-events:none}
+/* Idea button next to coin */
+.ideaBtn{position:absolute; right:-6px; top:-6px; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); backdrop-filter: blur(6px); z-index:5; touch-action:manipulation}
+.ideaBtn:active{transform:scale(.96)}
+
+/* Dock (Refill + Booster) debajo de la moneda */
+.action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
+.btn-icon{
+  display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+  color:#fff; font-weight:600; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
+.btn-icon.pulse{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+.btn-icon:active{transform:scale(.96)}
+.btn-icon img{display:block}
 
-/* Animaciones suaves */
-@keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
-@keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
+/* Energia bar */
+.energyBar{width:min(520px,92vw); margin:12px auto 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:8px}
+.energyFill{height:8px; background:linear-gradient(90deg, #ffd65a, #ffb347); border-radius:6px; width:0}
+.energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
 
-/* Tip extra opcional */
-/* Texto del splash con transición simple (sin keyframes) */
-.splash__hint {
-  margin-top: 16px;
-  color: var(--mut);
-  font-size: 13px;
-  text-align: center;
-  opacity: 0;                   /* inicia oculto */
-  transform: translateY(6px);   /* pequeño empuje hacia abajo */
-  transition: opacity .8s ease, transform .8s ease;
-}
+/* Drawer simple */
+.backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:40}
+.backdrop.show{opacity:1; pointer-events:auto}
+.drawer{position:fixed; top:0; right:-380px; width:min(360px,92vw); height:100dvh; background:rgba(10,8,24,.98); border-left:1px solid rgba(255,255,255,.1); padding:16px 16px calc(24px + env(safe-area-inset-bottom)); transition:right .28s ease; overflow:auto; z-index:60}
+.drawer.show{right:0}
+.drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:transparent; color:#fff; cursor:pointer; font-size:18px}
 
+/* Demo card */
+.card{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:12px}
 
+/* Simple table for Inbox */
+.inbox-list{display:flex; flex-direction:column; gap:10px}
 
-
+/* Utility */
+.hidden{display:none}
+.shake{animation:shk .26s cubic-bezier(.11,.66,.3,.99)}
+@keyframes shk{10%{transform:translateX(2px)} 30%{transform:translateX(-2px)} 50%{transform:translateX(2px)} 70%{transform:translateX(-1px)} 100%{transform:translateX(0)}}
 </style>
 </head>
 <body>
   <!-- === SPLASH / CARGA INICIAL === -->
-<div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
+<div id="splash" class="splash" aria-busy="true" aria-label="Loading WorldGold">
   <div class="splash__logo">
-    <!-- Usa tu logo existente en /img -->
-    <!-- Sugerido: brand-mark-wg-128.png (incluido en tu proyecto) -->
     <img src="img/logo-splash.png" alt="WorldGold" onerror="this.style.display='none'">
   </div>
-  <div class="splash__hint">Preparando tu sesión...</div>
+  <button id="worldIdBtn" class="btn-signin" type="button">Sign in with World ID</button>
+  <div id="splashHint" class="splash__hint">Preparing session…</div>
 </div>
 
   <div class="stars"></div>
   <div class="stars2"></div>
   <div class="noise" aria-hidden="true"></div>
+
 <!-- Left FABs -->
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Profile">
-    <img src="img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
+    <img src="img/icon-profile.png" alt="Profile" style="width:45px;height:45px;">
   </button>
   <button id="inboxBtn" class="fab inbox" title="Inbox">
-    <img src="img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
-    <span id="inboxBadge" class="badge" style="display:none">0</span>
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:45px;height:45px;">
+    <span id="unreadBadge" class="badge hidden">0</span>
   </button>
 </div>
 
@@ -379,8 +165,6 @@ body{
 <div class="top-actions" style="overflow:visible">
   <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
   <div><b id="balWLD">0.00</b> WLD</div>
-
-  <!-- WRAP del trofeo: el tip vive junto al botón -->
   <div class="trophyWrap">
     <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
       <img src="img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
@@ -389,23 +173,18 @@ body{
   </div>
 </div>
 
-
-
-
 <!-- HERO -->
-<section class="hero">
-  <div class="pill">
-    <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
-    WLGp: <b id="balWLGp">0.000</b>
-    
+<section class="hero" aria-label="hero">
+  <div style="text-align:center; opacity:.92">
+    <div data-i18n="hello_user" style="font-size:16px; opacity:.82">Hello Player!</div>
   </div>
 
   <div class="coinWrap" id="coinBox">
     <div class="ring"></div>
     <canvas id="fx"></canvas>
+    <button id="ideaBtn" class="ideaBtn" title="Idea"><img src="img/icon-idea.png" alt="Idea" style="width:28px;height:28px;"></button>
     <div id="coin" class="coin" aria-label="Tap">
-      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
-      document.getElementById('fallback').style.display='block'">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove(); document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
       <div id="gain" class="gain">+0.40</div>
     </div>
@@ -414,17 +193,19 @@ body{
   <!-- DOCK bajo la moneda -->
   <div class="action-dock" aria-label="acciones rápidas">
     <button id="refillBtn" class="btn-icon" aria-label="Refill">
-      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
-      <span id="refillPrice" class="price-pill">0.10 WLD</span>
+      <img src="img/ico-refill.png" alt="Refill" style="width:40px;height:40px">
+      <span id="refillPrice">0.00 WLD</span>
     </button>
     <button id="openUp" class="btn-icon" aria-label="Boosters">
-      <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
+      <img src="img/icon-rocket.png" alt="Boosters" style="width:40px;height:40px">
+      <span data-i18n="boosters_title">Impulsores</span>
     </button>
   </div>
 
-  <div class="energyWrap">
-    <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
-    <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
+  <!-- Barra de energía -->
+  <div class="energyBar">
+    <div id="energyFill" class="energyFill"></div>
+    <div class="energyLbl"><span id="energyNow">0</span>/<span id="energyMax">100</span> energy</div>
   </div>
 </section>
 
@@ -436,51 +217,59 @@ body{
   <p style="opacity:.85">Any ideas what this could be?</p>
 </aside>
 
-
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
-<h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
-<div id="inboxList" class="inbox-list"></div>
-<button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
+  <h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
+  <div id="inboxList" class="inbox-list"></div>
+  <button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
 </aside>
+
 <!-- Drawer Perfil -->
 <div id="backdropPF" class="backdrop"></div>
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
   <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
 
-<label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
-<input id="usernameInput" type="text"
-  style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
-  data-i18n-placeholder="username_placeholder"
-  placeholder="Tu nombre">
+  <label data-i18n="username_label" style="display:block;margin-bottom:6px">Nombre de usuario</label>
+  <input id="usernameInput" data-i18n-placeholder="username_placeholder" placeholder="Tu nombre" style="width:100%;padding:10px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff">
+  <div style="height:10px"></div>
 
-<div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-  <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
-  <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
-</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr; gap:8px; align-items:center">
+    <div style="opacity:.82">WLGp:</div><div id="pf_wlgp">0.000</div>
+    <div style="opacity:.82">WLG:</div><div id="pf_wlg">0.00</div>
+    <div style="opacity:.82">WLD:</div><div id="pf_wld">0.00</div>
+  </div>
+  <div style="height:10px"></div>
 
-<label data-i18n="language_label" style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
-<select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
-  <option value="es" data-i18n="option_es">Español</option>
-  <option value="en" data-i18n="option_en">Inglés</option>
-</select>
+  <label for="langSelect" style="display:block;margin-top:8px">Language</label>
+  <select id="langSelect" style="width:100%;padding:10px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff">
+    <option value="en">English</option>
+    <option value="es">Español</option>
+  </select>
+  <div style="height:12px"></div>
 
-<div style="margin:16px 0;">
-  <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
-  <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
-  <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
-</div>
-
-<button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
-
+  <button id="saveProfile" class="btn-icon" data-i18n="save">Guardar</button>
+  <span id="savedMsg" style="margin-left:8px;opacity:0;transition:opacity .18s" data-i18n="saved">Guardado</span>
 </aside>
 
+<!-- Drawer Idea Participation -->
+<div id="backdropIDEA" class="backdrop"></div>
+<aside id="drawerIDEA" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Close" onclick="closeDrawer('IDEA')">x</button>
+  <h3 style="margin:0 0 12px">Idea Survey</h3>
+  <p style="opacity:.85;margin:0 0 10px">Pay <b>1.2 WLD</b> to participate or add a private comment. You must verify with World ID first.</p>
+  <div id="ideaPaidBadge" style="font-size:12px;opacity:.8;margin:4px 0 10px">Status: <span id="ideaPaidState">Not paid</span></div>
+  <textarea id="ideaComment" rows="5" placeholder="Your private comment…" style="width:100%;border-radius:10px;padding:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;resize:vertical"></textarea>
+  <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
+    <button id="ideaPayBtn" class="btn-icon" type="button">Pay 1.2 WLD</button>
+    <button id="ideaSubmitBtn" class="btn-icon" type="button" disabled>Submit</button>
+  </div>
+</aside>
 
-<!-- Demo tools -->
-<section class="card">
-  <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
+<!-- DEMO SECTION (puedes ocultarlo en prod) -->
+<section class="card" style="width:min(560px,92vw); margin:20px auto">
+  <h3 class="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
   <div style="display:flex;gap:10px;justify-content:flex-end">
     <button id="btnAddWLD">+5 WLD</button>
     <button id="btnReset">Reset</button>
@@ -491,50 +280,80 @@ body{
 (function splashController(){
   const splash = document.getElementById('splash');
   if (!splash) return;
-  const hint = splash.querySelector('.splash__hint');
+  const hint = document.getElementById('splashHint');
+  const btn  = document.getElementById('worldIdBtn');
 
-  let hidden = false;
+  // Restore prior verification from localStorage
+  let verified = (localStorage.getItem('verified') === 'true');
+  window.isVerified = verified;
+
   const hide = () => {
-    if (hidden) return;
-    hidden = true;
-    splash.setAttribute('aria-busy', 'false');
+    if (!splash) return;
     splash.classList.add('splash--hide');
-    setTimeout(()=> splash.remove(), 450); // limpia tras el fade-out
+    setTimeout(()=> splash.remove(), 450);
   };
 
-  // Tiempos (ajústalos si quieres más/menos duración):
-  const READY_DELAY = 900;              // mostrar "Preparando..." después del logo
-  const DONE_DELAY  = READY_DELAY + 900; // cambiar a "¡Listo!" luego de 0.9s
-  const HIDE_DELAY  = DONE_DELAY + 500;  // ocultar splash 0.5s después
-
-  // Safety por si algo raro pasa (mejor 5s que 4s para asegurar ver el hint)
-  const safetyTimer = setTimeout(hide, 5000);
-
-  window.addEventListener('load', () => {
-    // 1) Mostrar "Preparando tu sesión…" con fade-in
-    setTimeout(() => {
-      if (hint) {
-        hint.textContent = "Preparando tu sesión…";
-        hint.style.opacity = '1';
-        hint.style.transform = 'translateY(0)';
+  async function handleSignIn(){
+    if (!btn) return;
+    btn.disabled = true;
+    if (hint) { hint.textContent = 'Verifying…'; hint.style.opacity = '1'; hint.style.transform = 'translateY(0)'; }
+    try{
+      const ok = await startWorldID(); // TODO: integrate real IDKit/World ID verification
+      if (ok){
+        verified = true; window.isVerified = true;
+        localStorage.setItem('verified','true');
+        if (hint) hint.textContent = 'Ready';
+        setTimeout(hide, 600);
+      }else{
+        if (hint) hint.textContent = 'Preparing session…';
+        btn.disabled = false;
       }
-    }, READY_DELAY);
+    }catch(err){
+      console.error('World ID error', err);
+      if (hint) hint.textContent = 'Preparing session…';
+      btn.disabled = false;
+    }
+  }
 
-    // 2) Cambiar a "¡Listo!" poco antes de cerrar
-    setTimeout(() => {
-      if (hint) hint.textContent = "¡Listo!";
-    }, DONE_DELAY);
+  if (btn) btn.addEventListener('click', handleSignIn);
 
-    // 3) Cerrar splash suavemente
-    setTimeout(() => {
-      clearTimeout(safetyTimer);
-      hide();
-    }, HIDE_DELAY);
+  // Auto-hide if already verified before
+  window.addEventListener('load', () => {
+    if (verified){
+      if (hint) { hint.textContent = 'Ready'; hint.style.opacity = '1'; hint.style.transform = 'translateY(0)'; }
+      setTimeout(hide, 300);
+    } else {
+      if (hint) { hint.textContent = 'Preparing session…'; hint.style.opacity = '1'; hint.style.transform = 'translateY(0)'; }
+    }
   });
 })();
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
-let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
+let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
+
+// === World ID verification (stub) ===
+async function startWorldID(){
+  // TODO: Integrate official World ID / IDKit verification here.
+  // For now we simulate a successful verification.
+  return new Promise(res => setTimeout(()=>res(true), 700));
+}
+
+// === Payments via World App (stub) ===
+const WHITELIST_ADDR = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+async function worldAppPay({ amount, to = WHITELIST_ADDR, action = 'generic' }){
+  // TODO: Integrate World App Action / WalletConnect / World Developers SDK.
+  // Attempt deeplink or show a confirm dialog as a placeholder.
+  try{
+    // Placeholder UX
+    return await new Promise(resolve=>{
+      const ok = true; // simulate success
+      setTimeout(()=>resolve(ok), 800);
+    });
+  }catch(e){
+    console.error('Payment error', e);
+    return false;
+  }
+}
 
 /* ===== Estado base (demo) ===== */
 const BASE_CAP=100, BASE_REGEN_PER_SEC=0.8, POWER_BASE=0.40;
@@ -547,7 +366,7 @@ let lastTs=+localStorage.getItem('last_ts')||Date.now();
 function capMax(){return BASE_CAP}
 function regenPerSec(){return BASE_REGEN_PER_SEC}
 function priceRefill(){return +(capMax()/1000).toFixed(2)} // 0.1% capacidad
-function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
+function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000; lastTs=now; energy=Math.min(capMax(), energy+regenPerSec()*dt); localStorage.setItem('last_ts',String(lastTs)); localStorage.setItem('energy',String(energy));}
 
 /* ===== Refs ===== */
 const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
@@ -555,126 +374,45 @@ const coin=$('#coin'), gain=$('#gain');
 const fx=$('#fx'), ctx=fx.getContext('2d');
 const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
 const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
-const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
-const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
+const openUp=$('#openUp');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
-// ===== Inbox: estado y render =====
-let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
-let unread = +localStorage.getItem('unread') || 0;
-
-function saveMsgs(){
-  localStorage.setItem('msgs', JSON.stringify(msgs));
-  localStorage.setItem('unread', String(unread));
-}
-
-function renderInbox(){
-  const box = document.getElementById('inboxList');
-  if (!box) return;
-
-  const cur = getLang();
-  const locale = (cur === 'en') ? 'en-US' : 'es-PE';
-  const T = I18N[cur] || I18N.es;
-
-  if (msgs.length === 0){
-    // "Sin mensajes" también se traduce:
-    box.innerHTML = '';
-    const p = document.createElement('p');
-    p.style.opacity = '.7';
-    p.textContent = (cur === 'en') ? 'No messages.' : 'Sin mensajes.';
-    box.appendChild(p);
-  } else {
-    box.innerHTML = '';
-    msgs.forEach(m => {
-      const wrap = document.createElement('div');
-      wrap.className = 'msg' + (m.type === 'system' ? ' msg-system' : '');
-
-      const time = document.createElement('div');
-      time.className = 'msg-time';
-      time.textContent = new Date(m.ts).toLocaleString(locale);
-
-      const txt = document.createElement('div');
-      txt.className = 'msg-text';
-
-      // Si el mensaje tiene "key", se traduce; si no, usa el texto literal
-      if (m.key && T[m.key] != null){
-        txt.textContent = T[m.key];
-      } else {
-        txt.textContent = String(m.text || '');
-      }
-
-      wrap.appendChild(time);
-      wrap.appendChild(txt);
-      box.appendChild(wrap);
-    });
-  }
-
-  if (unread > 0){
-    inboxBadge.style.display = 'grid';
-    inboxBadge.textContent = unread;
-  } else {
-    inboxBadge.style.display = 'none';
-  }
-}
-
-// Mensaje con TEXTO literal (no se traduce al cambiar idioma)
-function addMessage(text, type='announce'){
-  const allowed = new Set(['system','announce','reward']);
-  if (!allowed.has(type)) return;
-  msgs.unshift({ text: String(text || ''), ts: Date.now(), type });
-  unread++;
-  saveMsgs();
-  renderInbox();
-}
-
-// Mensaje por CLAVE del diccionario (sí se traduce al cambiar idioma)
-function addMessageKey(key, type='announce'){
-  const allowed = new Set(['system','announce','reward']);
-  if (!allowed.has(type)) return;
-  msgs.unshift({ key: String(key || ''), ts: Date.now(), type });
-  unread++;
-  saveMsgs();
-  renderInbox();
-}
-
-// Abrir Inbox = mostrar y limpiar contador
-if (inboxBtn) inboxBtn.onclick = () => {
-  openDrawer('IN');
-  unread = 0;
-  saveMsgs();
-  renderInbox();
-};
-
-// Botón "Marcar como leído"
-const markRead = document.getElementById('markRead');
-if (markRead) markRead.onclick = () => {
-  unread = 0;
-  saveMsgs();
-  renderInbox();
-};
-
-/* ===== Canvas del tamaño de la moneda ===== */
-function sizeCanvasToCoin(){
-  const r = coin.getBoundingClientRect();
-  const scale = window.devicePixelRatio || 1;
-  fx.width  = Math.round(r.width * scale);
-  fx.height = Math.round(r.height * scale);
-  fx.style.width  = r.width + 'px';
-  fx.style.height = r.height + 'px';
-}
-addEventListener('resize', sizeCanvasToCoin);
 
 /* ===== Partículas con fallback ===== */
 const sparkle = new Image(); sparkle.src = 'img/sparkle.png' ;
 let parts=[];
-function spawn(x,y){for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
-  parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});}}
+function spawn(x,y){
+  for(let i=0;i<14;i++){
+    const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});
+  }
+}
 function stepFX(dt){
+  // Time normalization to be FPS-independent
+  const k = dt / 16.7; // ~1 at 60fps
+  const cx = fx.width/2, cy = fx.height/2, r = Math.min(fx.width, fx.height)/2;
+
   ctx.clearRect(0,0,fx.width,fx.height);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.clip();
+
+  const prevComp = ctx.globalCompositeOperation;
+  const prevFilter = ctx.filter || 'none';
+  ctx.globalCompositeOperation = 'lighter';
+  try { ctx.filter = 'blur(0.6px)'; } catch(e){ /* ignore */ }
+
   for(let i=parts.length-1;i>=0;i--){
-    const p=parts[i]; p.life-=dt; if(p.life<=0){parts.splice(i,1); continue;}
-    p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.alpha=Math.max(0,p.life/700);
-    ctx.globalAlpha=p.alpha;
+    const p=parts[i];
+    p.life -= dt;
+    if(p.life<=0){ parts.splice(i,1); continue; }
+    p.x += p.vx * k;
+    p.y += p.vy * k;
+    p.vy += 0.02 * k;
+    p.alpha = Math.max(0, p.life/700);
+
+    ctx.globalAlpha = p.alpha;
     if(sparkle.complete){
       ctx.drawImage(sparkle, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
     }else{
@@ -682,7 +420,11 @@ function stepFX(dt){
       ctx.arc(p.x,p.y, Math.max(2, p.size*0.15), 0, Math.PI*2); ctx.fill();
     }
   }
-  ctx.globalAlpha=1;
+
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = prevComp;
+  ctx.filter = prevFilter;
+  ctx.restore();
 }
 
 /* ===== UI render ===== */
@@ -695,81 +437,82 @@ function render(){
   const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
   refillBtn.classList.toggle('pulse', low && canPay);
   refillBtn.disabled = energy>=eMax-1e-6;
-    if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
+  if (typeof renderProfile === 'function') renderProfile();
 }
-
 
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
-// Usamos pointerdown para latencia cero en móvil y escritorio.
-// Nota: el listener está sobre #coin, así que siempre estamos "dentro" de la moneda.
-coin.addEventListener('pointerdown', (e) => {
-  lazyRegen();
 
+coin.addEventListener('pointerdown', (e) => {
+  // Gate: require World ID verification
+  if (!window.isVerified) { tone(220,0.05,'sine',.05); return; }
+
+  lazyRegen();
   const ok = addTap();
   if (ok) {
-    // Mostrar +WLGp
-    gain.textContent = `+${POWER_BASE.toFixed(2)}`;
-    gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
-
-    // Tono breve de feedback
-    tone(820, 0.05, 'triangle', .07);
-
+    // Coordinates relative to #fx
     const rect = fx.getBoundingClientRect();
-const localX = (e.clientX - rect.left) / (rect.width  || 1) * fx.width;
-const localY = (e.clientY - rect.top)  / (rect.height || 1) * fx.height;
+    let localX = (e.clientX - rect.left)  / (rect.width  || 1) * fx.width;
+    let localY = (e.clientY - rect.top)   / (rect.height || 1) * fx.height;
 
-// Centro y radio de la moneda (canvas coincide con círculo)
-const cx = fx.width / 2;
-const cy = fx.height / 2;
-const r  = fx.width / 2;
+    // Clamp to circle
+    const cx = fx.width/2, cy = fx.height/2, r = Math.min(fx.width, fx.height)/2;
+    const dx = localX - cx, dy = localY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > r) { const scale = r/dist; localX = cx + dx*scale; localY = cy + dy*scale; }
 
-// Distancia desde el centro
-const dx = localX - cx;
-const dy = localY - cy;
-const dist = Math.sqrt(dx*dx + dy*dy);
+    // Move gain to tap point
+    if (gain){
+      gain.style.left = localX + 'px';
+      gain.style.top  = localY + 'px';
+      gain.textContent = '+' + POWER_BASE.toFixed(2);
+      gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
+    }
 
-// Si el toque está fuera del círculo, lo “recortamos” al borde interior
-if (dist > r) {
-  const scale = r / dist;
-  spawn(cx + dx * scale, cy + dy * scale);
-} else {
-  spawn(localX, localY);
-}
+    // Spawn particles at tap point
+    spawn(localX, localY);
 
-
-    // Micro-animación de “presión” en la moneda
+    // Feedback tone and micro scale
+    tone(820, 0.05, 'triangle', .07);
     coin.animate(
       [{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }],
       { duration: 140, easing: 'ease-out' }
     );
   } else {
-    // Sin energía: pequeño “shake” del botón refill
+    // Out of energy: shake refill button
     refillBtn.classList.add('shake');
     setTimeout(() => refillBtn.classList.remove('shake'), 260);
   }
 }, { passive: true });
 
-
 /* ===== Refill ===== */
-function doRefill(){
+async function doRefill(){
   const cost=priceRefill(), eMax=capMax();
   if(energy>=eMax-1e-6) return;
-  if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
-  wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
+  // Require World ID verification before payment
+  if (!window.isVerified){ refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return; }
+  const ok = await worldAppPay({ amount: cost, to: WHITELIST_ADDR, action: 'refill' });
+  if(!ok){ refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return; }
+  wld=Math.max(0,wld-cost); energy=eMax; 
+  localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
   tone(620,0.08,'sine',.08); render();
 }
-refillBtn.onclick=doRefill;
-
+refillBtn.onclick=()=>{ doRefill(); };
 
 /* ===== Boosters drawer (placeholder) ===== */
-openUp.onclick=()=>openDrawer('UP');
+const drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
+const drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN');
+const drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
+const trophyBtn=document.getElementById('trophyBtn'), trophyTip=document.getElementById('trophyTip');
+const inboxBtn=document.getElementById('inboxBtn'), unreadBadge=document.getElementById('unreadBadge');
+const markRead=document.getElementById('markRead');
 
 function openDrawer(which){
   const map = {
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    IDEA: [drawerIDEA, backdropIDEA],
   };
   const pair = map[which];
   if (!pair) return;
@@ -782,6 +525,7 @@ function closeDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    IDEA: [drawerIDEA, backdropIDEA],
   };
   const pair = map[which];
   if (!pair) return;
@@ -790,86 +534,144 @@ function closeDrawer(which){
   bd.classList.remove('show');
 }
 
-/* Cerrar tocando el fondo */
-if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
-if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
-if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
-
-/* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
-if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
-
-
-
-
-// === Demo buttons (handlers seguros) ===
-const addWldBtn = document.getElementById('btnAddWLD');
-if (addWldBtn) {
-  addWldBtn.addEventListener('click', () => {
-    wld += 5;                                   // suma 5 WLD
-    localStorage.setItem('wld', String(wld));   // persiste
-    render();                                   // refresca balances/energía
-    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
+(function setupTrophyTip(){
+  const btn = document.getElementById('trophyBtn');
+  const tip = document.getElementById('trophyTip');
+  if (!btn || !tip) return;
+  let timer;
+  btn.addEventListener('click', () => {
+    tip.style.opacity = '1'; tip.style.transform = 'translateY(0)';
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ tip.style.opacity='0'; tip.style.transform='translateY(-6px)'; }, 1100);
   });
-}
+})();
 
-const resetBtn = document.getElementById('btnReset');
-if (resetBtn) {
-  resetBtn.addEventListener('click', () => {
-    if (confirm('¿Reiniciar demo?')) {
-      localStorage.clear();
-      location.reload();
+/* ===== Idea participation (1.2 WLD) ===== */
+const ideaBtn = document.getElementById('ideaBtn');
+const ideaPayBtn = document.getElementById('ideaPayBtn');
+const ideaSubmitBtn = document.getElementById('ideaSubmitBtn');
+const ideaCommentEl = document.getElementById('ideaComment');
+const ideaPaidState = document.getElementById('ideaPaidState');
+let ideaPaid = (localStorage.getItem('idea_paid') === 'true');
+
+function refreshIdeaUI(){
+  if (ideaPaidState) ideaPaidState.textContent = ideaPaid ? 'Paid' : 'Not paid';
+  if (ideaSubmitBtn) ideaSubmitBtn.disabled = !ideaPaid;
+}
+refreshIdeaUI();
+
+if (ideaBtn) ideaBtn.onclick = ()=> openDrawer('IDEA');
+
+if (ideaPayBtn){
+  ideaPayBtn.onclick = async () => {
+    if (!window.isVerified){ alert('Please verify with World ID first.'); return; }
+    const ok = await worldAppPay({ amount: 1.2, to: WHITELIST_ADDR, action: 'idea_participation' });
+    if (ok){
+      ideaPaid = true; localStorage.setItem('idea_paid','true');
+      refreshIdeaUI();
+      tone(640,0.05,'sine',.07);
     }
-  });
+  };
 }
 
-/* ===== Main loop (FX + regeneración visible) ===== */
-let tPrev = performance.now();
-function frame(t){
-  const dt = t - tPrev; tPrev = t;
-  stepFX(dt);             // partículas/sombras
-  requestAnimationFrame(frame);
+if (ideaSubmitBtn){
+  ideaSubmitBtn.onclick = () => {
+    if (!ideaPaid){ alert('Please pay 1.2 WLD to participate.'); return; }
+    const text = (ideaCommentEl?.value || '').trim();
+    if (text.length === 0){ alert('Write a short comment.'); return; }
+    const all = JSON.parse(localStorage.getItem('idea_comments')||'[]');
+    all.push({ t: Date.now(), text });
+    localStorage.setItem('idea_comments', JSON.stringify(all));
+    ideaCommentEl.value='';
+    closeDrawer('IDEA');
+  };
 }
-requestAnimationFrame(frame);
 
-// Regeneración y UI cada 250 ms (sube 1 en 1 a su ritmo)
-const REGEN_UI_MS = 250;
-setInterval(() => {
-  lazyRegen();            // calcula energía con tiempo real
-  render();               // actualiza barra y números
-}, REGEN_UI_MS);
+/* === Inbox estado mínimo === */
+let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
+let unread = +localStorage.getItem('unread') || 0;
+function saveMsgs(){ localStorage.setItem('msgs', JSON.stringify(msgs)); localStorage.setItem('unread', String(unread)); }
+function renderInbox(){
+  const box = document.getElementById('inboxList'); if (!box) return;
+  const cur = getLang(); const locale = (cur === 'en') ? 'en-US' : 'es-PE'; const T = I18N[cur] || I18N.es;
+  if (msgs.length === 0){
+    const now = new Date();
+    const opts = { timeStyle:'short', dateStyle:'medium' };
+    const when = new Intl.DateTimeFormat(locale, opts).format(now);
+    msgs = [
+      {k:'seed_stay_tuned', ts: now.getTime() },
+      {k:'seed_get_wallet', ts: now.getTime() + 1 },
+      {k:'seed_farming_time', ts: now.getTime() + 2 },
+    ];
+    unread = msgs.length; saveMsgs();
+  }
+  unreadBadge?.classList.toggle('hidden', unread<=0);
+  unreadBadge && (unreadBadge.textContent = String(unread));
+  box.innerHTML = msgs.map(m=>`<div class="card" style="opacity:.9">${T[m.k]||m.k}</div>`).join('');
+}
+function markAllRead(){ unread = 0; saveMsgs(); renderInbox(); }
+if (markRead) markRead.onclick = markAllRead;
 
-
-/* ===== Perfil: nombre de usuario + idioma ===== */
-/* Helpers sin TDZ */
-function getLang(){ return localStorage.getItem('lang') || 'es'; }
+/* ===== Perfil mínimo ===== */
+function getLang(){ return localStorage.getItem('lang') || 'en'; }
 function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
-
-var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
+var username = localStorage.getItem('username') || 'Player';
 function getUsername(){ return localStorage.getItem('username') || 'Player'; }
-function setUsername(v){
-  const s = (v || '').slice(0,20);
-  localStorage.setItem('username', s);
-  username = s;
-  return s;
-}
+function setUsername(v){ const s = (v || '').slice(0,20); localStorage.setItem('username', s); username = s; return s; }
 
-// === Saludo en el logo (NIVEL RAÍZ, fuera de cualquier función) ===
 function renderLogoGreeting(){
   try{
-    const cur = (typeof getLang === 'function') ? getLang() : 'es';
+    const cur = (typeof getLang === 'function') ? getLang() : 'en';
     const hasI18N = typeof I18N !== 'undefined' && I18N && I18N[cur];
     const T = hasI18N ? I18N[cur] : { hello_user: (cur==='en' ? 'Hello {name}!' : 'Hola {name}!') };
-    const user = (typeof getUsername === 'function') ? getUsername() : 'Player';
-    const h1 = document.querySelector('.logo-text');
-    if (!h1) return;
-    const text = (T.hello_user || (cur==='en' ? 'Hello {name}!' : 'Hola {name}!')).replace('{name}', user || 'Player');
-    h1.textContent = text;
-  }catch(e){ console.error('[greeting] error:', e); }
+    const txt = (T.hello_user || 'Hello {name}!').replace('{name}', getUsername());
+    document.querySelector('.logo-text').textContent = txt;
+  }catch(e){}
 }
 
+/* ===== Render inicial ===== */
+function renderProfile(){
+  const pf_wld=document.getElementById('pf_wld');
+  const pf_wlg=document.getElementById('pf_wlg');
+  const pf_wlgp=document.getElementById('pf_wlgp');
+  if (pf_wld) pf_wld.textContent = wld.toFixed(2);
+  if (pf_wlg) pf_wlg.textContent = '0.00';
+  if (pf_wlgp) pf_wlgp.textContent = wlgp.toFixed(3);
+}
 
-/* Diccionario i18n (UNA sola vez) */
-/* Diccionario i18n (UNA sola vez) */
+function loadProfileFields(){
+  const usernameInput = document.getElementById('usernameInput');
+  const saveBtn = document.getElementById('saveProfile');
+  const savedMsg = document.getElementById('savedMsg');
+  const langSelect = document.getElementById('langSelect');
+
+  if (usernameInput){
+    usernameInput.value = getUsername();
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        if (saveBtn) saveBtn.click();
+      }
+    });
+  }
+
+  if (saveBtn){
+    saveBtn.onclick = () => {
+      setUsername(usernameInput.value);
+      if (savedMsg){ savedMsg.style.opacity = '1'; setTimeout(()=>savedMsg.style.opacity='0', 650); }
+      renderLogoGreeting(); renderProfile();
+    };
+  }
+
+  if (langSelect){
+    langSelect.value = getLang();
+    langSelect.onchange = (e)=>{ setLang(e.target.value); applyLang(); };
+  }
+
+  renderProfile();
+}
+
+/* ===== I18N ===== */
 const I18N = {
   es: {
     wld_balance:   'Saldo WLD:',
@@ -883,27 +685,23 @@ const I18N = {
     save:          'Guardar',
     saved:         'Guardado',
 
-    // 👇 NUEVO: Perfil
     username_label:        'Nombre de usuario',
     username_placeholder:  'Tu nombre',
-    language_label:        'Idioma',
     option_es:             'Español',
     option_en:             'Inglés',
     profile_wlgp_label:    'WLGp:',
-    profile_wlg_label:     'WLG Balance:',
-    profile_wld_label:     'WLD Balance:',
+    profile_wlg_label:     'WLG:',
+    profile_wld_label:     'WLD:',
 
-    // 👇 Saludo del logo
     hello_user:            'Hola {name}!',
 
-    // 👇 Seeds del Inbox (si usas addMessageKey)
-    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
-    seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
-    seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+    seed_stay_tuned:  'Atentos — grandes novedades pronto. ✨',
+    seed_get_wallet:  'Ten lista tu wallet para ganar WLD. ✨',
+    seed_farming_time:'¡Tiempo de farmear $WLG! Prepárate para el TGE y toma la delantera. 🎮',
   },
   en: {
     wld_balance:   'WLD Balance:',
-    coming_soon:   'Coming Soon',
+    coming_soon:   'Coming soon',
     inbox_title:   'Inbox',
     boosters_title:'Boosters',
     profile_title: 'Profile',
@@ -913,160 +711,55 @@ const I18N = {
     save:          'Save',
     saved:         'Saved',
 
-    // 👇 NEW: Profile
     username_label:        'Username',
     username_placeholder:  'Your name',
-    language_label:        'Language',
     option_es:             'Spanish',
     option_en:             'English',
     profile_wlgp_label:    'WLGp:',
-    profile_wlg_label:     'WLG Balance:',
+    profile_wlg_label:     'WLG:',
     profile_wld_label:     'WLD Balance:',
 
-    // 👇 Logo greeting
     hello_user:            'Hello {name}!',
 
-    // 👇 Inbox seeds
     seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
     seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
     seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
   }
 };
 
-
-/* Aplica i18n a todos los [data-i18n] */
 /* Aplica i18n a todos los [data-i18n] y placeholders */
 function applyLang(){
   const cur = getLang();
   const T = I18N[cur] || I18N.es;
 
-  // 1) Textos
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const key = el.getAttribute('data-i18n');
     if (T[key] != null) el.textContent = T[key];
   });
-
-  // 2) Placeholders (inputs/textarea)
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     const key = el.getAttribute('data-i18n-placeholder');
     if (T[key] != null) el.setAttribute('placeholder', T[key]);
   });
 
   document.documentElement.lang = cur;
+  if (!localStorage.getItem('lang')) setLang('en');
 
-  // Redibuja partes dependientes de idioma
-  renderInbox();                         // Inbox por clave
-  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // Hola/Hello {name}
+  renderInbox();
+  renderLogoGreeting();
 }
 
-
-
-/* Carga campos del Perfil + botón Guardar */
-function loadProfileFields(){
-  const usernameInput = document.getElementById('usernameInput');
-  const saveBtn       = document.getElementById('saveUsernameBtn');
-  const savedBadge    = document.getElementById('savedBadge');
-  const langSelect    = document.getElementById('langSelect');
-
-  // Nombre de usuario
-  if (usernameInput){
-    usernameInput.value = getUsername();
-
-    const markDirty = ()=>{
-      const dirty = usernameInput.value !== getUsername();
-      if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
-      if (savedBadge) savedBadge.style.display = 'none';
-    };
-    usernameInput.addEventListener('input', markDirty);
-    usernameInput.addEventListener('focus', markDirty);
-
-    if (saveBtn){
-      saveBtn.onclick = ()=>{
-  const normalized = setUsername(usernameInput.value);
-  usernameInput.value = normalized;
-  saveBtn.style.display = 'none';
-  if (savedBadge){
-    savedBadge.style.display = 'inline';
-    clearTimeout(savedBadge._t);
-    savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
+/* ===== Boot ===== */
+(function boot(){
+  try{
+    applyLang();
+    render();
+    loadProfileFields();
+    renderInbox();
+  }catch(e){
+    console.error(e);
   }
-  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // una sola vez
-};
-
-    }
-    // Auto-guardar al salir del input
-    usernameInput.addEventListener('blur', ()=>{
-      if (usernameInput.value !== getUsername()){
-        if (saveBtn) saveBtn.click();
-      }
-    });
-  }
-
-  // Idioma
-  if (langSelect){
-    langSelect.value = getLang();
-    langSelect.onchange = (e)=>{
-      setLang(e.target.value);
-      applyLang();
-    };
-  }
-
-  // Primera aplicación
-  applyLang();
-}
-
-/* Muestra balances dentro del Perfil */
-function renderProfile(){
-  const pWLD  = document.getElementById('profWLD');
-  const pWLGp = document.getElementById('profWLGp');
-  if (pWLD)  pWLD.textContent  = wld.toFixed(2);
-  if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
-}
-
-
-  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
-
-/* ===== Init ===== */
-(function init(){
-  sizeCanvasToCoin();
-  // Partículas de arranque para confirmar que se ven
-  setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
-
-  render();               // primer pintado
-  loadProfileFields();    // engancha Perfil (username/idioma)
-  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
-  // Mensajes iniciales con CLAVE (se traducen)
-if (msgs.length === 0) {
-  addMessageKey('seed_stay_tuned', 'system');
-  addMessageKey('seed_get_wallet', 'system');
-  addMessageKey('seed_farming_time', 'system');
-}
-
-// Primer pintado del Inbox (ahora sí, I18N ya existe)
-renderInbox();
-renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
-
-
-})(); // 👈 MUY IMPORTANTE: cerrar la IIFE
-
-
-</script>
-<script>
-(function setupTrophyTip(){
-  const btn = document.getElementById('trophyBtn');
-  const tip = document.getElementById('trophyTip');
-  if (!btn || !tip) return;
-
-  let timer;
-  btn.addEventListener('click', () => {
-    tip.classList.add('show');     // aparece
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      tip.classList.remove('show'); // se desvanece
-    }, 1600); // 1.6s visible
-  });
 })();
-</script>
 
+</script>
 </body>
 </html>
