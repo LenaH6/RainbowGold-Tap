@@ -10,8 +10,8 @@
   --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
   --gold:#F4C542; --gold-soft:#FFD872;
   /* MÁS GRANDE y calzada */
-  --heroSize: clamp(340px, 82vw, 620px);
-  --coinSize: clamp(340px, 82vw, 620px);
+  --heroSize: clamp(100px, 82vw, 620px);
+  --coinSize: clamp(100px, 82vw, 620px);
 }
 
 /* Base */
@@ -69,7 +69,7 @@ body{
        border-radius:999px;
         min-width:18px; height:18px;
          display:grid; place-items:center;
-          font-size:11px; font-weight:700; padding:0 6px}
+          font-size:10px; font-weight:700; padding:0 6px}
 
 /* Hero */
 .hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
@@ -259,8 +259,8 @@ body{
 /* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
 :root{
   /* Ajusta aquí sin miedo */
-  --logoSize: 20px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
-  --logoColor: #fffff;      /* color del texto */
+  --logoSize: 10px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
+  --logoColor: #cf892c;      /* color del texto */
 }
 
 /* Más específico + !important para ganar siempre */
@@ -291,10 +291,10 @@ body{
 <!-- Left FABs -->
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Profile">
-    <img src="img/icon-profile.png" alt="Perfil" style="width:50px;height:50px;">
+    <img src="img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
   </button>
   <button id="inboxBtn" class="fab inbox" title="Inbox">
-    <img src="img/icon-inbox.png" alt="Inbox" style="width:50px;height:50px;">
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
     <span id="inboxBadge" class="badge" style="display:none">0</span>
   </button>
 </div>
@@ -312,7 +312,7 @@ body{
   <!-- WRAP del trofeo: el tip vive junto al botón -->
   <div class="trophyWrap">
     <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
-      <img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;">
+      <img src="img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
     </button>
     <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
   </div>
@@ -343,11 +343,11 @@ body{
   <!-- DOCK bajo la moneda -->
   <div class="action-dock" aria-label="acciones rápidas">
     <button id="refillBtn" class="btn-icon" aria-label="Refill">
-      <img src="img/ico-refill.png" alt="">
+      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
       <span id="refillPrice" class="price-pill">0.10 WLD</span>
     </button>
     <button id="openUp" class="btn-icon" aria-label="Boosters">
-      <img src="img/icon-gear.png" alt="">
+      <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
     </button>
   </div>
 
@@ -550,7 +550,7 @@ function sizeCanvasToCoin(){
 addEventListener('resize', sizeCanvasToCoin);
 
 /* ===== Partículas con fallback ===== */
-const sparkle = new Image(); sparkle.src = 'img/sparkle.png';
+const sparkle = new Image(); sparkle.src = 'img/sparkle.png' ;
 let parts=[];
 function spawn(x,y){for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
   parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});}}
