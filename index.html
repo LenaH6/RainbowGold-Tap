@@ -10,8 +10,8 @@
   --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
   --gold:#F4C542; --gold-soft:#FFD872;
   /* MÁS GRANDE y calzada */
-  --heroSize: clamp(100px, 82vw, 620px);
-  --coinSize: clamp(100px, 82vw, 620px);
+  --heroSize: clamp(100px, 60vw, 500px);
+  --coinSize: clamp(100px, 60vw, 500px);
 }
 
 /* Base */
@@ -715,13 +715,28 @@ coin.addEventListener('pointerdown', (e) => {
     // Tono breve de feedback
     tone(820, 0.05, 'triangle', .07);
 
-    // Posición del tap dentro del canvas #fx (que ya coincide con la moneda)
     const rect = fx.getBoundingClientRect();
-    const x = (e.clientX - rect.left)  / (rect.width  || 1) * fx.width;
-    const y = (e.clientY - rect.top)   / (rect.height || 1) * fx.height;
+const localX = (e.clientX - rect.left) / (rect.width  || 1) * fx.width;
+const localY = (e.clientY - rect.top)  / (rect.height || 1) * fx.height;
 
-    // Generar partículas exactamente en el punto tocado
-    spawn(x, y);
+// Centro y radio de la moneda (canvas coincide con círculo)
+const cx = fx.width / 2;
+const cy = fx.height / 2;
+const r  = fx.width / 2;
+
+// Distancia desde el centro
+const dx = localX - cx;
+const dy = localY - cy;
+const dist = Math.sqrt(dx*dx + dy*dy);
+
+// Si el toque está fuera del círculo, lo “recortamos” al borde interior
+if (dist > r) {
+  const scale = r / dist;
+  spawn(cx + dx * scale, cy + dy * scale);
+} else {
+  spawn(localX, localY);
+}
+
 
     // Micro-animación de “presión” en la moneda
     coin.animate(
