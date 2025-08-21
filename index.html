@@ -6,6 +6,21 @@
 <title>WorldGold — Tap</title>
 <meta name="theme-color" content="#1b103a">
 <style>
+  /* Botón de verificación en splash: vidrio oscuro + acento dorado */
+.splash__cta{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  margin: 12px auto 6px; padding: 12px 16px; min-height:44px;
+  border-radius:14px; font-weight:700; letter-spacing:.3px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,223,120,.28);
+  color:#ffd872;
+  backdrop-filter: blur(8px);
+  transition: transform .15s ease, filter .2s ease, background .2s ease, border-color .2s ease;
+}
+.splash__cta:hover{ filter: brightness(1.06); }
+.splash__cta:active{ transform: translateY(1px) scale(.99); }
+.splash__cta:disabled{ opacity:.45; pointer-events:none; filter: grayscale(1) contrast(.9); }
+
 :root{
   --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
   --gold:#F4C542; --gold-soft:#FFD872;
@@ -451,6 +466,11 @@ body{
     <!-- Sugerido: brand-mark-wg-128.png (incluido en tu proyecto) -->
     <img src="img/logo-splash.png" alt="WorldGold" onerror="this.style.display='none'">
   </div>
+  <!-- CTA de verificación -->
+<button id="splashVerifyBtn" class="splash__cta" data-i18n="verify_human">
+  Verificar con World ID
+</button>
+
   <div class="splash__hint">Preparando tu sesión...</div>
 </div>
 
@@ -575,6 +595,10 @@ body{
   <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
   <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
 </div>
+<!-- Verificación de humano (World ID) -->
+<button id="verifyBtn" class="btn primary" style="width:100%;margin:8px 0" data-i18n="verify_human">
+  Verificar humano
+</button>
 
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 
@@ -605,6 +629,7 @@ const DEMO_ENABLED = true; // ⚠️ cambia a false en producción
   const splash = document.getElementById('splash');
   if (!splash) return;
   const hint = splash.querySelector('.splash__hint');
+  const btn  = document.getElementById('splashVerifyBtn');
 
   let hidden = false;
   const hide = () => {
@@ -623,26 +648,44 @@ const DEMO_ENABLED = true; // ⚠️ cambia a false en producción
   // Safety por si algo raro pasa (mejor 5s que 4s para asegurar ver el hint)
   const safetyTimer = setTimeout(hide, 5000);
 
+  // ⬇️ Reemplazo completo del onload
   window.addEventListener('load', () => {
-    // 1) Mostrar "Preparando tu sesión…" con fade-in
-    setTimeout(() => {
-      if (hint) {
-        hint.textContent = "Preparando tu sesión…";
-        hint.style.opacity = '1';
-        hint.style.transform = 'translateY(0)';
-      }
-    }, READY_DELAY);
+    let hidden = false;
+    const hide = () => {
+      if (hidden) return; hidden = true;
+      splash.setAttribute('aria-busy','false');
+      splash.classList.add('splash--hide');
+      setTimeout(()=> splash.remove(), 450);
+    };
 
-    // 2) Cambiar a "¡Listo!" poco antes de cerrar
-    setTimeout(() => {
-      if (hint) hint.textContent = "¡Listo!";
-    }, DONE_DELAY);
+    // Estado inicial
+    if (hint) hint.textContent = 'Preparando tu sesión…';
 
-    // 3) Cerrar splash suavemente
-    setTimeout(() => {
-      clearTimeout(safetyTimer);
-      hide();
-    }, HIDE_DELAY);
+    // Si ya verificó en esta sesión, no pedimos nada
+    const already = sessionStorage.getItem('wlg_verified') === '1';
+    if (already){
+      if (hint) hint.textContent = '¡Listo!';
+      setTimeout(hide, 500);
+      return;
+    }
+
+    // Requerimos verificación para entrar (gateo)
+    if (btn){
+      btn.addEventListener('click', async () => {
+        const out = await window.__WLG.verifyOnDemand(hint, btn);
+        if (out.ok){
+          setTimeout(hide, 500); // cerrar suave tras “¡Listo!”
+        }else{
+          // Canceló o error: mantenemos el splash y el botón visible
+          // Puedes mostrar un mensaje visual si quieres:
+          // showToast('Necesitas verificar para continuar');
+        }
+      }, { passive:true });
+    }else{
+      // Plan B: si por algún motivo no está el botón, no bloqueamos al usuario.
+      if (hint) hint.textContent = '¡Listo!';
+      setTimeout(hide, 600);
+    }
   });
 })();
 /* ===== Helpers ===== */
@@ -1071,6 +1114,7 @@ const I18N = {
     seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
     seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
     energy_full: '⚡ Energía 100%',
+    verify_human: 'Verificar humano',
   },
   en: {
     wld_balance:   'WLD Balance:',
@@ -1102,6 +1146,7 @@ const I18N = {
     seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
     seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
     energy_full: '⚡ Energy 100%',
+    verify_human: 'Verify Human',
   }
 };
 
@@ -1330,6 +1375,53 @@ function showToast(msg, ms = 1800) {
   btn.onclick = onRefillClick;
 })();
 </script>
+<script type="module">
+  import { MiniKit, VerificationLevel } 
+    from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/+esm";
+
+  // TODO: reemplaza por tu Incognito Action real desde el Developer Portal
+  const ACTION_ID = "your-action-id";
+
+  const isWorldApp = () => MiniKit.isInstalled();
+  const showToast = window.showToast || (msg => console.log('[toast]', msg));
+
+  // Exponemos utilidades globales para que el controlador del splash las use
+  window.__WLG = {
+    async verifyOnDemand(hintEl, btnEl){
+      if (!isWorldApp()){
+        showToast('Ábrelo dentro de World App para verificar');
+        return { ok:false, reason:'not_worldapp' };
+      }
+      try{
+        if (btnEl) btnEl.disabled = true;
+        if (hintEl) hintEl.textContent = 'Verificando con World ID…';
+
+        const { finalPayload } = await MiniKit.commandsAsync.verify({
+          action: ACTION_ID,
+          verification_level: VerificationLevel.Orb,
+        });
+
+        if (finalPayload?.status === 'success'){
+          // (Recomendado) Enviar al backend para validación real:
+          // await fetch('/api/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ payload: finalPayload, action: ACTION_ID }) });
+          sessionStorage.setItem('wlg_verified','1');
+          if (hintEl) hintEl.textContent = '¡Listo!';
+          return { ok:true };
+        }
+        if (hintEl) hintEl.textContent = 'Preparando tu sesión…';
+        if (btnEl) btnEl.disabled = false;
+        return { ok:false, reason:'cancelled' };
+      }catch(e){
+        console.error(e);
+        if (hintEl) hintEl.textContent = 'Preparando tu sesión…';
+        if (btnEl) btnEl.disabled = false;
+        showToast('❌ Error al verificar, reintenta');
+        return { ok:false, reason:'error' };
+      }
+    }
+  };
+</script>
+
 
 </body>
 </html>
