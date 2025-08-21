@@ -701,23 +701,40 @@ function render(){
 
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
-coin.addEventListener('click',(e)=>{
+// Usamos pointerdown para latencia cero en móvil y escritorio.
+// Nota: el listener está sobre #coin, así que siempre estamos "dentro" de la moneda.
+coin.addEventListener('pointerdown', (e) => {
   lazyRegen();
-  const ok=addTap();
-  if(ok){
-    gain.textContent=`+${POWER_BASE.toFixed(2)}`; gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
-    tone(820,0.05,'triangle',.07);
-    // Posición del tap dentro del canvas
-    const rect=fx.getBoundingClientRect();
-    const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
-    const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
-    spawn(x,y);
-    coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
-  }else{
-    refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+
+  const ok = addTap();
+  if (ok) {
+    // Mostrar +WLGp
+    gain.textContent = `+${POWER_BASE.toFixed(2)}`;
+    gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
+
+    // Tono breve de feedback
+    tone(820, 0.05, 'triangle', .07);
+
+    // Posición del tap dentro del canvas #fx (que ya coincide con la moneda)
+    const rect = fx.getBoundingClientRect();
+    const x = (e.clientX - rect.left)  / (rect.width  || 1) * fx.width;
+    const y = (e.clientY - rect.top)   / (rect.height || 1) * fx.height;
+
+    // Generar partículas exactamente en el punto tocado
+    spawn(x, y);
+
+    // Micro-animación de “presión” en la moneda
+    coin.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }],
+      { duration: 140, easing: 'ease-out' }
+    );
+  } else {
+    // Sin energía: pequeño “shake” del botón refill
+    refillBtn.classList.add('shake');
+    setTimeout(() => refillBtn.classList.remove('shake'), 260);
   }
-  render();
-});
+}, { passive: true });
+
 
 /* ===== Refill ===== */
 function doRefill(){
