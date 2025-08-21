@@ -750,49 +750,13 @@
   })();
   </script>
 
-  <!-- === ÚNICO módulo MiniKit (limpio) === -->
-  <script type="module">
-/* ===== MiniKit robusto + logs visibles (Ideas + Refill) ===== */
+  /* ===== MiniKit robusto con detección múltiple + timeout + logs visibles ===== */
+<script type="module">
+let MiniKit, Tokens, VerificationLevel, tokenToDecimals;
+let MK = null; // objeto de comandos detectado (commandsAsync o commands)
 
-let MiniKit, tokenToDecimals, Tokens, VerificationLevel;
-
-async function loadMiniKit(){
-  // 0) ¿La World App ya lo inyectó?
-  if (window.MiniKit && window.MiniKit.commandsAsync) {
-    MiniKit = window.MiniKit;
-    tokenToDecimals   = window.tokenToDecimals || (v=>v); // por si viene preinyectado
-    Tokens            = window.Tokens;
-    VerificationLevel = window.VerificationLevel || { Orb: 'orb' };
-    console.log('[MiniKit] usando instancia inyectada por WorldApp');
-    return;
-  }
-  // 1) ¿Ya lo cargamos previamente?
-  if (MiniKit) return;
-
-  // 2) Import dinámico con fallbacks
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
-    'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
-    'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
-  ];
-  for (const u of urls){
-    try{
-      const m = await import(u);
-      MiniKit = m.MiniKit; tokenToDecimals = m.tokenToDecimals;
-      Tokens = m.Tokens;   VerificationLevel = m.VerificationLevel;
-      console.log('[MiniKit] import ok', u);
-      return;
-    }catch(e){ console.warn('[MiniKit] import fail', u, e); }
-  }
-  throw new Error('MiniKit no cargó (no inyectado / import blocked)');
-}
-
-/* Config */
-const ACTION     = 'worldgoldideas';
-const PAY_TO     = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-const IDEA_PRICE = 1.2;
-
-/* UI helpers */
+/* Utilidades UI */
+function showMsg(id, text){ const m=document.getElementById(id); if(!m) return; m.textContent=String(text||''); m.style.opacity='1'; }
 function toast(t,ms=1600){
   let el = document.getElementById('wgToast');
   if(!el){
@@ -804,79 +768,149 @@ function toast(t,ms=1600){
   el.textContent=t; clearTimeout(el._t); el.style.opacity='1';
   el._t=setTimeout(()=>el.style.opacity='0',ms);
 }
-function showMsg(id, text){ const m=document.getElementById(id); if(!m) return; m.textContent=String(text||''); m.style.opacity='1'; }
 
-/* World App guards legibles */
-function isOutsideMiniAppError(msg){
-  return /not.*installed|outside|unavailable|mini\s*app|unsupported/i.test(String(msg||''));
+/* Detección flexible del objeto MiniKit y sus métodos */
+function detectInjectedMiniKitVerbose(){
+  const candFns = [
+    () => window.MiniKit,
+    () => window.miniKit,
+    () => window.MiniKitSDK,
+    () => window.WorldApp?.MiniKit,
+    () => window.WorldApp?.miniKit,
+    () => window.worldApp?.MiniKit,
+    () => window.worldApp?.miniKit,
+    () => window.webkit?.messageHandlers?.MiniKit // algunos bridges iOS
+  ];
+  for (const f of candFns){
+    try{
+      const m = f();
+      if (!m) continue;
+      // si trae commandsAsync o commands nos sirve
+      if (m.commandsAsync || m.commands) return m;
+      // en iOS webkit handler no expone commands; lo ignoramos
+    }catch(_){}
+  }
+  return null;
+}
+/* NO uses import CDN cuando estamos en WorldApp */
+function looksLikeWorldApp(){
+  // Heurísticas simples: userAgent + falta de devtools completas, etc.
+  const ua = (navigator.userAgent||'').toLowerCase();
+  return /world.?app|wv|android.*version\/\d+|iphone|ipad/.test(ua);
+}
+/* Tiempo máximo esperando MiniKit inyectado (ms) */
+const INJECT_WAIT_MS = 5000;
+function pickCommands(mk){
+  if (!mk) return null;
+  if (mk.commandsAsync) return mk.commandsAsync;         // preferimos async
+  if (mk.commands)      return mk.commands;              // fallback (devuelve Promises?)
+  return null;
 }
 
-/* Verify + Pay con logs claros */
-async function doVerify(msgId){
-  try{
-    await loadMiniKit();
-    if (!MiniKit?.commandsAsync?.verify) throw new Error('MiniKit.verify no disponible');
-    const { finalPayload } = await MiniKit.commandsAsync.verify({
-      action: ACTION, verification_level: VerificationLevel.Orb
-    });
-    const st = finalPayload?.status || 'sin status';
-    showMsg(msgId, 'Verificación: ' + st);
-    return st === 'success';
-  }catch(e){
-    const m = String(e?.message||e);
-    if (isOutsideMiniAppError(m)) showMsg(msgId, 'Abre en World App (contexto mini‑app)');
-    else showMsg(msgId, 'Verificación fallida: ' + m);
-    console.error('[verify]', e);
+/* Import dinámico con timeout para evitar colgados */
+async function importMiniKitWithTimeout(ms=3500){
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
+  ];
+  const start = Date.now();
+  for (const u of urls){
+    try{
+      const m = await import(u);
+      MiniKit = m.MiniKit;
+      MK = m.MiniKit?.commandsAsync || m.MiniKit?.commands || m.commandsAsync || m.commands || null;
+      Tokens = m.Tokens;
+      VerificationLevel = m.VerificationLevel;
+      tokenToDecimals = m.tokenToDecimals;
+      if (!MK) continue;
+      showMsg(msgId, 'MiniKit ok (import)');
+      return true;
+    }catch(_){}
+  }
+  showMsg(msgId, 'MiniKit no disponible (import fallido)');
+  return false
+  
+  throw new Error('No se pudo importar MiniKit (CSP/timeout)');
+}
+
+/* Carga definitiva: en WorldApp solo aceptamos "inyectado" */
+async function loadMiniKit(msgId='ideasGwMsg'){
+  const t0 = Date.now();
+
+  async function tryDetectLoop(){
+    let lastLogAt = 0;
+    while (Date.now() - t0 < INJECT_WAIT_MS){
+      const inj = detectInjectedMiniKitVerbose();
+      if (inj){
+        MiniKit = inj;
+        MK = inj.commandsAsync || inj.commands || null;
+        Tokens = window.Tokens || inj.Tokens;
+        VerificationLevel = window.VerificationLevel || inj.VerificationLevel || { Orb:'orb' };
+        tokenToDecimals = window.tokenToDecimals || inj.tokenToDecimals || ((n)=>n);
+        showMsg(msgId, 'MiniKit ok (inyectado)');
+        return true;
+      }
+      // log visual cada ~1s para que veas que está intentando
+      const now = Date.now();
+      if (now - lastLogAt > 900){
+        showMsg(msgId, 'Esperando MiniKit inyectado…');
+        lastLogAt = now;
+      }
+      await new Promise(r=>setTimeout(r, 120));
+    }
     return false;
   }
-}
-async function doPayWLD(amount, description, msgId){
-  try{
-    await loadMiniKit();
-    if (!MiniKit?.commandsAsync?.pay) throw new Error('MiniKit.pay no disponible');
-    const reference = crypto.randomUUID().replace(/-/g,'');
-    const { finalPayload } = await MiniKit.commandsAsync.pay({
-      reference, to: PAY_TO,
-      tokens: [{ symbol: Tokens.WLD, token_amount: tokenToDecimals(amount, Tokens.WLD).toString() }],
-      description
-    });
-    const st = finalPayload?.status || 'sin status';
-    showMsg(msgId, 'Pago: ' + st);
-    return st === 'success';
-  }catch(e){
-    const m = String(e?.message||e);
-    if (isOutsideMiniAppError(m)) showMsg(msgId, 'Abre en World App (contexto mini‑app)');
-    else showMsg(msgId, 'Pago fallido: ' + m);
-    console.error('[pay]', e);
-    return false;
+
+  // Si parece WorldApp ⇒ esperamos inyección (no import)
+  if (looksLikeWorldApp()){
+    const ok = await tryDetectLoop();
+    if (!ok){
+      showMsg(msgId, 'MiniKit no inyectado por WorldApp (timeout)');
+      return false;
+    }
+    return true;
   }
 }
 
-/* Abrir/Cerrar drawers desde aquí sin romper tu código */
-const openIDG = ()=> (typeof openDrawer==='function' && openDrawer('IDG'));
-const openID  = ()=> (typeof openDrawer==='function' && openDrawer('ID'));
-const closeIDG= ()=> (typeof closeDrawer==='function' && closeDrawer('IDG'));
-function updateAll(){ if (typeof render==='function') render(); if (typeof renderIdeasUI==='function') renderIdeasUI(); }
+/* Wrappers que funcionan con commandsAsync o commands */
+async function mkVerify(action){
+  if (!MK?.verify) throw new Error('verify no disponible');
+  // algunos entornos exigen { action, verification_level }, otros solo { action }
+  try{
+    const res = await MK.verify({ action, verification_level: (VerificationLevel?.Orb || 'orb') });
+    return res?.finalPayload?.status || res?.status || 'unknown';
+  }catch(e){
+    // si commands no acepta verification_level, probamos sin él
+    try{
+      const res2 = await MK.verify({ action });
+      return res2?.finalPayload?.status || res2?.status || 'unknown';
+    }catch(err){ throw err; }
+  }
+}
 
-/* ——— Hook botón 💡 (abre Ideas si hay ticket; si no, Gateway) ——— */
-(function(){
-  const el = document.getElementById('ideaBtn');
-  if (!el) return;
-  const clone = el.cloneNode(true);
-  el.parentNode.replaceChild(clone, el);
-  clone.addEventListener('click', ()=>{
-    const t = Number(window.ideaTickets || localStorage.getItem('idea_tickets') || 0);
-    if (t>0) openID(); else openIDG();
-  }, {passive:true});
-})();
+async function mkPay({reference,to,amountWLD,description}){
+  if (!MK?.pay) throw new Error('pay no disponible');
+  const tokAmt = tokenToDecimals ? tokenToDecimals(amountWLD, Tokens?.WLD) : String(amountWLD);
+  const res = await MK.pay({
+    reference, to,
+    tokens: [{ symbol: (Tokens?.WLD || 'WLD'), token_amount: String(tokAmt) }],
+    description
+  });
+  return res?.finalPayload?.status || res?.status || 'unknown';
+}
 
-/* ——— Hook CTA “Participar ahora — 1.2 WLD” (verify + pay + ticket++) ——— */
+/* Config */
+const ACTION     = 'worldgoldideas';
+const PAY_TO     = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+const IDEA_PRICE = 1.2;
+
+/* Handlers — CTA “Participar ahora — 1.2 WLD” */
 (function(){
   const btn = document.getElementById('ideaPayBtn');
   const msgId = 'ideasGwMsg';
   if (!btn) return;
 
-  // Defensa por si hay overlays raros
   btn.style.pointerEvents = 'auto';
   btn.style.position = 'relative';
   btn.style.zIndex = '1001';
@@ -884,48 +918,46 @@ function updateAll(){ if (typeof render==='function') render(); if (typeof rende
   btn.onclick = null;
   btn.addEventListener('click', async ()=>{
     showMsg(msgId, 'Procesando…');
-    const ok = await doVerify(msgId);
-    if (!ok) return;
-    const paid = await doPayWLD(IDEA_PRICE, `Idea Ticket (${IDEA_PRICE} WLD)`, msgId);
-    if (!paid) return;
 
-    // Ticket activado
+    // 1) Cargar MiniKit (inyectado o import) con timeout
+    const okLoad = await loadMiniKit(msgId);
+    if (!okLoad) return;
+
+    // 2) Verificación
+    let st='unknown';
+    try{
+      st = await mkVerify(ACTION);
+      showMsg(msgId, 'Verificación: ' + st);
+      if (st !== 'success') return;
+    }catch(e){
+      const m = String(e?.message||e);
+      showMsg(msgId, 'Verificación fallida: ' + m);
+      return;
+    }
+
+    // 3) Pago
+    try{
+      const reference = (crypto?.randomUUID?.()||String(Date.now())).replace(/-/g,'');
+      const stPay = await mkPay({ reference, to: PAY_TO, amountWLD: IDEA_PRICE, description: `Idea Ticket (${IDEA_PRICE} WLD)` });
+      showMsg(msgId, 'Pago: ' + stPay);
+      if (stPay !== 'success') return;
+    }catch(e){
+      const m = String(e?.message||e);
+      showMsg(msgId, 'Pago fallido: ' + m);
+      return;
+    }
+
+    // 4) Éxito → ticket++
     window.ideaTickets = (Number(window.ideaTickets||0) + 1);
     try{ localStorage.setItem('idea_tickets', String(window.ideaTickets)); }catch(_){}
-    updateAll();
-    closeIDG(); openID();
+    if (typeof renderIdeasUI==='function') renderIdeasUI();
+    if (typeof render==='function') render();
+    if (typeof closeDrawer==='function') closeDrawer('IDG');
+    if (typeof openDrawer==='function') openDrawer('ID');
     toast('¡Ticket activado!');
   });
 })();
-
-/* ——— Hook Refill (verify + pay + energía al 100%) ——— */
-(function(){
-  const btn   = document.getElementById('refillBtn');
-  const label = document.getElementById('refillPrice');
-  if (!btn) return;
-
-  const getMax = ()=> Number(document.getElementById('energyMax')?.textContent || 100);
-  const price  = ()=> Number((getMax()*0.001).toFixed(3)); // 0.1% del cap
-  if (label) label.textContent = `${price()} WLD`;
-
-  btn.onclick = null;
-  btn.addEventListener('click', async ()=>{
-    showMsg('ideasGwMsg', ''); // limpiar gateway si estaba abierto
-    const ok = await doVerify('ideasGwMsg'); // reutilizamos panel de mensajes si aplicara
-    if (!ok) return;
-    const amt = price();
-    const paid = await doPayWLD(amt, `Energy Refill (${amt} WLD)`, 'ideasGwMsg');
-    if (!paid) return;
-
-    // Energía al máximo
-    const max = getMax();
-    window.energy = max;
-    try { localStorage.setItem('energy', String(max)); } catch(_){}
-    updateAll();
-    toast('Energía al máximo');
-  });
-})();
-</script>
+</script>  
 
 </body>
 </html>
