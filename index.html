@@ -752,145 +752,180 @@
 
   <!-- === ÚNICO módulo MiniKit (limpio) === -->
   <script type="module">
-  let MiniKit, tokenToDecimals, Tokens, VerificationLevel;
-  async function loadMiniKit(){
-    if (MiniKit) return;
-    const urls = [
-      'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
-      'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
-      'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
-    ];
-    for (const u of urls){
-      try{
-        const m = await import(u);
-        MiniKit = m.MiniKit; tokenToDecimals = m.tokenToDecimals;
-        Tokens = m.Tokens;   VerificationLevel = m.VerificationLevel;
-        console.log('[MiniKit] ok', u);
-        return;
-      }catch(e){ console.warn('[MiniKit] fail', u); }
-    }
-    throw new Error('MiniKit no cargó');
+/* ===== MiniKit robusto + logs visibles (Ideas + Refill) ===== */
+
+let MiniKit, tokenToDecimals, Tokens, VerificationLevel;
+
+async function loadMiniKit(){
+  // 0) ¿La World App ya lo inyectó?
+  if (window.MiniKit && window.MiniKit.commandsAsync) {
+    MiniKit = window.MiniKit;
+    tokenToDecimals   = window.tokenToDecimals || (v=>v); // por si viene preinyectado
+    Tokens            = window.Tokens;
+    VerificationLevel = window.VerificationLevel || { Orb: 'orb' };
+    console.log('[MiniKit] usando instancia inyectada por WorldApp');
+    return;
   }
+  // 1) ¿Ya lo cargamos previamente?
+  if (MiniKit) return;
 
-  const ACTION     = 'worldgoldideas';
-  const PAY_TO     = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-  const IDEA_PRICE = 1.2;
-
-  function toast(t,ms=1600){
-    let el = document.getElementById('wgToast');
-    if(!el){
-      el = document.createElement('div');
-      el.id='wgToast';
-      el.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111a;backdrop-filter:blur(6px);color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.1 system-ui,Segoe UI,Roboto,sans-serif;z-index:9999;box-shadow:0 6px 18px #0006;opacity:0;transition:opacity .25s';
-      document.body.appendChild(el);
-    }
-    el.textContent=t; clearTimeout(el._t); el.style.opacity='1';
-    el._t=setTimeout(()=>el.style.opacity='0',ms);
-  }
-
-  async function ensureHuman(){
-    await loadMiniKit();
+  // 2) Import dinámico con fallbacks
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
+    'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
+  ];
+  for (const u of urls){
     try{
-      const { finalPayload } = await MiniKit.commandsAsync.verify({
-        action: ACTION, verification_level: VerificationLevel.Orb
-      });
-      return finalPayload?.status === 'success';
-    }catch(e){
-      const msg = String(e?.message||e||'');
-      if (/not.*installed|outside|unavailable|mini\s*app/i.test(msg)) toast('Open in World App');
-      else toast('Verification failed');
-      console.error('[verify]', e);
-      return false;
-    }
+      const m = await import(u);
+      MiniKit = m.MiniKit; tokenToDecimals = m.tokenToDecimals;
+      Tokens = m.Tokens;   VerificationLevel = m.VerificationLevel;
+      console.log('[MiniKit] import ok', u);
+      return;
+    }catch(e){ console.warn('[MiniKit] import fail', u, e); }
   }
+  throw new Error('MiniKit no cargó (no inyectado / import blocked)');
+}
 
-  async function payWLD(amount, description){
+/* Config */
+const ACTION     = 'worldgoldideas';
+const PAY_TO     = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+const IDEA_PRICE = 1.2;
+
+/* UI helpers */
+function toast(t,ms=1600){
+  let el = document.getElementById('wgToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id='wgToast';
+    el.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111a;backdrop-filter:blur(6px);color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.1 system-ui,Segoe UI,Roboto,sans-serif;z-index:99999;box-shadow:0 6px 18px #0006;opacity:0;transition:opacity .25s';
+    document.body.appendChild(el);
+  }
+  el.textContent=t; clearTimeout(el._t); el.style.opacity='1';
+  el._t=setTimeout(()=>el.style.opacity='0',ms);
+}
+function showMsg(id, text){ const m=document.getElementById(id); if(!m) return; m.textContent=String(text||''); m.style.opacity='1'; }
+
+/* World App guards legibles */
+function isOutsideMiniAppError(msg){
+  return /not.*installed|outside|unavailable|mini\s*app|unsupported/i.test(String(msg||''));
+}
+
+/* Verify + Pay con logs claros */
+async function doVerify(msgId){
+  try{
     await loadMiniKit();
-    try{
-      const reference = crypto.randomUUID().replace(/-/g,'');
-      const { finalPayload } = await MiniKit.commandsAsync.pay({
-        reference, to: PAY_TO,
-        tokens: [{ symbol: Tokens.WLD, token_amount: tokenToDecimals(amount, Tokens.WLD).toString() }],
-        description
-      });
-      return finalPayload?.status === 'success';
-    }catch(e){
-      const msg = String(e?.message||e||'');
-      if (/not.*installed|outside|unavailable|mini\s*app/i.test(msg)) toast('Open in World App');
-      else toast('Payment failed');
-      console.error('[pay]', e);
-      return false;
-    }
+    if (!MiniKit?.commandsAsync?.verify) throw new Error('MiniKit.verify no disponible');
+    const { finalPayload } = await MiniKit.commandsAsync.verify({
+      action: ACTION, verification_level: VerificationLevel.Orb
+    });
+    const st = finalPayload?.status || 'sin status';
+    showMsg(msgId, 'Verificación: ' + st);
+    return st === 'success';
+  }catch(e){
+    const m = String(e?.message||e);
+    if (isOutsideMiniAppError(m)) showMsg(msgId, 'Abre en World App (contexto mini‑app)');
+    else showMsg(msgId, 'Verificación fallida: ' + m);
+    console.error('[verify]', e);
+    return false;
   }
-
-  const openIDG = ()=> (typeof openDrawer==='function' && openDrawer('IDG'));
-  const openID  = ()=> (typeof openDrawer==='function' && openDrawer('ID'));
-  const closeIDG= ()=> (typeof closeDrawer==='function' && closeDrawer('IDG'));
-
-  (function(){
-    const el = document.getElementById('ideaBtn');
-    if (!el) return;
-    const clone = el.cloneNode(true);
-    el.parentNode.replaceChild(clone, el);
-    clone.addEventListener('click', ()=>{
-      const t = Number(window.ideaTickets || localStorage.getItem('idea_tickets') || 0);
-      if (t>0) openID(); else openIDG();
+}
+async function doPayWLD(amount, description, msgId){
+  try{
+    await loadMiniKit();
+    if (!MiniKit?.commandsAsync?.pay) throw new Error('MiniKit.pay no disponible');
+    const reference = crypto.randomUUID().replace(/-/g,'');
+    const { finalPayload } = await MiniKit.commandsAsync.pay({
+      reference, to: PAY_TO,
+      tokens: [{ symbol: Tokens.WLD, token_amount: tokenToDecimals(amount, Tokens.WLD).toString() }],
+      description
     });
-  })();
+    const st = finalPayload?.status || 'sin status';
+    showMsg(msgId, 'Pago: ' + st);
+    return st === 'success';
+  }catch(e){
+    const m = String(e?.message||e);
+    if (isOutsideMiniAppError(m)) showMsg(msgId, 'Abre en World App (contexto mini‑app)');
+    else showMsg(msgId, 'Pago fallido: ' + m);
+    console.error('[pay]', e);
+    return false;
+  }
+}
 
-  (function(){
-    const btn = document.getElementById('ideaPayBtn');
-    const msg = document.getElementById('ideasGwMsg');
-    if (!btn) return;
-      // 🔎 DEBUG: confirma que el click llega
-  btn.addEventListener('click', () => {
-    try { console.log('[DBG] click ideaPayBtn'); } catch(_) {}
-    // toast simple para verlo visualmente
-    let t = document.getElementById('wgDbg');
-    if(!t){ t=document.createElement('div'); t.id='wgDbg'; t.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#111a;color:#fff;padding:6px 10px;border-radius:10px;z-index:99999'; document.body.appendChild(t); }
-    t.textContent='CLICK: ideaPayBtn';
-    setTimeout(()=>{ if(t && t.textContent==='CLICK: ideaPayBtn') t.textContent=''; }, 1200);
-  }, {capture:true}); // capture por si hay burbujeo raro
-    
-    btn.onclick = null;
-    btn.addEventListener('click', async ()=>{
-      if (msg) msg.textContent='';
-      const ok = await ensureHuman();
-      if (!ok){ if(msg) msg.textContent='Verificación fallida.'; return; }
-      const paid = await payWLD(IDEA_PRICE, `Idea Ticket (${IDEA_PRICE} WLD)`);
-      if (!paid){ if(msg) msg.textContent='Pago fallido.'; return; }
-      window.ideaTickets = (Number(window.ideaTickets||0) + 1);
-      localStorage.setItem('idea_tickets', String(window.ideaTickets));
-      if (typeof renderIdeasUI==='function') renderIdeasUI();
-      if (typeof render==='function') render();
-      closeIDG(); openID();
-      toast('¡Ticket activado!');
-    });
-  })();
+/* Abrir/Cerrar drawers desde aquí sin romper tu código */
+const openIDG = ()=> (typeof openDrawer==='function' && openDrawer('IDG'));
+const openID  = ()=> (typeof openDrawer==='function' && openDrawer('ID'));
+const closeIDG= ()=> (typeof closeDrawer==='function' && closeDrawer('IDG'));
+function updateAll(){ if (typeof render==='function') render(); if (typeof renderIdeasUI==='function') renderIdeasUI(); }
 
-  (function(){
-    const btn   = document.getElementById('refillBtn');
-    const label = document.getElementById('refillPrice');
-    const getMax = ()=> Number(document.getElementById('energyMax')?.textContent || 100);
-    const price  = ()=> Number((getMax()*0.001).toFixed(3));
+/* ——— Hook botón 💡 (abre Ideas si hay ticket; si no, Gateway) ——— */
+(function(){
+  const el = document.getElementById('ideaBtn');
+  if (!el) return;
+  const clone = el.cloneNode(true);
+  el.parentNode.replaceChild(clone, el);
+  clone.addEventListener('click', ()=>{
+    const t = Number(window.ideaTickets || localStorage.getItem('idea_tickets') || 0);
+    if (t>0) openID(); else openIDG();
+  }, {passive:true});
+})();
 
-    if (label) label.textContent = `${price()} WLD`;
-    if (!btn) return;
-    btn.onclick = null;
-    btn.addEventListener('click', async (e)=>{
-      e.preventDefault();
-      const ok = await ensureHuman();
-      if (!ok) return;
-      const amt = price();
-      const paid = await payWLD(amt, `Energy Refill (${amt} WLD)`);
-      if (!paid) return;
-      const max = getMax();
-      window.energy = max;
-      localStorage.setItem('energy', String(max));
-      if (typeof window.render==='function') window.render();
-      toast('Energía al máximo');
-    });
-  })();
-  </script>
+/* ——— Hook CTA “Participar ahora — 1.2 WLD” (verify + pay + ticket++) ——— */
+(function(){
+  const btn = document.getElementById('ideaPayBtn');
+  const msgId = 'ideasGwMsg';
+  if (!btn) return;
+
+  // Defensa por si hay overlays raros
+  btn.style.pointerEvents = 'auto';
+  btn.style.position = 'relative';
+  btn.style.zIndex = '1001';
+
+  btn.onclick = null;
+  btn.addEventListener('click', async ()=>{
+    showMsg(msgId, 'Procesando…');
+    const ok = await doVerify(msgId);
+    if (!ok) return;
+    const paid = await doPayWLD(IDEA_PRICE, `Idea Ticket (${IDEA_PRICE} WLD)`, msgId);
+    if (!paid) return;
+
+    // Ticket activado
+    window.ideaTickets = (Number(window.ideaTickets||0) + 1);
+    try{ localStorage.setItem('idea_tickets', String(window.ideaTickets)); }catch(_){}
+    updateAll();
+    closeIDG(); openID();
+    toast('¡Ticket activado!');
+  });
+})();
+
+/* ——— Hook Refill (verify + pay + energía al 100%) ——— */
+(function(){
+  const btn   = document.getElementById('refillBtn');
+  const label = document.getElementById('refillPrice');
+  if (!btn) return;
+
+  const getMax = ()=> Number(document.getElementById('energyMax')?.textContent || 100);
+  const price  = ()=> Number((getMax()*0.001).toFixed(3)); // 0.1% del cap
+  if (label) label.textContent = `${price()} WLD`;
+
+  btn.onclick = null;
+  btn.addEventListener('click', async ()=>{
+    showMsg('ideasGwMsg', ''); // limpiar gateway si estaba abierto
+    const ok = await doVerify('ideasGwMsg'); // reutilizamos panel de mensajes si aplicara
+    if (!ok) return;
+    const amt = price();
+    const paid = await doPayWLD(amt, `Energy Refill (${amt} WLD)`, 'ideasGwMsg');
+    if (!paid) return;
+
+    // Energía al máximo
+    const max = getMax();
+    window.energy = max;
+    try { localStorage.setItem('energy', String(max)); } catch(_){}
+    updateAll();
+    toast('Energía al máximo');
+  });
+})();
+</script>
+
 </body>
 </html>
