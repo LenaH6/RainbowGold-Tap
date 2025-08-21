@@ -1,963 +1,925 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="preconnect" href="https://esm.run">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>WorldGold — Tap</title>
+<meta name="theme-color" content="#1b103a">
+<style>
+:root{
+  --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
+  --gold:#F4C542; --gold-soft:#FFD872;
+  /* MÁS GRANDE y calzada */
+  --heroSize: clamp(340px, 82vw, 620px);
+  --coinSize: clamp(340px, 82vw, 620px);
+}
 
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-  <title>WorldGold — Tap</title>
-  <meta name="theme-color" content="#1b103a">
-  <style>
-  :root{
-    --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
-    --gold:#F4C542; --gold-soft:#FFD872;
-    --heroSize: clamp(200px, 72vw, 440px);
-    --coinSize: clamp(200px, 72vw, 440px);
-  }
+/* Base */
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0; color:var(--ink);
+  font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial;
+  /* negro carbón con leve degradado vertical */
+  background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
+}
 
-  *{box-sizing:border-box} html,body{height:100%}
-  body{
-    margin:0; color:var(--ink);
-    font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial;
-    background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
-  }
+/* Noise overlay (opcional) */
+.noise{
+  position:fixed; inset:0; pointer-events:none; opacity:0.08; mix-blend-mode:soft-light;
+  background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
+  z-index:0;
+}
 
-  .noise{
-    position:fixed; inset:0; pointer-events:none; opacity:0.08; mix-blend-mode:soft-light;
-    background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
-    z-index:0;
-  }
+/* Topbar */
 
-  .topbar{
-    position:sticky; top:0; z-index:5;
-    display:flex; align-items:center; justify-content:center; height: 60px;
-    padding:0 12px;
-    background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
-  }
+.topbar{
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; justify-content:center; height: 60px;
+  padding:0 12px;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
+}
 
-  .topbar h1{margin:0; font-size:28px}
-  .top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
+.topbar h1{margin:0; font-size:28px}
+.top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
 
-  .floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
-  .fab {
-    width:48px; height:48px;
-    border:none;
-    display:grid; place-items:center;
-    background: transparent;
-    box-shadow: none;
-    cursor:pointer;
-    transition: transform 0.2s ease, filter 0.3s ease;
-    position: relative;
-  }
-  .fab.profile, .fab.trophy, .fab.inbox { background: transparent; box-shadow: none; }
+/* Left FABs */
+.floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
+.fab {
+  width:48px; height:48px;
+  border:none;
+  display:grid; place-items:center;
+  background: transparent;
+  box-shadow: none;
+  cursor:pointer;
+  transition: transform 0.2s ease, filter 0.3s ease;
+  position: relative;
 
-  .badge{position:absolute; top:-6px; right:-6px; background:#ff3b3b; color:#fff; border-radius:999px; min-width:18px; height:18px; display:grid; place-items:center; font-size:11px; font-weight:700; padding:0 6px}
+}
 
-  .hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
-    padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
-  .pill{
-    z-index:3; background: #e0e0e0; border:1px solid #b5b5b5;
-    border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
-    display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #1a1a1a;
-  }
-  .pill img{width:22px; height:22px; display:inline-block}
+.fab.profile, .fab.trophy, .fab.inbox {
+  background: transparent;
+  box-shadow: none;
+}
 
-  .coinWrap{
-    position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
-    background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
-    box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
-  }
-  .ring{position:absolute; inset:0; border-radius:50%;
-    box-shadow:
-      inset 0 0 0 22px rgba(255,255,255,.03),
-      inset 0 0 0 2px rgba(255,255,255,0.15),
-      0 0 25px rgba(255, 230, 150, 0.4),
-      0 0 60px rgba(255, 220, 120, 0.25);
-  }
-  .coin{
-    width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
-    background:radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%);
-    border:2px solid rgba(255,255,255,0.15);
-    box-shadow:
-      0 0 15px rgba(255, 223, 120, 0.7),
-      0 0 35px rgba(255, 200, 80, 0.4),
-      0 0 60px rgba(255, 180, 60, 0.25);
-    transition:transform .08s ease; position:relative; overflow:hidden;
-  }
-  .coin:active{transform:scale(.98)}
-  .coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
-  .coinFallback{font-size:52px}
-  .gain{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-weight:900; font-size:20px; opacity:0; pointer-events:none}
-  .gain.show{animation:float .6s ease-out forwards}
-  @keyframes float{from{opacity:0; transform:translate(-50%,-10px) scale(.9)}50%{opacity:1}to{opacity:0; transform:translate(-50%,-40px) scale(1.05)}}
-  #fx{position:absolute; inset:0; pointer-events:none}
+.badge{position:absolute;
+   top:-6px;
+    right:-6px;
+     background:#ff3b3b;
+      color:#fff;
+       border-radius:999px;
+        min-width:18px; height:18px;
+         display:grid; place-items:center;
+          font-size:11px; font-weight:700; padding:0 6px}
 
-  .action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
-  .btn-icon{
-    display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-    background:#b5b5b5; border:1px solid #b5b5b5; border-radius:12px; color:var(--gold-soft);
-    backdrop-filter:blur(6px)
-  }
-  .btn-icon img{width:34px; height:34px; display:block}
-  .price-pill{ font-weight:600; font-size:15px; line-height:20px; color:var(--gold-soft); padding:5px 10px; border-radius:10px; background:rgba(10,8,24,.65); border:1px solid rgba(255,255,255,.16) }
-  .btn-icon:disabled{opacity:.5; pointer-events:none}
-  .btn-icon.pulse{animation:pulse 1.2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-  .btn-icon.shake{animation:shake .25s linear}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+/* Hero */
+.hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
+  padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
+.pill{
+  z-index:3;
+  background: #e0e0e0; border:1px solid #b5b5b5;
+  border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
+  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #1a1a1a;
+}
+.pill img{width:22px; height:22px; display:inline-block}
 
-  .energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
-  .energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
-  .energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
-  @keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
-  .energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
+/* Coin area */
+.coinWrap{
+  position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
+  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
+  box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
+}
+.ring{position:absolute; inset:0; border-radius:50%;
+  box-shadow:
+    inset 0 0 0 22px rgba(255,255,255,.03),  /* aro más grueso */
+    inset 0 0 0 2px rgba(255,255,255,0.15),
+    0 0 25px rgba(255, 230, 150, 0.4),
+    0 0 60px rgba(255, 220, 120, 0.25);
+}
+.coin{
+  width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
+  background:radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%);
+  border:2px solid rgba(255,255,255,0.15);
+  box-shadow:
+    0 0 15px rgba(255, 223, 120, 0.7),
+    0 0 35px rgba(255, 200, 80, 0.4),
+    0 0 60px rgba(255, 180, 60, 0.25);
+  transition:transform .08s ease; position:relative; overflow:hidden;
+}
 
-  .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:40}
-  .backdrop.show{opacity:1; pointer-events:auto}
-  .drawer{position:fixed; top:0; right:-380px; width:min(360px,92vw); height:100dvh; background:rgba(10,8,24,.98); border-left:1px solid rgba(255,255,255,.1); padding:16px 16px calc(24px + env(safe-area-inset-bottom)); transition:right .28s ease; overflow:auto; z-index:60}
-  .drawer.show{right:0}
-  .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:transparent; color:#fff; cursor:pointer; font-size:18px}
+.coin:active{transform:scale(.98)}
+.coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
+.coinFallback{font-size:52px}
+.gain{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-weight:900; font-size:20px; opacity:0; pointer-events:none}
+.gain.show{animation:float .6s ease-out forwards}
+@keyframes float{from{opacity:0; transform:translate(-50%,-10px) scale(.9)}50%{opacity:1}to{opacity:0; transform:translate(-50%,-40px) scale(1.05)}}
+#fx{position:absolute; inset:0; pointer-events:none}
 
-  .card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
+/* Dock (Refill + Booster) debajo de la moneda */
+.action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
+.btn-icon{
+  display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
+  background:#b5b5b5; border:1px solid #b5b5b5; border-radius:12px; color:var(--gold-soft);
+  backdrop-filter:blur(6px)
+}
+.btn-icon img{width:34px; height:34px; display:block}
+.price-pill{
+  font-weight:600; font-size:15px; line-height:20px; color:var(--gold-soft);
+  padding:5px 10px; border-radius:10px; background:rgba(10,8,24,.65); border:1px solid rgba(255,255,255,.16)
+}
+.btn-icon:disabled{opacity:.5; pointer-events:none}
+.btn-icon.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.btn-icon.shake{animation:shake .25s linear}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
 
-  @media (max-width:360px){
-    .btn-icon img{width:28px; height:28px}
-    .price-pill{font-size:13px; padding:3px 6px}
-    .action-dock{gap:10px}
-  }
+/* Energy bar */
+.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
+.energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
+.energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
+@keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
+.energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
 
-  .stars, .stars2{ position: fixed; inset: 0; pointer-events: none; background-repeat: repeat; z-index: 0; }
-  .stars{ background-image: radial-gradient(rgba(255,255,255,.30) 2.1px, transparent 1px); background-size: 70px 70px; opacity: .40; animation: stars-pan 160s linear infinite; }
-  .stars2{ background-image: radial-gradient(rgba(173,216,230,.2) 1.76px, transparent 1px); background-size: 30px 30px; opacity: .30; animation: stars-pan 220s linear infinite reverse; }
-  @keyframes stars-pan { from { background-position: 0 0; } to   { background-position: -2000px -1200px; } }
-  .noise{ z-index: 1; }
-  .fab img { transition: transform 0.25s ease, filter 0.3s ease; }
-  .fab:hover img { transform: scale(1.15); filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8)); }
+/* Drawer simple */
+.backdrop{position:fixed; inset:0;
+   background:rgba(0,0,0,.35);
+    opacity:0; pointer-events:none;
+     transition:opacity .2s;
+      z-index:40}
+.backdrop.show{opacity:1; pointer-events:auto}
+.drawer{position:fixed; top:0; right:-380px;
+   width:min(360px,92vw); height:100dvh;
+    background:rgba(10,8,24,.98);
+  border-left:1px solid rgba(255,255,255,.1);
+   padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+    transition:right .28s ease; overflow:auto;
+     z-index:60}
+.drawer.show{right:0}
+.drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
+  background:transparent; color:#fff; cursor:pointer; font-size:18px}
 
-  .inbox-list { display: grid; gap: 10px; }
-  .msg { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px; }
-  .msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
-  .msg-text { white-space: pre-line; line-height: 1.45; }
+/* Demo card */
+.card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
 
-  .trophyWrap{ position: relative; display: inline-block; }
-  .tip{ position: absolute; right: 0; top: -10px; transform: translateY(-6px); opacity: 0; pointer-events: none; background: rgba(0,0,0,.85); color: #ffd872; border: 1px solid rgba(255,223,120,.5); border-radius: 10px; padding: 6px 10px; font-size: 12px; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,.35); transition: opacity .18s ease, transform .18s ease; z-index: 999; }
-  .tip::after{ content: ""; position: absolute; right: 10px; top: 100%; border: 6px solid transparent; border-top-color: rgba(0,0,0,.85); }
-  .tip.show{ opacity: 1; transform: translateY(-14px); }
+/* Ajustes pantallas estrechas */
+@media (max-width:360px){
+  .btn-icon img{width:28px; height:28px}
+  .price-pill{font-size:13px; padding:3px 6px}
+  .action-dock{gap:10px}
+}/* === Estrellas sutiles === */
+.stars, .stars2{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  z-index: 0;
+}
 
-  .msg-system{ border: 1px solid rgba(244, 197, 66, .65); background: linear-gradient(180deg, rgba(255,224,150,.10), rgba(0,0,0,.10)); box-shadow: 0 0 0 1px rgba(244,197,66,.15) inset, 0 8px 24px rgba(244,197,66,.12), 0 0 14px rgba(244,197,66,.25); }
-  .msg-system .msg-time{ color: #ffd872; }
+.stars{
+  background-image: radial-gradient(rgba(255,255,255,.30) 2.1px, transparent 1px);
+  background-size: 70px 70px;   /* menos densas */
+  opacity: .40;                   /* más suave */
+  animation: stars-pan 160s linear infinite;
+}
 
-  :root{
-    --logoSize: 15px;
-    --logoColor: #ffffff;
-    --logoGlow1: rgba(255, 255, 255, .25);
-    --logoGlow2: rgba(255, 255, 255, .10);
-  }
-  .topbar .logo-text{ font-size: var(--logoSize) !important; color: var(--logoColor) !important; }
-  .logo-text{ margin:0; font-size: var(--logoSize); font-weight:800; color:var(--logoColor); letter-spacing:1.5px; text-shadow: 0 0 3px var(--logoGlow1), 0 0 6px var(--logoGlow2); display:inline-block; pointer-events:none; }
+.stars2{
+  background-image: radial-gradient(rgba(173,216,230,.2) 1.76px, transparent 1px);
+  background-size: 30px 30px;     /* un poco más densas que la capa 1 */
+  opacity: .30;
+  animation: stars-pan 220s linear infinite reverse;
+}
+@keyframes stars-pan {
+  from { background-position: 0 0; }
+  to   { background-position: -2000px -1200px; }
+}
 
-  .ideaBtn{ position: absolute; left: -12px; bottom: 18px; width: 56px; height: 56px; display: grid; place-items: center; background: transparent; border: none; cursor: pointer; z-index: 6; }
-  .ideaBtn .ideaIcon{
-    width: 56px; height: 56px;
-    background:
-      linear-gradient(#ffd872, #ffd872) center/contain no-repeat,
-      url('img/icon-idea.png?v=4') center/contain no-repeat;
-    -webkit-mask-image: url('img/icon-idea.png?v=4'); mask-image: url('img/icon-idea.png?v=4');
-    -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
-  }
-  .ideaBtn:hover .ideaIcon{ filter: drop-shadow(0 0 10px rgba(255,216,114,.75)); }
-  .coinWrap { position: relative; }
+/* Noise va encima */
+.noise{ z-index: 1; }
+/* Hover suave dorado en iconos */
+.fab img {
+  transition: transform 0.25s ease, filter 0.3s ease;
+}
+.fab:hover img {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
+}
+/* Estilo de lista de mensajes (Inbox) */
+.inbox-list { display: grid; gap: 10px; }
+.msg {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 10px;
+}
+.msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
+.msg-text { white-space: pre-line; line-height: 1.45; }
+/* Tooltip del trofeo (limpio y sutil) */
+.trophyWrap{
+  position: relative;
+  display: inline-block;
+}
+.tip{
+  position: absolute;
+  right: 0;
+  top: -10px;                 /* nace un poco arriba del botón */
+  transform: translateY(-6px);
+  opacity: 0;
+  pointer-events: none;       /* no bloquea clics al botón */
+  background: rgba(0,0,0,.85);
+  color: #ffd872;
+  border: 1px solid rgba(255,223,120,.5);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 999;               /* por encima de todo */
+}
+.tip::after{
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 100%;
+  border: 6px solid transparent;
+  border-top-color: rgba(0,0,0,.85); /* flechita */
+}
+.tip.show{
+  opacity: 1;
+  transform: translateY(-14px); /* sube un poquito y aparece */
+}
+/* === Inbox: variantes de mensaje === */
+.msg-system{
+  border: 1px solid rgba(244, 197, 66, .65);
+  background: linear-gradient(180deg, rgba(255,224,150,.10), rgba(0,0,0,.10));
+  box-shadow:
+     0 0 0 1px rgba(244,197,66,.15) inset,
+     0 8px 24px rgba(244,197,66,.12),
+     0 0 14px rgba(244,197,66,.25);
+}
+.msg-system .msg-time{ color: #ffd872; }
+/* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
+:root{
+  /* Ajusta aquí sin miedo */
+  --logoSize: 20px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
+  --logoColor: #fffff;      /* color del texto */
+}
 
-  :root{
-    --voteTextColor:#281f2b;
-    --submitTextColor:#281f2b;
-    --priceTextColor:#281f2b;
-    --participateTextColor:#39275e;
-    --participatePriceColor:#39275e;
-  }
-  #voteBtn{ color: var(--voteTextColor) !important; }
-  #submitIdeaBtn{ color: var(--submitTextColor) !important; }
-  #ideaPayBtn{ color: var(--participateTextColor) !important; }
-  #ideaPayBtn b{ color: var(--participatePriceColor) !important; }
+/* Más específico + !important para ganar siempre */
+.topbar .logo-text{
+  font-size: var(--logoSize) !important;
+  color: var(--logoColor) !important;
+ }
+ .logo-text{
+  margin: 0;
+  font-size: var(--logoSize);
+  font-weight: 800;
+  color: var(--logoColor);
+  letter-spacing: 1.5px;
+  text-shadow:
+    0 0 3px var(--logoGlow1),
+    0 0 6px var(--logoGlow2);
+  display: inline-block;
+  pointer-events: none;
+}
 
-  :root{
-    --splashLogoSize: 300px;
-    --splashBg1: #0b0a1a;
-    --splashBg2: #151230;
-    --splashGlow: rgba(255,215,130,.55);
-  }
-  #splash{ position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: radial-gradient(1200px 600px at 50% 35%, var(--splashBg2), transparent 70%), linear-gradient(180deg, var(--splashBg1), #080712 60%); transition: opacity .5s ease, visibility 0s linear .55s; opacity: 1; visibility: visible; }
-  #splash.hide{ opacity: 0; visibility: hidden; }
-  .splash-inner{ position: relative; display: grid; place-items: center; }
-  .splash-logo{ width: var(--splashLogoSize); height: auto; display: block; filter: drop-shadow(0 0 18px var(--splashGlow)); animation: splash-pop .6s ease both; }
-  .splash-ring{ position: absolute; width: calc(var(--splashLogoSize) * 1.8); height: calc(var(--splashLogoSize) * 1.8); border-radius: 50%; box-shadow: 0 0 60px 8px rgba(255,255,255,.06) inset, 0 0 90px 12px rgba(124,92,255,.08); animation: ring-fade 1.2s ease both .15s; }
-  @media (prefers-reduced-motion: reduce){ .splash-logo, .splash-ring{ animation: none; } }
-  @keyframes splash-pop{ 0%{ transform: scale(.94); opacity:.0 } 100%{ transform: scale(1); opacity:1 } }
-  @keyframes ring-fade{ 0%{ transform: scale(.92); opacity:.0 } 100%{ transform: scale(1);  opacity:1 } }
 
-  :root{ --inboxBadgeSize: 14px; --inboxBadgeX: -6px; --inboxBadgeY: -4px; }
-  #inboxBtn{ position: relative !important; }
-  #inboxBadge{ position: absolute !important; top: var(--inboxBadgeY); right: var(--inboxBadgeX); min-width: var(--inboxBadgeSize); height: var(--inboxBadgeSize); padding: 0; border-radius: 999px; display: grid; place-items: center; background: #e53935; color: #fff; line-height: 1; font-weight: 700; font-size: calc(var(--inboxBadgeSize) * .62); }
-
-  .option-row{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding:8px; background:#181a22; border:1px solid #2a2f3f; border-radius:10px; }
-  .option-row input{ accent-color:#6d58ff; }
-  .opt-main{ display:grid; gap:6px; }
-  .opt-label{ font-weight:700; }
-  .progress{ height:8px; background:#252a3a; border-radius:999px; overflow:hidden; }
-  .progress>span{ display:block; height:100%; background: linear-gradient(90deg,#6d58ff,#f4c542); }
-  .pct{ min-width:46px; text-align:right; font-weight:700; opacity:.9; }
-
-  /* Debug click en el CTA del gateway */
-#drawerIDG { z-index: 1000; }
-#ideaPayBtn { position: relative; z-index: 1001; pointer-events: auto; }
-
-  </style>
+</style>
 </head>
 <body>
-  <!-- Splash -->
-  <div id="splash" aria-hidden="true">
-    <div class="splash-inner">
-      <img id="splashLogo" class="splash-logo" src="img/logo-splash.png" alt="WorldGold">
-      <div class="splash-ring" aria-hidden="true"></div>
-    </div>
-  </div>
-
   <div class="stars"></div>
   <div class="stars2"></div>
   <div class="noise" aria-hidden="true"></div>
+<!-- Left FABs -->
+<div class="floatCol">
+  <button id="profileBtn" class="fab profile" title="Profile">
+    <img src="img/icon-profile.png" alt="Perfil" style="width:50px;height:50px;">
+  </button>
+  <button id="inboxBtn" class="fab inbox" title="Inbox">
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:50px;height:50px;">
+    <span id="inboxBadge" class="badge" style="display:none">0</span>
+  </button>
+</div>
 
-  <div class="floatCol">
-    <button id="profileBtn" class="fab profile" title="Profile">
-      <img src="img/icon-profile.png" alt="Perfil" style="width:40px;height:40px;">
+<!-- Topbar -->
+<div class="topbar">
+  <h1 class="logo-text"></h1>
+</div>
+
+<!-- Botón trofeo en top-actions -->
+<div class="top-actions" style="overflow:visible">
+  <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
+  <div><b id="balWLD">0.00</b> WLD</div>
+
+  <!-- WRAP del trofeo: el tip vive junto al botón -->
+  <div class="trophyWrap">
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
+      <img src="img/icon-trophy.png" alt="Trophy" style="width:50px;height:50px;">
     </button>
-    <button id="inboxBtn" class="fab inbox" title="Inbox">
-      <img src="img/icon-inbox.png" alt="Inbox" style="width:30px;height:30px;">
-      <span id="inboxBadge" class="badge" style="display:none">0</span>
+    <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
+  </div>
+</div>
+
+
+
+
+<!-- HERO -->
+<section class="hero">
+  <div class="pill">
+    <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
+    WLGp: <b id="balWLGp">0.000</b>
+    
+  </div>
+
+  <div class="coinWrap" id="coinBox">
+    <div class="ring"></div>
+    <canvas id="fx"></canvas>
+    <div id="coin" class="coin" aria-label="Tap">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
+      document.getElementById('fallback').style.display='block'">
+      <div id="fallback" class="coinFallback" style="display:none">🪙</div>
+      <div id="gain" class="gain">+0.40</div>
+    </div>
+  </div>
+
+  <!-- DOCK bajo la moneda -->
+  <div class="action-dock" aria-label="acciones rápidas">
+    <button id="refillBtn" class="btn-icon" aria-label="Refill">
+      <img src="img/ico-refill.png" alt="">
+      <span id="refillPrice" class="price-pill">0.10 WLD</span>
+    </button>
+    <button id="openUp" class="btn-icon" aria-label="Boosters">
+      <img src="img/icon-gear.png" alt="">
     </button>
   </div>
 
-  <div class="topbar">
-    <h1 class="logo-text"></h1>
+  <div class="energyWrap">
+    <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
+    <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
   </div>
+</section>
 
-  <div class="top-actions" style="overflow:visible">
-    <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
-    <div><b id="balWLD">0.00</b> WLD</div>
-    <div class="trophyWrap">
-      <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
-        <img src="img/icon-trophy.png" alt="Trophy" style="width:35px;height:35px;">
-      </button>
-      <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
-    </div>
+<!-- Drawers (Boosters simple + Inbox placeholder+Perfil) -->
+<div id="backdropUP" class="backdrop"></div>
+<aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
+  <h3 data-i18n="boosters_title">Impulsores</h3>
+  <p style="opacity:.85">Any ideas what this could be?</p>
+</aside>
+
+
+<div id="backdropIN" class="backdrop"></div>
+<aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
+<h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
+<div id="inboxList" class="inbox-list"></div>
+<button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
+</aside>
+<!-- Drawer Perfil -->
+<div id="backdropPF" class="backdrop"></div>
+<aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
+  <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
+
+<label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
+<input id="usernameInput" type="text"
+  style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
+  data-i18n-placeholder="username_placeholder"
+  placeholder="Tu nombre">
+
+<div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+  <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
+  <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
+</div>
+
+<label data-i18n="language_label" style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
+<select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
+  <option value="es" data-i18n="option_es">Español</option>
+  <option value="en" data-i18n="option_en">Inglés</option>
+</select>
+
+<div style="margin:16px 0;">
+  <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
+  <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
+  <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
+</div>
+
+<button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
+
+</aside>
+
+
+<!-- Demo tools -->
+<section class="card">
+  <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button id="btnAddWLD">+5 WLD</button>
+    <button id="btnReset">Reset</button>
   </div>
+</section>
 
-  <section class="hero">
-    <div class="pill">
-      <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
-      WLGp: <b id="balWLGp">0.000</b>
-    </div>
+<script>
+/* ===== Helpers ===== */
+const $=q=>document.querySelector(q);
+let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
-    <div class="coinWrap" id="coinBox">
-      <div class="ring"></div>
-      <canvas id="fx"></canvas>
-      <div id="coin" class="coin" aria-label="Tap">
-        <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
-        <div id="fallback" class="coinFallback" style="display:none">🪙</div>
-        <div id="gain" class="gain">+0.40</div>
-      </div>
-      <button id="ideaBtn" class="ideaBtn" title="Ideas" aria-label="Ideas">
-        <span class="ideaIcon"></span>
-      </button>
-    </div>
+/* ===== Estado base (demo) ===== */
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.8, POWER_BASE=0.40;
+let wld = +localStorage.getItem('wld') || 0;
+let wlgp= +localStorage.getItem('wlgp')|| 0;
+let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
+let lastTs=+localStorage.getItem('last_ts')||Date.now();
 
-    <div class="action-dock" aria-label="acciones rápidas">
-      <button id="refillBtn" class="btn-icon" aria-label="Refill">
-        <img src="img/ico-refill.png" alt="">
-        <span id="refillPrice" class="price-pill">0.10 WLD</span>
-      </button>
-      <button id="openUp" class="btn-icon" aria-label="Boosters">
-        <img src="img/icon-gear.png" alt="">
-      </button>
-    </div>
+/* ===== Derivados ===== */
+function capMax(){return BASE_CAP}
+function regenPerSec(){return BASE_REGEN_PER_SEC}
+function priceRefill(){return +(capMax()/1000).toFixed(2)} // 0.1% capacidad
+function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
 
-    <div class="energyWrap">
-      <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
-      <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
-    </div>
-  </section>
+/* ===== Refs ===== */
+const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
+const coin=$('#coin'), gain=$('#gain');
+const fx=$('#fx'), ctx=fx.getContext('2d');
+const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
+const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
+const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
+const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
+const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
+const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
+// ===== Inbox: estado y render =====
+let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
+let unread = +localStorage.getItem('unread') || 0;
 
-  <!-- Drawers (cada uno como HERMANO, no anidados) -->
-  <div id="backdropUP" class="backdrop"></div>
-  <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
-    <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
-    <h3 data-i18n="boosters_title">Impulsores</h3>
-    <p style="opacity:.85">Any ideas what this could be?🤑</p>
-  </aside>
+function saveMsgs(){
+  localStorage.setItem('msgs', JSON.stringify(msgs));
+  localStorage.setItem('unread', String(unread));
+}
 
-  <div id="backdropIN" class="backdrop"></div>
-  <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
-    <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
-    <h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
-    <div id="inboxList" class="inbox-list"></div>
-    <button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
-  </aside>
+function renderInbox(){
+  const box = document.getElementById('inboxList');
+  if (!box) return;
 
-  <div id="backdropPF" class="backdrop"></div>
-  <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
-    <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
-    <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
+  const cur = getLang();
+  const locale = (cur === 'en') ? 'en-US' : 'es-PE';
+  const T = I18N[cur] || I18N.es;
 
-    <label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
-    <input id="usernameInput" type="text"
-      style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
-      data-i18n-placeholder="username_placeholder"
-      placeholder="Tu nombre">
+  if (msgs.length === 0){
+    // "Sin mensajes" también se traduce:
+    box.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.opacity = '.7';
+    p.textContent = (cur === 'en') ? 'No messages.' : 'Sin mensajes.';
+    box.appendChild(p);
+  } else {
+    box.innerHTML = '';
+    msgs.forEach(m => {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg' + (m.type === 'system' ? ' msg-system' : '');
 
-    <div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-      <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
-      <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
-    </div>
+      const time = document.createElement('div');
+      time.className = 'msg-time';
+      time.textContent = new Date(m.ts).toLocaleString(locale);
 
-    <label data-i18n="language_label" style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
-    <select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
-      <option value="es" data-i18n="option_es">Español</option>
-      <option value="en" data-i18n="option_en">Inglés</option>
-    </select>
+      const txt = document.createElement('div');
+      txt.className = 'msg-text';
 
-    <div style="margin:16px 0;">
-      <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
-      <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
-      <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
-    </div>
-
-    <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
-  </aside>
-
-  <!-- Drawer Ideas -->
-  <div id="backdropID" class="backdrop"></div>
-  <aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
-    <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
-    <h3 data-i18n="ideas_title" style="margin:0 0 10px">Ideas de la comunidad</h3>
-
-    <p id="ideasIntro" style="opacity:.85" data-i18n="ideas_intro">
-      Comparte 1 idea o vota 1 opción por cada ticket de idea.
-    </p>
-    <p id="privacyNote" style="opacity:.75" data-i18n="ideas_privacy_note">
-      Tus ideas son privadas (no se muestran a otros usuarios).
-    </p>
-    <div id="ticketInfo" style="margin:10px 0;opacity:.85"></div>
-
-    <h4 data-i18n="ideas_poll_title" style="margin:12px 0 6px">¿Qué booster te gustaría primero?</h4>
-    <div id="pollList" style="display:grid;gap:8px;margin-bottom:14px"></div>
-    <button id="voteBtn" class="btn-icon" style="min-height:auto;padding:8px 12px" data-i18n="ideas_vote_btn">
-      Votar (consume 1 ticket)
-    </button>
-
-    <h4 data-i18n="ideas_free_title" style="margin:16px 0 6px">¿Otra idea?</h4>
-    <textarea id="ideaInput" data-i18n-placeholder="ideas_placeholder"
-      placeholder="Escribe tu idea..."
-      style="width:100%;height:90px;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"></textarea>
-    <button id="submitIdeaBtn" class="btn-icon" style="min-height:auto;padding:8px 12px;margin-top:8px" data-i18n="ideas_submit_btn">
-      Enviar idea (consume 1 ticket)
-    </button>
-
-    <div id="ideasMsg" style="margin-top:10px;opacity:.9"></div>
-  </aside>
-
-  <!-- Drawer Ideas Gateway -->
-  <div id="backdropIDG" class="backdrop"></div>
-  <aside id="drawerIDG" class="drawer" role="dialog" aria-modal="true">
-    <button class="close" aria-label="Cerrar" onclick="closeDrawer('IDG')">x</button>
-
-    <h3 data-i18n="ideas_gw_title" style="margin:0 0 10px">Participa y aporta</h3>
-    <p data-i18n="ideas_gw_intro" style="opacity:.85">
-      Únete a la encuesta de desarrolladores y envía tus sugerencias para mejorar WorldGold.
-    </p>
-    <ul style="opacity:.85; margin:10px 0 14px; padding-left:18px;">
-      <li data-i18n="ideas_gw_b1">Vota por los próximos boosters</li>
-      <li data-i18n="ideas_gw_b2">Envía ideas privadas</li>
-      <li data-i18n="ideas_gw_b3">Tu opinión ayuda a priorizar novedades</li>
-    </ul>
-
-    <button id="ideaPayBtn" class="btn-icon" style="min-height:auto;padding:10px 12px;">
-      <span data-i18n="ideas_gw_cta">Participar ahora —</span>&nbsp;<b>1.2 WLD</b>
-    </button>
-
-    <p id="ideasGwMsg" style="margin-top:10px;opacity:.9"></p>
-  </aside>
-
-  <section class="card">
-    <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button id="btnAddWLD">+5 WLD</button>
-      <button id="btnReset">Reset</button>
-    </div>
-  </section>
-
-  <script>
-  /* ===== Helpers ===== */
-  const $=q=>document.querySelector(q);
-  let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
-
-  const BASE_CAP=100, BASE_REGEN_PER_SEC=0.8, POWER_BASE=0.40;
-  let wld = +localStorage.getItem('wld') || 0;
-  let wlgp= +localStorage.getItem('wlgp')|| 0;
-  let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
-  let lastTs=+localStorage.getItem('last_ts')||Date.now();
-
-  function capMax(){return BASE_CAP}
-  function regenPerSec(){return BASE_REGEN_PER_SEC}
-  function priceRefill(){return +(capMax()/1000).toFixed(2)}
-  function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
-
-  const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
-  const coin=$('#coin'), gain=$('#gain');
-  const fx=$('#fx'), ctx=fx.getContext('2d');
-  const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
-  const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
-  const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
-  const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
-  const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
-  const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
-
-  const ideaBtn = document.getElementById('ideaBtn');
-  const drawerID = document.getElementById('drawerID');
-  const backdropID = document.getElementById('backdropID');
-  const ticketInfo = document.getElementById('ticketInfo');
-  const pollList = document.getElementById('pollList');
-  const voteBtn = document.getElementById('voteBtn');
-  const ideaInput = document.getElementById('ideaInput');
-  const submitIdeaBtn = document.getElementById('submitIdeaBtn');
-  const ideasMsg = document.getElementById('ideasMsg');
-  const IDEA_COST = 1.2;
-  let ideaTickets = +localStorage.getItem('idea_tickets') || 0;
-
-  const drawerIDG = document.getElementById('drawerIDG');
-  const backdropIDG = document.getElementById('backdropIDG');
-  const ideaPayBtn = document.getElementById('ideaPayBtn');
-  const ideasGwMsg = document.getElementById('ideasGwMsg');
-
-  const POLL_OPTIONS = [
-    { id: 'boost_energy',  key_es: 'Energía +10%',     key_en: 'Energy +10%',         votes: +(localStorage.getItem('poll_boost_energy')||0) },
-    { id: 'auto_tap',      key_es: 'Auto-tap',         key_en: 'Auto-tap',           votes: +(localStorage.getItem('poll_auto_tap')||0) },
-    { id: 'wld_multiplier',key_es: 'Multiplicador WLD',key_en: 'WLD Multiplier',     votes: +(localStorage.getItem('poll_wld_multiplier')||0) },
-  ];
-  let selectedPoll = null;
-
-  let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
-  let unread = +localStorage.getItem('unread') || 0;
-
-  function saveMsgs(){ localStorage.setItem('msgs', JSON.stringify(msgs)); localStorage.setItem('unread', String(unread)); }
-
-  function renderInbox(){
-    const box = document.getElementById('inboxList'); if (!box) return;
-    const cur = getLang(); const locale = (cur === 'en') ? 'en-US' : 'es-PE'; const T = I18N[cur] || I18N.es;
-    if (msgs.length === 0){
-      box.innerHTML = ''; const p = document.createElement('p'); p.style.opacity = '.7'; p.textContent = (cur === 'en') ? 'No messages.' : 'Sin mensajes.'; box.appendChild(p);
-    } else {
-      box.innerHTML = '';
-      msgs.forEach(m => {
-        const wrap = document.createElement('div'); wrap.className = 'msg' + (m.type === 'system' ? ' msg-system' : '');
-        const time = document.createElement('div'); time.className = 'msg-time'; time.textContent = new Date(m.ts).toLocaleString(locale);
-        const txt = document.createElement('div'); txt.className = 'msg-text';
-        if (m.key && T[m.key] != null){ txt.textContent = T[m.key]; } else { txt.textContent = String(m.text || ''); }
-        wrap.appendChild(time); wrap.appendChild(txt); box.appendChild(wrap);
-      });
-    }
-    if (unread > 0){ inboxBadge.style.display = 'grid'; inboxBadge.textContent = unread; } else { inboxBadge.style.display = 'none'; }
-  }
-
-  function addMessage(text, type='announce'){ const allowed = new Set(['system','announce','reward']); if (!allowed.has(type)) return; msgs.unshift({ text: String(text || ''), ts: Date.now(), type }); unread++; saveMsgs(); renderInbox(); }
-  function addMessageKey(key, type='announce'){ const allowed = new Set(['system','announce','reward']); if (!allowed.has(type)) return; msgs.unshift({ key: String(key || ''), ts: Date.now(), type }); unread++; saveMsgs(); renderInbox(); }
-
-  if (inboxBtn) inboxBtn.onclick = () => { openDrawer('IN'); unread = 0; saveMsgs(); renderInbox(); };
-  const markRead = document.getElementById('markRead');
-  if (markRead) markRead.onclick = () => { unread = 0; saveMsgs(); renderInbox(); };
-
-  function sizeCanvasToCoin(){
-    const r = coin.getBoundingClientRect(); const scale = window.devicePixelRatio || 1;
-    fx.width  = Math.round(r.width * scale); fx.height = Math.round(r.height * scale);
-    fx.style.width  = r.width + 'px'; fx.style.height = r.height + 'px';
-  }
-  addEventListener('resize', sizeCanvasToCoin);
-
-  const sparkle = new Image(); sparkle.src = 'img/sparkle.png';
-  let parts=[];
-  function spawn(x,y){for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
-    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});}}
-  function stepFX(dt){
-    ctx.clearRect(0,0,fx.width,fx.height);
-    for(let i=parts.length-1;i>=0;i--){
-      const p=parts[i]; p.life-=dt; if(p.life<=0){parts.splice(i,1); continue;}
-      p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.alpha=Math.max(0,p.life/700);
-      ctx.globalAlpha=p.alpha;
-      if(sparkle.complete){
-        ctx.drawImage(sparkle, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
-      }else{
-        ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,.9)';
-        ctx.arc(p.x,p.y, Math.max(2, p.size*0.15), 0, Math.PI*2); ctx.fill();
+      // Si el mensaje tiene "key", se traduce; si no, usa el texto literal
+      if (m.key && T[m.key] != null){
+        txt.textContent = T[m.key];
+      } else {
+        txt.textContent = String(m.text || '');
       }
-    }
-    ctx.globalAlpha=1;
+
+      wrap.appendChild(time);
+      wrap.appendChild(txt);
+      box.appendChild(wrap);
+    });
   }
 
-  function render(){
-    balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
-    const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
-    energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
-    const cost=priceRefill(); refillPrice.textContent=cost.toFixed(2)+' WLD';
-    const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
-    refillBtn.classList.toggle('pulse', low && canPay);
-    refillBtn.disabled = energy>=eMax-1e-6;
-    if (typeof renderProfile === 'function') renderProfile();
+  if (unread > 0){
+    inboxBadge.style.display = 'grid';
+    inboxBadge.textContent = unread;
+  } else {
+    inboxBadge.style.display = 'none';
   }
+}
 
-  function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
-  coin.addEventListener('click',(e)=>{
-    lazyRegen();
-    const ok=addTap();
-    if(ok){
-      gain.textContent=`+${POWER_BASE.toFixed(2)}`; gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
-      try{tone(820,0.05,'triangle',.07);}catch(_){}
-      const rect=fx.getBoundingClientRect();
-      const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
-      const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
-      spawn(x,y);
-      coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
+// Mensaje con TEXTO literal (no se traduce al cambiar idioma)
+function addMessage(text, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ text: String(text || ''), ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
+
+// Mensaje por CLAVE del diccionario (sí se traduce al cambiar idioma)
+function addMessageKey(key, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ key: String(key || ''), ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
+
+// Abrir Inbox = mostrar y limpiar contador
+if (inboxBtn) inboxBtn.onclick = () => {
+  openDrawer('IN');
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+// Botón "Marcar como leído"
+const markRead = document.getElementById('markRead');
+if (markRead) markRead.onclick = () => {
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+/* ===== Canvas del tamaño de la moneda ===== */
+function sizeCanvasToCoin(){
+  const r = coin.getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  fx.width  = Math.round(r.width * scale);
+  fx.height = Math.round(r.height * scale);
+  fx.style.width  = r.width + 'px';
+  fx.style.height = r.height + 'px';
+}
+addEventListener('resize', sizeCanvasToCoin);
+
+/* ===== Partículas con fallback ===== */
+const sparkle = new Image(); sparkle.src = 'img/sparkle.png';
+let parts=[];
+function spawn(x,y){for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.2, s=16+Math.random()*10;
+  parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:600+Math.random()*400,size:s,alpha:1});}}
+function stepFX(dt){
+  ctx.clearRect(0,0,fx.width,fx.height);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.life-=dt; if(p.life<=0){parts.splice(i,1); continue;}
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.alpha=Math.max(0,p.life/700);
+    ctx.globalAlpha=p.alpha;
+    if(sparkle.complete){
+      ctx.drawImage(sparkle, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
     }else{
-      refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+      ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,.9)';
+      ctx.arc(p.x,p.y, Math.max(2, p.size*0.15), 0, Math.PI*2); ctx.fill();
     }
-    render();
-  });
-
-  function doRefill(){
-    const cost=priceRefill(), eMax=capMax();
-    if(energy>=eMax-1e-6) return;
-    if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
-    wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
-    try{tone(620,0.08,'sine',.08);}catch(_){}
-    render();
   }
-  refillBtn.onclick=doRefill;
+  ctx.globalAlpha=1;
+}
 
-  openUp.onclick=()=>openDrawer('UP');
+/* ===== UI render ===== */
+function render(){
+  balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
+  const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
+  energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
 
-  function openDrawer(which){
-    const map = {
-      UP: [drawerUP, backdropUP],
-      IN: [drawerIN, backdropIN],
-      PF: [drawerPF, backdropPF],
-      ID: [drawerID, backdropID],
-      IDG:[drawerIDG, backdropIDG],
-    };
-    const pair = map[which]; if (!pair) return;
-    const [dr, bd] = pair; dr.classList.add('show'); bd.classList.add('show');
+  const cost=priceRefill(); refillPrice.textContent=cost.toFixed(2)+' WLD';
+  const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
+  refillBtn.classList.toggle('pulse', low && canPay);
+  refillBtn.disabled = energy>=eMax-1e-6;
+    if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
+}
+
+
+/* ===== Tap logic ===== */
+function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
+coin.addEventListener('click',(e)=>{
+  lazyRegen();
+  const ok=addTap();
+  if(ok){
+    gain.textContent=`+${POWER_BASE.toFixed(2)}`; gain.classList.remove('show'); void gain.offsetWidth; gain.classList.add('show');
+    tone(820,0.05,'triangle',.07);
+    // Posición del tap dentro del canvas
+    const rect=fx.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
+    const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
+    spawn(x,y);
+    coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
+  }else{
+    refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
   }
-  function closeDrawer(which){
-    const map = {
-      UP: [drawerUP, backdropUP],
-      IN: [drawerIN, backdropIN],
-      PF: [drawerPF, backdropPF],
-      ID: [drawerID, backdropID],
-      IDG:[drawerIDG, backdropIDG],
-    };
-    const pair = map[which]; if (!pair) return;
-    const [dr, bd] = pair; dr.classList.remove('show'); bd.classList.remove('show');
-  }
-  window.openDrawer=openDrawer; window.closeDrawer=closeDrawer;
+  render();
+});
 
-  if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
-  if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
-  if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
-  if (backdropID) backdropID.onclick = () => closeDrawer('ID');
-  if (backdropIDG) backdropIDG.onclick = () => closeDrawer('IDG');
+/* ===== Refill ===== */
+function doRefill(){
+  const cost=priceRefill(), eMax=capMax();
+  if(energy>=eMax-1e-6) return;
+  if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
+  wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
+  tone(620,0.08,'sine',.08); render();
+}
+refillBtn.onclick=doRefill;
 
-  if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
 
-  const addWldBtn = document.getElementById('btnAddWLD');
-  if (addWldBtn) {
-    addWldBtn.addEventListener('click', () => {
-      wld += 5; localStorage.setItem('wld', String(wld)); render(); if (typeof renderProfile === 'function') renderProfile();
-    });
-  }
-  const resetBtn = document.getElementById('btnReset');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => { if (confirm('¿Reiniciar demo?')) { localStorage.clear(); location.reload(); } });
-  }
+/* ===== Boosters drawer (placeholder) ===== */
+openUp.onclick=()=>openDrawer('UP');
 
-  let tPrev = performance.now();
-  function frame(t){ const dt = t - tPrev; tPrev = t; stepFX(dt); requestAnimationFrame(frame); }
-  requestAnimationFrame(frame);
-
-  const REGEN_UI_MS = 250;
-  setInterval(() => { lazyRegen(); render(); }, REGEN_UI_MS);
-
-  function getLang(){ return localStorage.getItem('lang') || 'es'; }
-  function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
-
-  var username = localStorage.getItem('username') || 'Player';
-  function getUsername(){ return localStorage.getItem('username') || 'Player'; }
-  function setUsername(v){ const s = (v || '').slice(0,20); localStorage.setItem('username', s); username = s; return s; }
-
-  function renderLogoGreeting(){
-    try{
-      const cur = (typeof getLang === 'function') ? getLang() : 'es';
-      const hasI18N = typeof I18N !== 'undefined' && I18N && I18N[cur];
-      const T = hasI18N ? I18N[cur] : { hello_user: (cur==='en' ? 'Hello {name}!' : 'Hola {name}!') };
-      const user = (typeof getUsername === 'function') ? getUsername() : 'Player';
-      const h1 = document.querySelector('.logo-text');
-      if (!h1) return;
-      const text = (T.hello_user || (cur==='en' ? 'Hello {name}!' : 'Hola {name}!')).replace('{name}', user || 'Player');
-      h1.textContent = text;
-    }catch(e){ console.error('[greeting] error:', e); }
-  }
-
-  const I18N = {
-    es: {
-      wld_balance:'Saldo WLD:', coming_soon:'Próximamente', inbox_title:'Buzón', boosters_title:'Impulsores',
-      profile_title:'Perfil', mark_read:'Marcar como leído', claim_soon:'Reclamar (Pronto)', demo_title:'Herramientas de prueba (demo)',
-      save:'Guardar', saved:'Guardado', ideas_title:'Ideas de la comunidad',
-      ideas_intro:'Comparte 1 idea o vota 1 opción por cada ticket de idea.', ideas_poll_title:'¿Qué booster te gustaría primero?',
-      ideas_free_title:'¿Otra idea?', ideas_vote_btn:'Votar ( 1 ticket )🎟️', ideas_submit_btn:'Enviar idea ( 1 ticket )🎟️',
-      ideas_placeholder:'Escribe tu idea...', ideas_privacy_note:'Tus ideas son privadas (no se muestran a otros usuarios).',
-      ideas_gw_title:'Participa y aporta', ideas_gw_intro:'Únete a la encuesta de desarrolladores y envía tus sugerencias para mejorar WorldGold.',
-      ideas_gw_b1:'Vota por los próximos boosters', ideas_gw_b2:'Envía ideas privadas', ideas_gw_b3:'Tu opinión ayuda a priorizar novedades', ideas_gw_cta:'Participar ahora —',
-      username_label:'Nombre de usuario', username_placeholder:'Tu nombre', language_label:'Idioma', option_es:'Español', option_en:'Inglés',
-      profile_wlgp_label:'WLGp:', profile_wlg_label:'WLG Balance:', profile_wld_label:'WLD Balance:', hello_user:'Hola {name}!🌐',
-      seed_stay_tuned:'Novedades muy pronto — Mantente atento. 📢', seed_get_wallet:'Prepara tu billetera para ganar WLD. 💸', seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
-    },
-    en: {
-      wld_balance:'WLD Balance:', coming_soon:'Coming Soon', inbox_title:'Inbox', boosters_title:'Boosters',
-      profile_title:'Profile', mark_read:'Mark as read', claim_soon:'Claim (Soon)', demo_title:'Demo tools',
-      save:'Save', saved:'Saved', ideas_title:'Community Ideas',
-      ideas_intro:'Share 1 idea or vote 1 option per idea ticket.', ideas_poll_title:'Which booster do you want first?',
-      ideas_free_title:'Another idea?', ideas_vote_btn:'Vote ( 1 ticket )🎟️', ideas_submit_btn:'Submit idea ( 1 ticket )🎟️',
-      ideas_placeholder:'Write your idea...', ideas_privacy_note:'Your ideas are private (not shown to other users).',
-      ideas_gw_title:'Participate & Contribute', ideas_gw_intro:'Join the developer survey and submit suggestions to improve WorldGold.',
-      ideas_gw_b1:'Vote on upcoming boosters', ideas_gw_b2:'Send private ideas', ideas_gw_b3:'Your input helps prioritize updates', ideas_gw_cta:'Join now —',
-      username_label:'Username', username_placeholder:'Your name', language_label:'Language', option_es:'Spanish', option_en:'English',
-      profile_wlgp_label:'WLGp:', profile_wlg_label:'WLG Balance:', profile_wld_label:'WLD Balance:', hello_user:'Hello {name}!🌐',
-      seed_stay_tuned:'Stay tuned — big updates soon. 📢', seed_get_wallet:'Get your wallet ready to earn WLD. 💸', seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
-    }
+function openDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
   };
-
-  function applyLang(){
-    const cur = getLang(); const T = I18N[cur] || I18N.es;
-    document.querySelectorAll('[data-i18n]').forEach(el=>{
-      const key = el.getAttribute('data-i18n'); if (T[key] != null) el.textContent = T[key];
-    });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
-      const key = el.getAttribute('data-i18n-placeholder'); if (T[key] != null) el.setAttribute('placeholder', T[key]);
-    });
-    document.documentElement.lang = cur;
-    renderInbox();
-    renderLogoGreeting();
-  }
-
-  function loadProfileFields(){
-    const usernameInput = document.getElementById('usernameInput');
-    const saveBtn       = document.getElementById('saveUsernameBtn');
-    const savedBadge    = document.getElementById('savedBadge');
-    const langSelect    = document.getElementById('langSelect');
-
-    if (usernameInput){
-      usernameInput.value = getUsername();
-      const markDirty = ()=>{
-        const dirty = usernameInput.value !== getUsername();
-        if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
-        if (savedBadge) savedBadge.style.display = 'none';
-      };
-      usernameInput.addEventListener('input', markDirty);
-      usernameInput.addEventListener('focus', markDirty);
-
-      if (saveBtn){
-        saveBtn.onclick = ()=>{
-          const normalized = setUsername(usernameInput.value);
-          usernameInput.value = normalized;
-          saveBtn.style.display = 'none';
-          if (savedBadge){
-            savedBadge.style.display = 'inline';
-            clearTimeout(savedBadge._t);
-            savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
-          }
-          renderLogoGreeting();
-        };
-      }
-      usernameInput.addEventListener('blur', ()=>{ if (usernameInput.value !== getUsername()){ if (saveBtn) saveBtn.click(); } });
-    }
-
-    if (langSelect){
-      langSelect.value = getLang();
-      langSelect.onchange = (e)=>{ setLang(e.target.value); applyLang(); };
-    }
-
-    applyLang();
-  }
-
-  function renderProfile(){
-    const pWLD  = document.getElementById('profWLD');
-    const pWLGp = document.getElementById('profWLGp');
-    if (pWLD)  pWLD.textContent  = wld.toFixed(2);
-    if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
-  }
-  window.renderProfile = renderProfile;
-
-  (function init(){
-    sizeCanvasToCoin();
-    setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
-    render();
-    loadProfileFields();
-    renderProfile();
-    if (msgs.length === 0) {
-      addMessageKey('seed_stay_tuned', 'system');
-      addMessageKey('seed_get_wallet', 'system');
-      addMessageKey('seed_farming_time', 'system');
-    }
-    renderInbox();
-    renderLogoGreeting();
-  })();
-  </script>
-
-  <script>
-  (function setupTrophyTip(){
-    const btn = document.getElementById('trophyBtn');
-    const tip = document.getElementById('trophyTip');
-    if (!btn || !tip) return;
-    let timer;
-    btn.addEventListener('click', () => {
-      tip.classList.add('show');
-      clearTimeout(timer);
-      timer = setTimeout(() => { tip.classList.remove('show'); }, 1600);
-    });
-  })();
-  </script>
-
-  <script>
-  (function(){
-    const splash = document.getElementById('splash');
-    const logo   = document.getElementById('splashLogo');
-    const PRIMARY  = 'img/logo-splash.png';
-    const FALLBACK = 'img/Coin.png';
-    const MIN_SHOW = 3000;
-    const t0 = performance.now();
-    function reallyHide(){ if (!splash || splash.classList.contains('hide')) return; splash.classList.add('hide'); setTimeout(()=> splash.remove?.(), 650); }
-    function hideSplash(){ const dt = performance.now() - t0; const wait = Math.max(0, MIN_SHOW - dt); setTimeout(reallyHide, wait); }
-    if (logo){ logo.src = PRIMARY; logo.addEventListener('error', () => { logo.src = FALLBACK; }); }
-    window.addEventListener('load', hideSplash);
-    setTimeout(hideSplash, 5000);
-  })();
-  </script>
-
-  /* ===== MiniKit robusto con detección múltiple + timeout + logs visibles ===== */
-<script type="module">
-let MiniKit, Tokens, VerificationLevel, tokenToDecimals;
-let MK = null; // objeto de comandos detectado (commandsAsync o commands)
-
-/* Utilidades UI */
-function showMsg(id, text){ const m=document.getElementById(id); if(!m) return; m.textContent=String(text||''); m.style.opacity='1'; }
-function toast(t,ms=1600){
-  let el = document.getElementById('wgToast');
-  if(!el){
-    el = document.createElement('div');
-    el.id='wgToast';
-    el.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111a;backdrop-filter:blur(6px);color:#fff;padding:10px 14px;border-radius:12px;font:600 14px/1.1 system-ui,Segoe UI,Roboto,sans-serif;z-index:99999;box-shadow:0 6px 18px #0006;opacity:0;transition:opacity .25s';
-    document.body.appendChild(el);
-  }
-  el.textContent=t; clearTimeout(el._t); el.style.opacity='1';
-  el._t=setTimeout(()=>el.style.opacity='0',ms);
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.add('show');
+  bd.classList.add('show');
+}
+function closeDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
+  };
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.remove('show');
+  bd.classList.remove('show');
 }
 
-/* Detección flexible del objeto MiniKit y sus métodos */
-function detectInjectedMiniKitVerbose(){
-  const candFns = [
-    () => window.MiniKit,
-    () => window.miniKit,
-    () => window.MiniKitSDK,
-    () => window.WorldApp?.MiniKit,
-    () => window.WorldApp?.miniKit,
-    () => window.worldApp?.MiniKit,
-    () => window.worldApp?.miniKit,
-    () => window.webkit?.messageHandlers?.MiniKit // algunos bridges iOS
-  ];
-  for (const f of candFns){
-    try{
-      const m = f();
-      if (!m) continue;
-      // si trae commandsAsync o commands nos sirve
-      if (m.commandsAsync || m.commands) return m;
-      // en iOS webkit handler no expone commands; lo ignoramos
-    }catch(_){}
-  }
-  return null;
-}
-/* NO uses import CDN cuando estamos en WorldApp */
-function looksLikeWorldApp(){
-  // Heurísticas simples: userAgent + falta de devtools completas, etc.
-  const ua = (navigator.userAgent||'').toLowerCase();
-  return /world.?app|wv|android.*version\/\d+|iphone|ipad/.test(ua);
-}
-/* Tiempo máximo esperando MiniKit inyectado (ms) */
-const INJECT_WAIT_MS = 5000;
-function pickCommands(mk){
-  if (!mk) return null;
-  if (mk.commandsAsync) return mk.commandsAsync;         // preferimos async
-  if (mk.commands)      return mk.commands;              // fallback (devuelve Promises?)
-  return null;
-}
+/* Cerrar tocando el fondo */
+if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
+if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
+if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
 
-/* Import dinámico con timeout para evitar colgados */
-async function importMiniKitWithTimeout(ms=3500){
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/build/index.js',
-    'https://unpkg.com/@worldcoin/minikit-js@1.9.6/build/index.js',
-    'https://esm.run/@worldcoin/minikit-js@1.9.6/build/index.js'
-  ];
-  const start = Date.now();
-  for (const u of urls){
-    try{
-      const m = await import(u);
-      MiniKit = m.MiniKit;
-      MK = m.MiniKit?.commandsAsync || m.MiniKit?.commands || m.commandsAsync || m.commands || null;
-      Tokens = m.Tokens;
-      VerificationLevel = m.VerificationLevel;
-      tokenToDecimals = m.tokenToDecimals;
-      if (!MK) continue;
-      showMsg(msgId, 'MiniKit ok (import)');
-      return true;
-    }catch(_){}
-  }
-  showMsg(msgId, 'MiniKit no disponible (import fallido)');
-  return false
-  
-  throw new Error('No se pudo importar MiniKit (CSP/timeout)');
-}
+/* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
+if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
 
-/* Carga definitiva: en WorldApp solo aceptamos "inyectado" */
-async function loadMiniKit(msgId='ideasGwMsg'){
-  const t0 = Date.now();
 
-  async function tryDetectLoop(){
-    let lastLogAt = 0;
-    while (Date.now() - t0 < INJECT_WAIT_MS){
-      const inj = detectInjectedMiniKitVerbose();
-      if (inj){
-        MiniKit = inj;
-        MK = inj.commandsAsync || inj.commands || null;
-        Tokens = window.Tokens || inj.Tokens;
-        VerificationLevel = window.VerificationLevel || inj.VerificationLevel || { Orb:'orb' };
-        tokenToDecimals = window.tokenToDecimals || inj.tokenToDecimals || ((n)=>n);
-        showMsg(msgId, 'MiniKit ok (inyectado)');
-        return true;
-      }
-      // log visual cada ~1s para que veas que está intentando
-      const now = Date.now();
-      if (now - lastLogAt > 900){
-        showMsg(msgId, 'Esperando MiniKit inyectado…');
-        lastLogAt = now;
-      }
-      await new Promise(r=>setTimeout(r, 120));
-    }
-    return false;
-  }
 
-  // Si parece WorldApp ⇒ esperamos inyección (no import)
-  if (looksLikeWorldApp()){
-    const ok = await tryDetectLoop();
-    if (!ok){
-      showMsg(msgId, 'MiniKit no inyectado por WorldApp (timeout)');
-      return false;
-    }
-    return true;
-  }
-}
 
-/* Wrappers que funcionan con commandsAsync o commands */
-async function mkVerify(action){
-  if (!MK?.verify) throw new Error('verify no disponible');
-  // algunos entornos exigen { action, verification_level }, otros solo { action }
-  try{
-    const res = await MK.verify({ action, verification_level: (VerificationLevel?.Orb || 'orb') });
-    return res?.finalPayload?.status || res?.status || 'unknown';
-  }catch(e){
-    // si commands no acepta verification_level, probamos sin él
-    try{
-      const res2 = await MK.verify({ action });
-      return res2?.finalPayload?.status || res2?.status || 'unknown';
-    }catch(err){ throw err; }
-  }
-}
-
-async function mkPay({reference,to,amountWLD,description}){
-  if (!MK?.pay) throw new Error('pay no disponible');
-  const tokAmt = tokenToDecimals ? tokenToDecimals(amountWLD, Tokens?.WLD) : String(amountWLD);
-  const res = await MK.pay({
-    reference, to,
-    tokens: [{ symbol: (Tokens?.WLD || 'WLD'), token_amount: String(tokAmt) }],
-    description
+// === Demo buttons (handlers seguros) ===
+const addWldBtn = document.getElementById('btnAddWLD');
+if (addWldBtn) {
+  addWldBtn.addEventListener('click', () => {
+    wld += 5;                                   // suma 5 WLD
+    localStorage.setItem('wld', String(wld));   // persiste
+    render();                                   // refresca balances/energía
+    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
   });
-  return res?.finalPayload?.status || res?.status || 'unknown';
 }
 
-/* Config */
-const ACTION     = 'worldgoldideas';
-const PAY_TO     = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-const IDEA_PRICE = 1.2;
-
-/* Handlers — CTA “Participar ahora — 1.2 WLD” */
-(function(){
-  const btn = document.getElementById('ideaPayBtn');
-  const msgId = 'ideasGwMsg';
-  if (!btn) return;
-
-  btn.style.pointerEvents = 'auto';
-  btn.style.position = 'relative';
-  btn.style.zIndex = '1001';
-
-  btn.onclick = null;
-  btn.addEventListener('click', async ()=>{
-    showMsg(msgId, 'Procesando…');
-
-    // 1) Cargar MiniKit (inyectado o import) con timeout
-    const okLoad = await loadMiniKit(msgId);
-    if (!okLoad) return;
-
-    // 2) Verificación
-    let st='unknown';
-    try{
-      st = await mkVerify(ACTION);
-      showMsg(msgId, 'Verificación: ' + st);
-      if (st !== 'success') return;
-    }catch(e){
-      const m = String(e?.message||e);
-      showMsg(msgId, 'Verificación fallida: ' + m);
-      return;
+const resetBtn = document.getElementById('btnReset');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    if (confirm('¿Reiniciar demo?')) {
+      localStorage.clear();
+      location.reload();
     }
+  });
+}
 
-    // 3) Pago
-    try{
-      const reference = (crypto?.randomUUID?.()||String(Date.now())).replace(/-/g,'');
-      const stPay = await mkPay({ reference, to: PAY_TO, amountWLD: IDEA_PRICE, description: `Idea Ticket (${IDEA_PRICE} WLD)` });
-      showMsg(msgId, 'Pago: ' + stPay);
-      if (stPay !== 'success') return;
-    }catch(e){
-      const m = String(e?.message||e);
-      showMsg(msgId, 'Pago fallido: ' + m);
-      return;
+/* ===== Main loop (FX + regeneración visible) ===== */
+let tPrev = performance.now();
+function frame(t){
+  const dt = t - tPrev; tPrev = t;
+  stepFX(dt);             // partículas/sombras
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Regeneración y UI cada 250 ms (sube 1 en 1 a su ritmo)
+const REGEN_UI_MS = 250;
+setInterval(() => {
+  lazyRegen();            // calcula energía con tiempo real
+  render();               // actualiza barra y números
+}, REGEN_UI_MS);
+
+
+/* ===== Perfil: nombre de usuario + idioma ===== */
+/* Helpers sin TDZ */
+function getLang(){ return localStorage.getItem('lang') || 'es'; }
+function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
+
+var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
+function getUsername(){ return localStorage.getItem('username') || 'Player'; }
+function setUsername(v){
+  const s = (v || '').slice(0,20);
+  localStorage.setItem('username', s);
+  username = s;
+  return s;
+}
+
+// === Saludo en el logo (NIVEL RAÍZ, fuera de cualquier función) ===
+function renderLogoGreeting(){
+  try{
+    const cur = (typeof getLang === 'function') ? getLang() : 'es';
+    const hasI18N = typeof I18N !== 'undefined' && I18N && I18N[cur];
+    const T = hasI18N ? I18N[cur] : { hello_user: (cur==='en' ? 'Hello {name}!' : 'Hola {name}!') };
+    const user = (typeof getUsername === 'function') ? getUsername() : 'Player';
+    const h1 = document.querySelector('.logo-text');
+    if (!h1) return;
+    const text = (T.hello_user || (cur==='en' ? 'Hello {name}!' : 'Hola {name}!')).replace('{name}', user || 'Player');
+    h1.textContent = text;
+  }catch(e){ console.error('[greeting] error:', e); }
+}
+
+
+/* Diccionario i18n (UNA sola vez) */
+/* Diccionario i18n (UNA sola vez) */
+const I18N = {
+  es: {
+    wld_balance:   'Saldo WLD:',
+    coming_soon:   'Próximamente',
+    inbox_title:   'Buzón',
+    boosters_title:'Impulsores',
+    profile_title: 'Perfil',
+    mark_read:     'Marcar como leído',
+    claim_soon:    'Reclamar (Pronto)',
+    demo_title:    'Herramientas de prueba (demo)',
+    save:          'Guardar',
+    saved:         'Guardado',
+
+    // 👇 NUEVO: Perfil
+    username_label:        'Nombre de usuario',
+    username_placeholder:  'Tu nombre',
+    language_label:        'Idioma',
+    option_es:             'Español',
+    option_en:             'Inglés',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+    // 👇 Saludo del logo
+    hello_user:            'Hola {name}!',
+
+    // 👇 Seeds del Inbox (si usas addMessageKey)
+    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
+    seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
+    seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+  },
+  en: {
+    wld_balance:   'WLD Balance:',
+    coming_soon:   'Coming Soon',
+    inbox_title:   'Inbox',
+    boosters_title:'Boosters',
+    profile_title: 'Profile',
+    mark_read:     'Mark as read',
+    claim_soon:    'Claim (Soon)',
+    demo_title:    'Demo tools',
+    save:          'Save',
+    saved:         'Saved',
+
+    // 👇 NEW: Profile
+    username_label:        'Username',
+    username_placeholder:  'Your name',
+    language_label:        'Language',
+    option_es:             'Spanish',
+    option_en:             'English',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+    // 👇 Logo greeting
+    hello_user:            'Hello {name}!',
+
+    // 👇 Inbox seeds
+    seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
+    seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
+    seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
+  }
+};
+
+
+/* Aplica i18n a todos los [data-i18n] */
+/* Aplica i18n a todos los [data-i18n] y placeholders */
+function applyLang(){
+  const cur = getLang();
+  const T = I18N[cur] || I18N.es;
+
+  // 1) Textos
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if (T[key] != null) el.textContent = T[key];
+  });
+
+  // 2) Placeholders (inputs/textarea)
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (T[key] != null) el.setAttribute('placeholder', T[key]);
+  });
+
+  document.documentElement.lang = cur;
+
+  // Redibuja partes dependientes de idioma
+  renderInbox();                         // Inbox por clave
+  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // Hola/Hello {name}
+}
+
+
+
+/* Carga campos del Perfil + botón Guardar */
+function loadProfileFields(){
+  const usernameInput = document.getElementById('usernameInput');
+  const saveBtn       = document.getElementById('saveUsernameBtn');
+  const savedBadge    = document.getElementById('savedBadge');
+  const langSelect    = document.getElementById('langSelect');
+
+  // Nombre de usuario
+  if (usernameInput){
+    usernameInput.value = getUsername();
+
+    const markDirty = ()=>{
+      const dirty = usernameInput.value !== getUsername();
+      if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
+      if (savedBadge) savedBadge.style.display = 'none';
+    };
+    usernameInput.addEventListener('input', markDirty);
+    usernameInput.addEventListener('focus', markDirty);
+
+    if (saveBtn){
+      saveBtn.onclick = ()=>{
+  const normalized = setUsername(usernameInput.value);
+  usernameInput.value = normalized;
+  saveBtn.style.display = 'none';
+  if (savedBadge){
+    savedBadge.style.display = 'inline';
+    clearTimeout(savedBadge._t);
+    savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
+  }
+  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // una sola vez
+};
+
     }
+    // Auto-guardar al salir del input
+    usernameInput.addEventListener('blur', ()=>{
+      if (usernameInput.value !== getUsername()){
+        if (saveBtn) saveBtn.click();
+      }
+    });
+  }
 
-    // 4) Éxito → ticket++
-    window.ideaTickets = (Number(window.ideaTickets||0) + 1);
-    try{ localStorage.setItem('idea_tickets', String(window.ideaTickets)); }catch(_){}
-    if (typeof renderIdeasUI==='function') renderIdeasUI();
-    if (typeof render==='function') render();
-    if (typeof closeDrawer==='function') closeDrawer('IDG');
-    if (typeof openDrawer==='function') openDrawer('ID');
-    toast('¡Ticket activado!');
+  // Idioma
+  if (langSelect){
+    langSelect.value = getLang();
+    langSelect.onchange = (e)=>{
+      setLang(e.target.value);
+      applyLang();
+    };
+  }
+
+  // Primera aplicación
+  applyLang();
+}
+
+/* Muestra balances dentro del Perfil */
+function renderProfile(){
+  const pWLD  = document.getElementById('profWLD');
+  const pWLGp = document.getElementById('profWLGp');
+  if (pWLD)  pWLD.textContent  = wld.toFixed(2);
+  if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
+}
+
+
+  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
+
+/* ===== Init ===== */
+(function init(){
+  sizeCanvasToCoin();
+  // Partículas de arranque para confirmar que se ven
+  setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
+
+  render();               // primer pintado
+  loadProfileFields();    // engancha Perfil (username/idioma)
+  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
+  // Mensajes iniciales con CLAVE (se traducen)
+if (msgs.length === 0) {
+  addMessageKey('seed_stay_tuned', 'system');
+  addMessageKey('seed_get_wallet', 'system');
+  addMessageKey('seed_farming_time', 'system');
+}
+
+// Primer pintado del Inbox (ahora sí, I18N ya existe)
+renderInbox();
+renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
+
+
+})(); // 👈 MUY IMPORTANTE: cerrar la IIFE
+
+
+</script>
+<script>
+(function setupTrophyTip(){
+  const btn = document.getElementById('trophyBtn');
+  const tip = document.getElementById('trophyTip');
+  if (!btn || !tip) return;
+
+  let timer;
+  btn.addEventListener('click', () => {
+    tip.classList.add('show');     // aparece
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      tip.classList.remove('show'); // se desvanece
+    }, 1600); // 1.6s visible
   });
 })();
-</script>  
+</script>
 
 </body>
 </html>
