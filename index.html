@@ -1,6 +1,25 @@
 <!doctype html>
 <html lang="es">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.MiniKit && window.MiniKit.isAvailable()) {
+      console.log("MiniKit disponible ✅ dentro de World App");
+      document.body.insertAdjacentHTML(
+        "afterbegin",
+        "<div style='position:fixed;top:10px;right:10px;background:green;color:#fff;padding:6px 10px;border-radius:8px;z-index:9999;'>MiniKit: YES ✅</div>"
+      );
+    } else {
+      console.log("MiniKit NO disponible ❌ (no se abrió en World App)");
+      document.body.insertAdjacentHTML(
+        "afterbegin",
+        "<div style='position:fixed;top:10px;right:10px;background:red;color:#fff;padding:6px 10px;border-radius:8px;z-index:9999;'>MiniKit: NO ❌</div>"
+      );
+    }
+  });
+</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <title>WorldGold — App</title>
