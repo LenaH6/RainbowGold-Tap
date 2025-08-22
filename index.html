@@ -1092,5 +1092,27 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   // Si quieres auto-abrir la verificación sin tocar el botón, descomenta:
   // window.addEventListener("load", () => setTimeout(startVerify, 600));
 </script>
+
+<script type="module">
+  // Intenta cargar el SDK
+  let MiniKit, VerificationLevel;
+  try {
+    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+    MiniKit = m.MiniKit; VerificationLevel = m.VerificationLevel;
+  } catch (e) {}
+
+  // Caja de diagnóstico
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.70);color:#fff;font:12px system-ui;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);max-width:92vw";
+  const isInstalled = !!(MiniKit && MiniKit.isInstalled && MiniKit.isInstalled());
+  const ua = navigator.userAgent || "";
+  box.innerHTML = `
+    <b>MiniKit:</b> ${isInstalled ? "OK ✅" : "NO ❌"}<br>
+    <b>UA:</b> ${ua.includes("WorldApp") ? "WorldApp detectada" : "No WorldApp"}<br>
+    <small>${ua}</small>
+  `;
+  document.body.appendChild(box);
+</script>
+
 </body>
 </html>
