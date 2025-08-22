@@ -1107,6 +1107,26 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   // Si quieres auto-abrir sin tocar el botón: 
   // window.addEventListener("load", () => setTimeout(startVerify, 600));
 </script>
+<!-- Redirección automática a World App si NO estamos dentro de World App -->
+<script>
+(function(){
+  // Si el user-agent no contiene "WorldApp", redirigimos al enlace universal
+  var ua = navigator.userAgent || "";
+  var inWorldApp = ua.indexOf("WorldApp") !== -1;
+  if (!inWorldApp) {
+    var APP_ID = "app_33bb8068826b85d4cd56d2ec2caba7cc"; // <- tu App ID
+    var link = "https://world.org/mini-app?app_id=" + APP_ID + "&path=/";
+    // Botón visible por si la redirección tarda
+    var btn = document.createElement("a");
+    btn.href = link;
+    btn.textContent = "Abrir en World App";
+    btn.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.7);color:#fff;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);font:12px system-ui;text-decoration:none";
+    document.body.appendChild(btn);
+    // Redirigir en breve
+    setTimeout(function(){ location.href = link; }, 600);
+  }
+})();
+</script>
 
 </body>
 </html>
