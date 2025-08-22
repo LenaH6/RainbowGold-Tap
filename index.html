@@ -520,75 +520,6 @@ body{
   </div>
 </section>
 
-<script type="module">
-  import { MiniKit, VerificationLevel } 
-    from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm";
-
-  const ACTION_ID = "refill"; // por ahora usamos tu acción existente; luego puedes crear "signin"
-  const splash   = document.getElementById("splash");
-  const btn      = document.getElementById("wldSignIn");
-  const stateLbl = document.getElementById("wldState");
-
-  // Bloquea todo el juego hasta verificar (no permite taps ni botones)
-  function lockGame() {
-    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "none");
-  }
-  function unlockGame() {
-    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "");
-  }
-  lockGame();
-
-  function showMsg(txt) {
-    if (!stateLbl) return;
-    stateLbl.textContent = txt;
-    stateLbl.style.opacity = "1";
-    stateLbl.style.transform = "translateY(0)";
-  }
-
-  async function startVerify() {
-    if (!MiniKit?.isInstalled?.()) {
-      alert("Abre esto dentro de World App.");
-      return;
-    }
-    btn.disabled = true;
-    showMsg("Preparando tu sesión…");
-
-    try {
-      const { finalPayload } = await MiniKit.commandsAsync.verify({
-        action: ACTION_ID,
-        verification_level: VerificationLevel.Orb // o .Device si quieres menos fricción
-      });
-
-      if (finalPayload.status !== "success") {
-        btn.disabled = false;
-        showMsg("Verificación cancelada.");
-        return;
-      }
-
-      // (Opcional) Validar en backend con /api/verify
-      // await fetch("/api/verify", { method:"POST", headers:{"Content-Type":"application/json"},
-      //   body: JSON.stringify({ payload: finalPayload, action: ACTION_ID }) });
-
-      showMsg("¡Listo!");
-      unlockGame();
-
-      // Cierra el splash con tu animación
-      splash.classList.add("splash--hide");
-      setTimeout(() => splash.remove(), 450);
-
-    } catch (e) {
-      console.error(e);
-      btn.disabled = false;
-      showMsg("Error al verificar. Intenta de nuevo.");
-    }
-  }
-
-  if (btn) btn.addEventListener("click", startVerify);
-
-  // Si quieres auto-abrir la verificación sin tocar el botón, descomenta:
-  // window.addEventListener("load", () => setTimeout(startVerify, 600));
-</script>
-
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
@@ -1093,5 +1024,73 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
 })();
 </script>
 
+<script type="module">
+  import { MiniKit, VerificationLevel } 
+    from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm";
+
+  const ACTION_ID = "refill"; // por ahora usamos tu acción existente; luego puedes crear "signin"
+  const splash   = document.getElementById("splash");
+  const btn      = document.getElementById("wldSignIn");
+  const stateLbl = document.getElementById("wldState");
+
+  // Bloquea todo el juego hasta verificar (no permite taps ni botones)
+  function lockGame() {
+    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "none");
+  }
+  function unlockGame() {
+    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "");
+  }
+  lockGame();
+
+  function showMsg(txt) {
+    if (!stateLbl) return;
+    stateLbl.textContent = txt;
+    stateLbl.style.opacity = "1";
+    stateLbl.style.transform = "translateY(0)";
+  }
+
+  async function startVerify() {
+    if (!MiniKit?.isInstalled?.()) {
+      alert("Abre esto dentro de World App.");
+      return;
+    }
+    btn.disabled = true;
+    showMsg("Preparando tu sesión…");
+
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.verify({
+        action: ACTION_ID,
+        verification_level: VerificationLevel.Orb // o .Device si quieres menos fricción
+      });
+
+      if (finalPayload.status !== "success") {
+        btn.disabled = false;
+        showMsg("Verificación cancelada.");
+        return;
+      }
+
+      // (Opcional) Validar en backend con /api/verify
+      // await fetch("/api/verify", { method:"POST", headers:{"Content-Type":"application/json"},
+      //   body: JSON.stringify({ payload: finalPayload, action: ACTION_ID }) });
+
+      showMsg("¡Listo!");
+      unlockGame();
+
+      // Cierra el splash con tu animación
+      splash.classList.add("splash--hide");
+      setTimeout(() => splash.remove(), 450);
+
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      showMsg("Error al verificar. Intenta de nuevo.");
+    }
+  }
+
+  if (btn) btn.addEventListener("click", startVerify);
+
+  // Si quieres auto-abrir la verificación sin tocar el botón, descomenta:
+  // window.addEventListener("load", () => setTimeout(startVerify, 600));
+</script>
 </body>
 </html>
