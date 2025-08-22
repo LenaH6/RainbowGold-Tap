@@ -519,7 +519,7 @@ body{
     <button id="btnReset">Reset</button>
   </div>
 </section>
-
+<script>
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
@@ -534,7 +534,7 @@ let lastTs=+localStorage.getItem('last_ts')||Date.now();
 /* ===== Derivados ===== */
 function capMax(){return BASE_CAP}
 function regenPerSec(){return BASE_REGEN_PER_SEC}
-function priceRefill(){return +(capMax()/1000).toFixed(2)} // 0.1% capacidad
+function priceRefill(){return +(capMax()* 0.001).toFixed(2)} // 0.1% capacidad
 function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
 
 /* ===== Refs ===== */
@@ -1106,28 +1106,6 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   if (btn) btn.addEventListener("click", startVerify);
   // Si quieres auto-abrir sin tocar el botón: 
   // window.addEventListener("load", () => setTimeout(startVerify, 600));
-</script>
-
-
-<script type="module">
-  // Intenta cargar el SDK
-  let MiniKit, VerificationLevel;
-  try {
-    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
-    MiniKit = m.MiniKit; VerificationLevel = m.VerificationLevel;
-  } catch (e) {}
-
-  // Caja de diagnóstico
-  const box = document.createElement("div");
-  box.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.70);color:#fff;font:12px system-ui;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);max-width:92vw";
-  const isInstalled = !!(MiniKit && MiniKit.isInstalled && MiniKit.isInstalled());
-  const ua = navigator.userAgent || "";
-  box.innerHTML = `
-    <b>MiniKit:</b> ${isInstalled ? "OK ✅" : "NO ❌"}<br>
-    <b>UA:</b> ${ua.includes("WorldApp") ? "WorldApp detectada" : "No WorldApp"}<br>
-    <small>${ua}</small>
-  `;
-  document.body.appendChild(box);
 </script>
 
 </body>
