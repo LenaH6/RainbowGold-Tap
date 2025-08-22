@@ -1109,28 +1109,29 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
 </script>
 <!-- Redirección automática a World App si NO estamos dentro de World App -->
 <script>
-
 (function(){
   var ua = navigator.userAgent || "";
   var inWorldApp = /WorldApp/i.test(ua);
   if (!inWorldApp) {
     var APP_ID = "app_33bb8068826b85d4cd56d2ec2caba7cc"; // tu App ID
-    var target = "https://world.org/mini-app?app_id=" + APP_ID + "&path=/&open_out_of_window=true";
+    // ✅ usa worldcoin.org y agrega draft_id si estás en modo borrador
+    var DRAFT_ID = "meta_bb87f5ee34ac61508603bb2e4f7200ab"; // el que ves en tu QR
+    var target = "https://worldcoin.org/mini-app?app_id=" + APP_ID +
+                 "&draft_id=" + DRAFT_ID +
+                 "&path=/";
 
-    // Botón visible (tap del usuario ayuda a salir del webview)
     var btn = document.createElement("a");
     btn.href = target;
-    btn.target = "_blank";
-    btn.rel = "noopener";
     btn.textContent = "Abrir en World App";
     btn.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.7);color:#fff;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);font:12px system-ui;text-decoration:none";
     document.body.appendChild(btn);
 
-    // Redirigir automáticamente (por si no tocan el botón)
-    setTimeout(function(){ window.location.replace(target); }, 500);
+    // Redirección automática
+    setTimeout(function(){ window.location.href = target; }, 400);
   }
 })();
 </script>
+
 
 </body>
 </html>
