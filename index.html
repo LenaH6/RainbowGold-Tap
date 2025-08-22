@@ -379,72 +379,93 @@ body{
     Sign in with World ID
   </button>
 <script type="module">
-  // Cargamos MiniKit desde ESM (no requiere bundler)
-  let MiniKit, VerificationLevel;
-  try {
-    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
-    MiniKit = m.MiniKit;
-    VerificationLevel = m.VerificationLevel;
-  } catch (e) {
-    console.error("No se pudo cargar MiniKit:", e);
+  // -------------- DEBUG PANEL --------------
+  function showDiag(lines){
+    const box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:rgba(0,0,0,.75);color:#fff;padding:10px 12px;border:1px solid rgba(255,255,255,.25);border-radius:12px;max-width:94vw;font:12px system-ui;line-height:1.35";
+    box.innerHTML = lines.join("<br>");
+    document.body.appendChild(box);
   }
+  const ua = navigator.userAgent || "";
+  showDiag([
+    `<b>UA:</b> ${ua}`,
+    `<b>WorldApp detectada:</b> ${/WorldApp/i.test(ua) ? "Sí ✅" : "No ❌"}`,
+    `<b>URL:</b> ${location.href}`,
+    `<b>Referrer:</b> ${document.referrer || "(vacío)"}`
+  ]);
 
-  const ACTION_ID = "worldgold";     // <- la Action que muestras en tu captura
-  const splash    = document.getElementById("splash");
+  // -------------- CARGA DEL SDK (ESM + fallback UMD) --------------
+  let MiniKit, VerificationLevel;
+  async function loadMiniKit(){
+    try {
+      const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+      MiniKit = m.MiniKit;
+      VerificationLevel = m.VerificationLevel;
+    } catch (e) {
+      console.warn("Fallo ESM, probando UMD...", e);
+      await new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js";
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      // UMD expone window.MiniKit
+      MiniKit = window.MiniKit;
+      VerificationLevel = window.VerificationLevel;
+    }
+  }
+  await loadMiniKit();
+
+  // -------------- MOSTRAR ESTADO DEL SDK --------------
+  const hasMiniKit = !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+  showDiag([
+    `<b>UA:</b> ${ua}`,
+    `<b>WorldApp detectada:</b> ${/WorldApp/i.test(ua) ? "Sí ✅" : "No ❌"}`,
+    `<b>MiniKit instalado:</b> ${hasMiniKit ? "Sí ✅" : "No ❌"}`,
+    `<b>SDK origen:</b> ${window.MiniKit ? "UMD (script)" : "ESM (import)"}`
+  ]);
+
+  // -------------- VERIFICACIÓN --------------
+  const ACTION_ID = "worldgold";           // tu Action Identifier
   const btn       = document.getElementById("wldSignIn");
+  const splash    = document.getElementById("splash");
   const stateLbl  = document.getElementById("wldState");
 
-  function showMsg(txt){
-    if (!stateLbl) return;
-    stateLbl.textContent = txt;
-    stateLbl.style.opacity = "1";
-    stateLbl.style.transform = "translateY(0)";
-  }
+  function showMsg(t){ if(stateLbl){ stateLbl.textContent=t; stateLbl.style.opacity="1"; stateLbl.style.transform="translateY(0)"; } }
   function unlockUI(){
     document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents="");
-    if (splash){
-      splash.classList.add("splash--hide");
-      setTimeout(()=> splash.remove(), 450);
-    }
+    if (splash){ splash.classList.add("splash--hide"); setTimeout(()=>splash.remove(), 450); }
   }
 
   async function startVerify(){
-    // Verifica que ESTÁS dentro de World App
-    if (!MiniKit || MiniKit.isInstalled?.() !== true) {
-      alert("Ábrelo desde el QR del portal con el escáner de la World App (no desde el navegador).");
+    if (!hasMiniKit) {
+      alert("Me parece que NO estamos dentro de World App. Escanéalo con el escáner interno (no desde el navegador).");
       return;
     }
     btn.disabled = true;
     showMsg("Abriendo verificación…");
-
-    try {
+    try{
       const { finalPayload } = await MiniKit.commandsAsync.verify({
         action: ACTION_ID,
-        // Para probar: Device. Luego puedes cambiar a VerificationLevel.Orb.
-        verification_level: VerificationLevel.Device
+        verification_level: (VerificationLevel?.Device ?? "device") // más fácil para probar
       });
-
-      if (finalPayload?.status !== "success") {
+      if (finalPayload?.status !== "success"){
         btn.disabled = false;
         showMsg("Verificación cancelada.");
         return;
       }
-
-      // En producción: manda finalPayload a tu backend para validar el proof.
       console.log("✅ Verificación OK:", finalPayload);
-
       showMsg("¡Listo!");
       unlockUI();
-
-    } catch (err) {
+    }catch(err){
       console.error(err);
       btn.disabled = false;
-      showMsg("Error al verificar. Intenta de nuevo.");
+      showMsg("Error al verificar.");
     }
   }
-
   if (btn) btn.addEventListener("click", startVerify);
 </script>
+
 
   <div id="wldState" class="splash__hint" 
      style="margin-top:10px;opacity:1;transform:translateY(0)">
