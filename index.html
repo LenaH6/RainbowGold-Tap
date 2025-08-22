@@ -378,6 +378,73 @@ body{
            color:#fff;font-weight:700;cursor:pointer">
     Sign in with World ID
   </button>
+<script type="module">
+  // Cargamos MiniKit desde ESM (no requiere bundler)
+  let MiniKit, VerificationLevel;
+  try {
+    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+    MiniKit = m.MiniKit;
+    VerificationLevel = m.VerificationLevel;
+  } catch (e) {
+    console.error("No se pudo cargar MiniKit:", e);
+  }
+
+  const ACTION_ID = "worldgold";     // <- la Action que muestras en tu captura
+  const splash    = document.getElementById("splash");
+  const btn       = document.getElementById("wldSignIn");
+  const stateLbl  = document.getElementById("wldState");
+
+  function showMsg(txt){
+    if (!stateLbl) return;
+    stateLbl.textContent = txt;
+    stateLbl.style.opacity = "1";
+    stateLbl.style.transform = "translateY(0)";
+  }
+  function unlockUI(){
+    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents="");
+    if (splash){
+      splash.classList.add("splash--hide");
+      setTimeout(()=> splash.remove(), 450);
+    }
+  }
+
+  async function startVerify(){
+    // Verifica que ESTÁS dentro de World App
+    if (!MiniKit || MiniKit.isInstalled?.() !== true) {
+      alert("Ábrelo desde el QR del portal con el escáner de la World App (no desde el navegador).");
+      return;
+    }
+    btn.disabled = true;
+    showMsg("Abriendo verificación…");
+
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.verify({
+        action: ACTION_ID,
+        // Para probar: Device. Luego puedes cambiar a VerificationLevel.Orb.
+        verification_level: VerificationLevel.Device
+      });
+
+      if (finalPayload?.status !== "success") {
+        btn.disabled = false;
+        showMsg("Verificación cancelada.");
+        return;
+      }
+
+      // En producción: manda finalPayload a tu backend para validar el proof.
+      console.log("✅ Verificación OK:", finalPayload);
+
+      showMsg("¡Listo!");
+      unlockUI();
+
+    } catch (err) {
+      console.error(err);
+      btn.disabled = false;
+      showMsg("Error al verificar. Intenta de nuevo.");
+    }
+  }
+
+  if (btn) btn.addEventListener("click", startVerify);
+</script>
 
   <div id="wldState" class="splash__hint" 
      style="margin-top:10px;opacity:1;transform:translateY(0)">
