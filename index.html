@@ -339,6 +339,26 @@ body{
   transform: translateY(6px);   /* pequeño empuje hacia abajo */
   transition: opacity .8s ease, transform .8s ease;
 }
+/* Puntos animados tipo "..." uno a uno */
+.dots{
+  display:inline-block;
+  margin-left: 2px;          /* pequeño espacio tras el texto */
+  vertical-align: baseline;  /* se alinea como texto normal */
+}
+.dots span{
+  display:inline-block;
+  opacity:0;
+  animation: dotblink 1.2s infinite steps(1, end);
+}
+.dots span:nth-child(1){ animation-delay: 0s;    }
+.dots span:nth-child(2){ animation-delay: 0.2s;  }
+.dots span:nth-child(3){ animation-delay: 0.4s;  }
+
+@keyframes dotblink{
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }  /* se muestra */
+  100% { opacity: 1; }
+}
 
 
 
@@ -349,12 +369,25 @@ body{
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
   <div class="splash__logo">
-    <!-- Usa tu logo existente en /img -->
-    <!-- Sugerido: brand-mark-wg-128.png (incluido en tu proyecto) -->
     <img src="img/logo-splash.png" alt="WorldGold" onerror="this.style.display='none'">
   </div>
-  <div class="splash__hint">Preparando tu sesión...</div>
+
+  <button id="wldSignIn"
+    style="margin-top:18px;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
+           background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+           color:#fff;font-weight:700;cursor:pointer">
+    Sign in with World ID
+  </button>
+
+  <div id="wldState" class="splash__hint" 
+     style="margin-top:10px;opacity:1;transform:translateY(0)">
+  Preparando tu sesión<span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
+
+
+</div>
+
+
 
   <div class="stars"></div>
   <div class="stars2"></div>
@@ -487,51 +520,75 @@ body{
   </div>
 </section>
 
-<script>
-(function splashController(){
-  const splash = document.getElementById('splash');
-  if (!splash) return;
-  const hint = splash.querySelector('.splash__hint');
+<script type="module">
+  import { MiniKit, VerificationLevel } 
+    from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm";
 
-  let hidden = false;
-  const hide = () => {
-    if (hidden) return;
-    hidden = true;
-    splash.setAttribute('aria-busy', 'false');
-    splash.classList.add('splash--hide');
-    setTimeout(()=> splash.remove(), 450); // limpia tras el fade-out
-  };
+  const ACTION_ID = "refill"; // por ahora usamos tu acción existente; luego puedes crear "signin"
+  const splash   = document.getElementById("splash");
+  const btn      = document.getElementById("wldSignIn");
+  const stateLbl = document.getElementById("wldState");
 
-  // Tiempos (ajústalos si quieres más/menos duración):
-  const READY_DELAY = 900;              // mostrar "Preparando..." después del logo
-  const DONE_DELAY  = READY_DELAY + 900; // cambiar a "¡Listo!" luego de 0.9s
-  const HIDE_DELAY  = DONE_DELAY + 500;  // ocultar splash 0.5s después
+  // Bloquea todo el juego hasta verificar (no permite taps ni botones)
+  function lockGame() {
+    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "none");
+  }
+  function unlockGame() {
+    document.querySelectorAll("#coin, .btn-icon, .fab").forEach(el => el.style.pointerEvents = "");
+  }
+  lockGame();
 
-  // Safety por si algo raro pasa (mejor 5s que 4s para asegurar ver el hint)
-  const safetyTimer = setTimeout(hide, 5000);
+  function showMsg(txt) {
+    if (!stateLbl) return;
+    stateLbl.textContent = txt;
+    stateLbl.style.opacity = "1";
+    stateLbl.style.transform = "translateY(0)";
+  }
 
-  window.addEventListener('load', () => {
-    // 1) Mostrar "Preparando tu sesión…" con fade-in
-    setTimeout(() => {
-      if (hint) {
-        hint.textContent = "Preparando tu sesión…";
-        hint.style.opacity = '1';
-        hint.style.transform = 'translateY(0)';
+  async function startVerify() {
+    if (!MiniKit?.isInstalled?.()) {
+      alert("Abre esto dentro de World App.");
+      return;
+    }
+    btn.disabled = true;
+    showMsg("Preparando tu sesión…");
+
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.verify({
+        action: ACTION_ID,
+        verification_level: VerificationLevel.Orb // o .Device si quieres menos fricción
+      });
+
+      if (finalPayload.status !== "success") {
+        btn.disabled = false;
+        showMsg("Verificación cancelada.");
+        return;
       }
-    }, READY_DELAY);
 
-    // 2) Cambiar a "¡Listo!" poco antes de cerrar
-    setTimeout(() => {
-      if (hint) hint.textContent = "¡Listo!";
-    }, DONE_DELAY);
+      // (Opcional) Validar en backend con /api/verify
+      // await fetch("/api/verify", { method:"POST", headers:{"Content-Type":"application/json"},
+      //   body: JSON.stringify({ payload: finalPayload, action: ACTION_ID }) });
 
-    // 3) Cerrar splash suavemente
-    setTimeout(() => {
-      clearTimeout(safetyTimer);
-      hide();
-    }, HIDE_DELAY);
-  });
-})();
+      showMsg("¡Listo!");
+      unlockGame();
+
+      // Cierra el splash con tu animación
+      splash.classList.add("splash--hide");
+      setTimeout(() => splash.remove(), 450);
+
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      showMsg("Error al verificar. Intenta de nuevo.");
+    }
+  }
+
+  if (btn) btn.addEventListener("click", startVerify);
+
+  // Si quieres auto-abrir la verificación sin tocar el botón, descomenta:
+  // window.addEventListener("load", () => setTimeout(startVerify, 600));
+</script>
+
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
