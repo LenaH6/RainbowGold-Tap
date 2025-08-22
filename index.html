@@ -1032,7 +1032,7 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
     MiniKit = m.MiniKit;
     VerificationLevel = m.VerificationLevel;
   } catch (e) {
-    console.error("No pude cargar MiniKit", e);
+    console.error("Fallo import Minikit", e);
   }
 
   // Panel de diagnóstico (temporal; luego lo puedes borrar)
@@ -1048,7 +1048,7 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   })();
 
   /* ====== GATE DE VERIFICACIÓN EN EL SPLASH ====== */
-  const ACTION_ID = "refill"; // usa esta por ahora; luego puedes crear "signin"
+  const ACTION_ID = "worldgoldideas"; // usa esta por ahora; luego puedes crear "signin"
   const splash   = document.getElementById("splash");
   const btn      = document.getElementById("wldSignIn");
   const stateLbl = document.getElementById("wldState");
