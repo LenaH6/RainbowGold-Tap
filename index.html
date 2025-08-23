@@ -1066,48 +1066,94 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
 
   // === 1) Verificación World ID dentro de World App ===
   async function startVerify(){
-    if (!requireMiniKit()) return;
-    btn.disabled = true; msg("Abriendo verificación…");
-    try{
-      const { finalPayload, status } = await MiniKit.commandsAsync.verify({
-        action: ACTION_ID,
-        verification_level: VerificationLevel.Device // para probar; luego Orb
-      });
-      if (status !== "success") { btn.disabled=false; msg("Verificación cancelada."); return; }
+  if (!requireMiniKit()) return;
+  if (btn) btn.disabled = true;
+  msg("Abriendo verificación…");
 
-      // (opcional) aquí podrías enviar finalPayload a tu backend para validar
-      console.log("✅ Verificación OK:", finalPayload);
-      msg("¡Listo!");
-      unlock();
-    }catch(e){
-      console.error(e); btn.disabled=false; msg("Error al verificar.");
+  try{
+    const { status, finalPayload } = await MiniKit.commandsAsync.verify({
+      action: ACTION_ID,                          // "worldgold"
+      verification_level: VerificationLevel.Device
+    });
+
+    if (status !== "success"){
+      if (btn) btn.disabled = false;
+      msg("Verificación cancelada.");
+      return;
     }
+
+    // 🔒 En PRODUCCIÓN: valida el proof en tu servidor
+    try {
+      const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalPayload)
+      });
+      if (!r.ok) {
+        // el servidor dijo que NO
+        if (btn) btn.disabled = false;
+        msg("Verificación inválida en servidor.");
+        return;
+      }
+    } catch (e) {
+      console.error("verify backend error:", e);
+      if (btn) btn.disabled = false;
+      msg("Error validando en servidor.");
+      return;
+    }
+
+    console.log("✅ Verificación OK:", finalPayload);
+    msg("¡Listo!");
+    unlock(); // ⬅️ cierra el splash y habilita la UI
+
+  }catch(err){
+    console.error(err);
+    if (btn) btn.disabled = false;
+    msg("Error al verificar.");
   }
+}
+
   if (btn) btn.addEventListener("click", startVerify);
 
   // === 2) Pago simple (todo a tu misma wallet) ===
   async function payRefill(){
-    if (!requireMiniKit()) return;
-    try{
-      // abre el sheet de pago en World App
-      const res = await MiniKit.commandsAsync.pay({
-        to: MERCHANT,     // tu wallet (whitelist en el portal)
-        token: TOKEN,     // "WLD" o "USDC"
-        amount: AMOUNT,   // string decimal
-        reference: crypto.randomUUID() // opcional, para tu tracking
-      });
-      console.log("Resultado pay()", res);
-      if (res.status === "success"){
-        // aquí acreditas energía, etc. (ya pagó)
-        alert("✅ Pago realizado");
-      } else {
-        alert("Pago cancelado");
+  if (!requireMiniKit()) return;
+
+  try{
+    // abre el sheet de pago en World App
+    const res = await MiniKit.commandsAsync.pay({
+      to: MERCHANT,          // 0x91bf252c335f2540871d0d2ef1476ae193a5bc8a
+      token: TOKEN,          // "WLD" (o "USDC" si el portal lo permite)
+      amount: AMOUNT,        // "0.10" (ejemplo)
+      reference: crypto.randomUUID()  // opcional, para rastrear
+    });
+
+    console.log("Resultado pay()", res);
+
+    if (res.status === "success"){
+      // 📌 Notifica a tu servidor para registrar la compra
+      try {
+        await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(res)
+        });
+      } catch (e) {
+        console.warn("No se pudo confirmar en backend:", e);
       }
-    }catch(e){
-      console.error(e);
-      alert("Error en el pago");
+
+      // ✅ entrega el beneficio en el cliente
+      alert("✅ Pago realizado");
+    } else {
+      alert("Pago cancelado");
     }
+
+  }catch(e){
+    console.error(e);
+    alert("Error en el pago");
   }
+}
+
   // Conecta el botón de refill a payRefill
   if (refillBtn) refillBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); payRefill(); });
 </script>
