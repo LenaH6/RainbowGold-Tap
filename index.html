@@ -146,14 +146,25 @@ body{
      transition:opacity .2s;
       z-index:40}
 .backdrop.show{opacity:1; pointer-events:auto}
-.drawer{position:fixed; top:0; right:-380px;
-   width:min(360px,92vw); height:100dvh;
-    background:rgba(10,8,24,.98);
-  border-left:1px solid rgba(255,255,255,.1);
-   padding:16px 16px calc(24px + env(safe-area-inset-bottom));
-    transition:right .28s ease; overflow:auto;
-     z-index:60}
-.drawer.show{right:0}
+.drawer{
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: min(360px, 92vw);
+  height: 100dvh;
+  background: rgba(10, 8, 24, .98);
+  border-left: 1px solid rgba(255,255,255,.1);
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  overflow: auto;
+  z-index: 60;
+
+  /* 👇 aquí está la clave */
+  transition: right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.drawer.show {
+  right: 0;
+}
+
 .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
   background:transparent; color:#fff; cursor:pointer; font-size:18px}
 
@@ -359,6 +370,26 @@ body{
   50%  { opacity: 1; }  /* se muestra */
   100% { opacity: 1; }
 }
+#devBanner {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(255, 0, 0, 0.8);
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 8px;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  font-family: system-ui, sans-serif;
+}
+.coin.flash {
+  box-shadow: 
+    0 0 25px rgba(255, 223, 120, 0.9),
+    0 0 60px rgba(255, 200, 80, 0.5);
+  transition: box-shadow .25s ease-out;
+}
 
 
 
@@ -466,7 +497,7 @@ body{
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 data-i18n="boosters_title">Impulsores</h3>
-  <p style="opacity:.85">Any ideas what this could be?</p>
+  <p style="opacity:.85">Coming Soon... ✔</p>
 </aside>
 
 
@@ -511,15 +542,21 @@ body{
 </aside>
 
 
-<!-- Demo tools -->
-<section class="card">
-  <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
-  <div style="display:flex;gap:10px;justify-content:flex-end">
-    <button id="btnAddWLD">+5 WLD</button>
-    <button id="btnReset">Reset</button>
-  </div>
-</section>
+<div id="demoSection">
+  <!-- Demo tools -->
+  <section class="card">
+    <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="btnAddWLD">+5 WLD</button>
+      <button id="btnReset">Reset</button>
+    </div>
+  </section>
+</div>
+
 <script>
+// 👇 Flag para mostrar/ocultar el demo
+const SHOW_DEMO = false;   // cámbialo a true si quieres activarlo
+
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
@@ -700,9 +737,22 @@ coin.addEventListener('click',(e)=>{
     const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
     const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
     spawn(x,y);
-    coin.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:140,easing:'ease-out'});
-  }else{
-    refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260);
+
+    //Rebote suave
+    coin.animate(
+      [{transform:'scale(1)'},{transform:'scale(1.08)'},{transform:'scale(1)'}],
+      {duration:180,easing:'cubic-beizer(0.25, 0.8, 0.25, 1)'}
+    );
+  
+    // Vibración háptica si el dispositivo lo soporta
+    if (navigator.vibrate) navigator.vibrate(10);
+    // Efecto de flash dorado en la moneda
+    coin.classList.add('flash');
+    setTimeout(()=> coin.classList.remove('flash'), 200);
+
+}else{
+    refillBtn.classList.add('shake'); 
+    setTimeout(()=>refillBtn.classList.remove('shake'),260);
   }
   render();
 });
@@ -853,9 +903,9 @@ const I18N = {
     hello_user:            'Hola {name}!',
 
     // 👇 Seeds del Inbox (si usas addMessageKey)
-    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. ✨',
-    seed_get_wallet:  'Prepara tu billetera para ganar WLD. ✨',
-    seed_farming_time:'¡Hora de farmear $WLG! Alístate para el TGE y toma la delantera. 🎮',
+    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. 💌',
+    seed_get_wallet:  'Prepara tu billetera para ganar a lo GRANDE . 💸',
+    seed_farming_time:'¡Hora de farmear $WLG! Alístate para la sorpresa y toma la delantera. 🎮',
   },
   en: {
     wld_balance:   'WLD Balance:',
@@ -883,9 +933,9 @@ const I18N = {
     hello_user:            'Hello {name}!',
 
     // 👇 Inbox seeds
-    seed_stay_tuned:  'Stay tuned — big updates soon. ✨',
-    seed_get_wallet:  'Get your wallet ready to earn WLD. ✨',
-    seed_farming_time:'Farming time for $WLG! Get ready for TGE and take the lead. 🎮',
+    seed_stay_tuned:  'Stay tuned — big updates soon. 💌',
+    seed_get_wallet:  'Get your wallet ready to earn BIG. 💸',
+    seed_farming_time:'Farming time for $WLG! Get ready for surprise and take the lead. 🎮',
   }
 };
 
@@ -984,6 +1034,10 @@ function renderProfile(){
 
 /* ===== Init ===== */
 (function init(){
+  if (!SHOW_DEMO) {
+  const demo = document.getElementById("demoSection");
+  if (demo) demo.remove();   // elimina todo el bloque demo
+}
   sizeCanvasToCoin();
   // Partículas de arranque para confirmar que se ven
   setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
@@ -1025,54 +1079,81 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
 </script>
 
 <script type="module">
-  // === Carga del SDK ===
-  let MiniKit, VerificationLevel;
-  try {
-    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
-    MiniKit = m.MiniKit;
-    VerificationLevel = m.VerificationLevel;
-  } catch (e) {
-    console.error("Error cargando MiniKit:", e);
-  }
+// 🔧 FLAG de desarrollo — ponlo en false para enviar a revisión
+const DEV_MODE = true;
 
-  // === Config ===
-  const ACTION_ID = "worldgold"; // tu Action Identifier
-  const MERCHANT = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // TU wallet
-  const TOKEN    = "WLD";  // o "USDC"
-  const AMOUNT   = "0.10"; // monto de prueba para refill
-
-  // === UI refs ===
-  const btn    = document.getElementById("wldSignIn");
-  const splash = document.getElementById("splash");
-  const state  = document.getElementById("wldState");
-  const refillBtn = document.getElementById("refillBtn");
-  if (refillBtn) {
-  refillBtn.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    payRefill();
-  });
+/* === Carga del SDK === */
+let MiniKit, VerificationLevel;
+try {
+  const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+  MiniKit = m.MiniKit;
+  VerificationLevel = m.VerificationLevel;
+} catch (e) {
+  console.error("Error cargando MiniKit:", e);
 }
 
-  function msg(t){ if(state){ state.textContent=t; state.style.opacity="1"; } }
-  function unlock(){
-    document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el=>el.style.pointerEvents="");
-    if (splash){ splash.classList.add("splash--hide"); setTimeout(()=>splash.remove(),450); }
-  }
-  function requireMiniKit(){
-    const ok = !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
-    if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
-    return ok;
+/* === Config === */
+const ACTION_ID = "worldgold";                                   // tu Action Identifier
+const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";   // tu wallet
+const TOKEN     = "WLD";                                          // o "USDC"
+const AMOUNT    = "0.10";                                         // monto de refill
+
+/* === UI refs === */
+const btn       = document.getElementById("wldSignIn");
+const splash    = document.getElementById("splash");
+const state     = document.getElementById("wldState");
+const refillBtn = document.getElementById("refillBtn");
+
+/* === Helpers UI === */
+function msg(t){ if(state){ state.textContent=t; state.style.opacity="1"; } }
+function unlock(){
+  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el=>el.style.pointerEvents="");
+  if (splash){ splash.classList.add("splash--hide"); setTimeout(()=>splash.remove(),450); }
+}
+function requireMiniKit(){
+  if (DEV_MODE) return true; // en dev no exige World App
+  const ok = !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+  if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
+  return ok;
+}
+
+/* === DEV MODE overrides (solo cuando DEV_MODE = true) === */
+if (DEV_MODE) {
+  // Banner rojo
+  const banner = document.createElement("div");
+  banner.id = "devBanner";
+  banner.textContent = "⚠️ Estás en MODO DESARROLLADOR";
+  document.body.appendChild(banner);
+
+  // Login simulado (entra directo)
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Entrar (DEV)";
+    btn.onclick = (e) => {
+      e.preventDefault();
+      unlock();
+      if (state) state.textContent = "Entraste en modo DEV";
+    };
   }
 
-  // === 1) Verificación World ID dentro de World App ===
-  async function startVerify(){
+  // Refill bloqueado en DEV (anula cualquier handler anterior)
+  if (refillBtn) {
+    refillBtn.onclick = (e) => {
+      e.preventDefault();
+      alert("Pago desactivado en modo desarrollador");
+    };
+  }
+}
+
+/* === Verificación real (solo se usa cuando DEV_MODE = false) === */
+async function startVerify(){
   if (!requireMiniKit()) return;
   if (btn) btn.disabled = true;
   msg("Abriendo verificación…");
 
   try{
     const { status, finalPayload } = await MiniKit.commandsAsync.verify({
-      action: ACTION_ID,                          // "worldgold"
+      action: ACTION_ID,
       verification_level: VerificationLevel.Device
     });
 
@@ -1082,7 +1163,7 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
       return;
     }
 
-    // 🔒 En PRODUCCIÓN: valida el proof en tu servidor
+    // Valida el proof en tu backend
     try {
       const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
         method: "POST",
@@ -1090,7 +1171,6 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
         body: JSON.stringify(finalPayload)
       });
       if (!r.ok) {
-        // el servidor dijo que NO
         if (btn) btn.disabled = false;
         msg("Verificación inválida en servidor.");
         return;
@@ -1104,7 +1184,7 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
 
     console.log("✅ Verificación OK:", finalPayload);
     msg("¡Listo!");
-    unlock(); // ⬅️ cierra el splash y habilita la UI
+    unlock();
 
   }catch(err){
     console.error(err);
@@ -1113,25 +1193,27 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   }
 }
 
-  if (btn) btn.addEventListener("click", startVerify);
+/* Conecta el botón de login SOLO si NO estás en DEV */
+if (!DEV_MODE && btn) {
+  btn.addEventListener("click", startVerify);
+}
 
-  // === 2) Pago simple (todo a tu misma wallet) ===
-  async function payRefill(){
+/* === Pago real (solo cuando DEV_MODE = false) === */
+async function payRefill(){
   if (!requireMiniKit()) return;
 
   try{
-    // abre el sheet de pago en World App
     const res = await MiniKit.commandsAsync.pay({
-      to: MERCHANT,          // 0x91bf252c335f2540871d0d2ef1476ae193a5bc8a
-      token: TOKEN,          // "WLD" (o "USDC" si el portal lo permite)
-      amount: AMOUNT,        // "0.10" (ejemplo)
-      reference: crypto.randomUUID()  // opcional, para rastrear
+      to: MERCHANT,
+      token: TOKEN,
+      amount: AMOUNT,
+      reference: crypto.randomUUID()
     });
 
     console.log("Resultado pay()", res);
 
     if (res.status === "success"){
-      // 📌 Notifica a tu servidor para registrar la compra
+      // opcional: confirma en backend
       try {
         await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
           method: "POST",
@@ -1141,8 +1223,6 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
       } catch (e) {
         console.warn("No se pudo confirmar en backend:", e);
       }
-
-      // ✅ entrega el beneficio en el cliente
       alert("✅ Pago realizado");
     } else {
       alert("Pago cancelado");
@@ -1154,8 +1234,11 @@ renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
   }
 }
 
-  // Conecta el botón de refill a payRefill
-  if (refillBtn) refillBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); payRefill(); });
+/* Conecta refill SOLO cuando NO estás en DEV (así evitamos duplicados) */
+if (!DEV_MODE && refillBtn) {
+  refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
+}
 </script>
+
 </body>
 </html>
