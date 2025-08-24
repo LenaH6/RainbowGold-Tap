@@ -624,7 +624,12 @@ const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas c
 const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
 const FRENZY_MS = 4000;                                           // combo máximo
 const DECOY_CHANCE = 0.25;                                        // prob. de decoy
-const USE_TAP_SPAWN = true;                                       // usamos spawn por TAP
+const USE_TAP_SPAWN = true;  
+// === decimales fijos y helpers del numerito ===
+const GAIN_DECIMALS = 3;
+const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
+const setLastGainTotal = (tot) => { if (lastGainEl) lastGainEl.textContent = `+${fmt(tot)}`; };
+                                    // usamos spawn por TAP
 
 /* ==== Estado de combo ==== */
 const combo = {
@@ -635,7 +640,9 @@ const combo = {
   tapCounter: 0,                          // conteo de taps global
   nextSpawnAt: 0                          // umbral próximo spawn
   };
-  
+// cooldown de “sin energía” (2s)
+let noEnergyUntil = 0;
+ 
 function targetLevel(){ return Math.max(1, combo.level || 1); }
 // — Aplica combo/ventana/frenzy en este tap —
 function applyComboTap(e){
@@ -645,7 +652,7 @@ function applyComboTap(e){
   if (now < combo.frenzyUntil){
     const extra = POWER_BASE * 0.05;
     addTapAmount(extra);
-    gain.textContent = `+${(POWER_BASE + extra).toFixed(3)}`;
+     setLastGainTotal(POWER_BASE + extra);
     updateBadge();
     return;
   }
@@ -662,8 +669,14 @@ if (combo.window){
 
   // extra por tap dentro de ventana
   const extra = POWER_BASE * BONUS[L];
-  addTapAmount(extra);
-  gain.textContent = `+${(POWER_BASE + extra).toFixed(3)}`;
+addTapAmount(extra);
+setLastGainTotal(POWER_BASE + extra);
+
+
+  // Mostrar siempre 3 decimales (0.000, 0.400, etc.)
+const GAIN_DECIMALS = 3;
+const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
+
 
   // ¿completa antes de que se acabe el tiempo?
   if (combo.window.tapsDone >= combo.window.tapsNeeded){
@@ -824,6 +837,44 @@ function arcUpdateProgress(level, t){  // level: 1..5, t: 0→1
 function arcHide(){
   if (windowArc) windowArc.style.opacity = '0';
 }
+// ==== Ganancias flotantes (un div por cada tap) ====
+let lastGainEl = null;
+const gainPool = []; // para no acumular infinitos
+
+function spawnGain(x, y, text){
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.position = 'fixed';          // fuera de la moneda, no se recorta
+  el.style.left = x + 'px';
+  el.style.top  = (y - 70) + 'px';
+  el.style.fontSize = '14px';
+  el.style.fontWeight = '900';
+  el.style.color = '#fff';
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = 1001;
+  el.style.textShadow = '0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35)';
+  el.style.willChange = 'transform,opacity';
+  document.body.appendChild(el);
+
+  // animación más lenta y alta (no tocamos la altura)
+  const anim = el.animate(
+    [{ transform:'translateY(0)',   opacity:1 },
+     { transform:'translateY(-96px)', opacity:0 }],
+    { duration: 1800, easing:'cubic-bezier(.2,.8,.2,1)' }
+  );
+  anim.onfinish = () => el.remove();
+
+  // guarda referencia al "último" para poder actualizar a base+bonus
+  lastGainEl = el;
+
+  // limita la cantidad (por si spamean): máximo 10 en pantalla
+  gainPool.push(el);
+  if (gainPool.length > 10){
+    const old = gainPool.shift();
+    try { old.remove(); } catch(e){}
+  }
+}
+
 // --- Mostrar el "+valor" más lento y SIEMPRE por fuera de la moneda ---
 let gainAnim = null;
 function showGain(x, y, text){
@@ -1002,7 +1053,7 @@ const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.8, POWER_BASE=0.40;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.6, POWER_BASE=0.4000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -1293,33 +1344,43 @@ function render(){
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
 coin.addEventListener('click', (e) => {
-  lazyRegen();
+  if (typeof lazyRegen === 'function') lazyRegen();
 
-  // 1) Coordenadas del toque (primero calculamos gx, gy)
-  const rect = coin.getBoundingClientRect();
-  const gx = e.clientX - rect.left;
-  const gy = e.clientY - rect.top;
+  const now = performance.now();
+  const cx = e.clientX, cy = e.clientY; // coords de pantalla (no se recorta)
 
-  // 2) ¿hay energía antes de sumar el tap?
-  const hadEnergy = (typeof energy !== 'undefined') ? (energy > 0) : true;
-
-  if (hadEnergy) {
-    // Suma el tap base (tu addTap ya descuenta energía y suma POWER_BASE)
-    addTap();
-
-    // Mostrar +valor (sube más alto, más lento y se limpia solo)
-    showGain(e.clientX, e.clientY, `+${POWER_BASE.toFixed(3)}`);
-
-    // Combo/ventana/Frenzy (esto puede actualizar el texto a base+bonus)
-    applyComboTap(e);
+  // Si estamos en cooldown por 0 energía → siempre 0.0000
+  if (now < (noEnergyUntil || 0)) {
+    spawnGain?.(cx, cy, `+${fmt(0)}`);
+    maybeSpawnByTap?.(); render?.(); return;
   }
 
-  // 3) Contar el tap para el "spawn por taps" SIEMPRE (aciertes o no)
-  if (typeof maybeSpawnByTap === 'function') maybeSpawnByTap();
+  // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
+  if (now < combo.frenzyUntil) {
+    spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
+    addTapAmount(POWER_BASE);    // base sin tocar energía
+    applyComboTap(e);            // aquí añade el +5% y actualiza el numerito
+    maybeSpawnByTap?.(); render?.(); return;
+  }
 
-  // 4) Tu render/actualización normal (deja el que ya usabas)
-  if (typeof render === 'function') render();
-});
+  // Modo normal: intentar gastar energía usando addTap()
+  const ok = (typeof addTap === 'function') ? addTap() : true;
+
+  if (!ok) {
+    // No alcanzó (0.. <1) → marcar 0.0000 y activar cooldown de 2s
+    noEnergyUntil = now + 2000;
+    spawnGain?.(cx, cy, `+${fmt(0)}`);
+    maybeSpawnByTap?.(); render?.(); return;
+  }
+
+  // Había energía suficiente → base + posible bonus (ventana)
+  spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
+  applyComboTap(e);
+
+  maybeSpawnByTap?.();
+  render?.();
+}
+);
 
 
 /* ===== Refill ===== */
