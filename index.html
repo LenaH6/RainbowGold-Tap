@@ -403,6 +403,32 @@ body{
     0 0 36px rgba(255, 200, 80, 0.35);
   transition: box-shadow .22s ease-out;
 }
+/* Refill: estados visuales */
+#refillBtn.refillPulse {
+  animation: refillPulse 1.1s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes refillPulse {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  50%  { transform: scale(1.08); filter: brightness(1.12); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+
+/* Refill: alarma (energía 0) */
+#refillBtn.refillAlarm {
+  animation: refillAlarmBlink 0.7s steps(2, jump-none) infinite,
+             refillAlarmShake 0.28s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes refillAlarmBlink {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.35); }
+}
+@keyframes refillAlarmShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
 
 
 
@@ -625,6 +651,36 @@ const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
 const FRENZY_MS = 4000;                                           // combo máximo
 const DECOY_CHANCE = 0.25;                                        // prob. de decoy
 const USE_TAP_SPAWN = true;  
+// Umbral para marcar energía baja (0..100)
+const LOW_ENERGY_THRESHOLD = 50;
+// Aparición (antes de activarla): rangos por nivel (ms)
+const APPEAR_MS = {
+  1: [1600, 2400],
+  2: [1400, 2000],
+  3: [1100, 1600],
+  4: [ 900, 1300],
+  5: [ 700, 1000],
+  decoy: [650, 900]
+};
+
+function updateRefillCue(){
+  if (!refillBtn) return;
+  const now = performance.now();
+  const inCooldown = now < (noEnergyUntil || 0);
+  const e = (typeof energy === 'number') ? energy : 100;
+
+  // limpia estados
+  refillBtn.classList.remove('refillPulse', 'refillAlarm');
+
+  if (e <= 0 || inCooldown) {
+    // vacío o cooldown → alarma fuerte
+    refillBtn.classList.add('refillAlarm');
+  } else if (e > 0 && e < LOW_ENERGY_THRESHOLD) {
+    // bajo → pulso suave
+    refillBtn.classList.add('refillPulse');
+  }
+}
+
 // === decimales fijos y helpers del numerito ===
 const GAIN_DECIMALS = 3;
 const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
@@ -642,6 +698,10 @@ const combo = {
   };
 // cooldown de “sin energía” (2s)
 let noEnergyUntil = 0;
+// Control del halo/mancha
+let hotAutoTimer = 0;   // timeout para auto-ocultar si NO se activa
+let hotLocked = false;  // true mientras la ventana esté activa (no ocultar)
+
  
 function targetLevel(){ return Math.max(1, combo.level || 1); }
 // — Aplica combo/ventana/frenzy en este tap —
@@ -669,8 +729,8 @@ if (combo.window){
 
   // extra por tap dentro de ventana
   const extra = POWER_BASE * BONUS[L];
-addTapAmount(extra);
-setLastGainTotal(POWER_BASE + extra);
+  addTapAmount(extra);
+  setLastGainTotal(POWER_BASE + extra);
 
 
   // Mostrar siempre 3 decimales (0.000, 0.400, etc.)
@@ -761,6 +821,21 @@ function soundFrenzy777(){
 function randInt(a,b){ return (a|0)+Math.floor(Math.random()*((b|0)-(a|0)+1)); }
 // === Badge (Xn / FRENZY / oculto en base) ===
 const comboBadgeEl = document.getElementById('comboBadge');
+function spawnHotWithTimer(skin){
+  // skin: 'x1'..'x5' o 'decoy'
+  if (typeof showHot === 'function') showHot(skin);
+
+  hotLocked = false;                // aún NO activada
+  clearTimeout(hotAutoTimer);
+
+  const key = (skin === 'decoy') ? 'decoy' : Math.max(1, Math.min(5, parseInt(skin.slice(1),10)));
+  const R = APPEAR_MS[key];         // [min,max]
+  const ms = randInt(R[0], R[1]);
+
+  hotAutoTimer = setTimeout(()=>{
+    if (!hotLocked && typeof hideHot === 'function') hideHot();
+  }, ms);
+}
 
 function setBadge(txt, bg, fg){
   if (!comboBadgeEl) return;
@@ -965,7 +1040,9 @@ function closeWindow(){
   combo.window = null;
   arcHide();
   tagHide();
-
+  hotLocked = false;
+  clearTimeout(hotAutoTimer);
+  if (typeof hideHot === 'function') hideHot();  // ocultar la mancha al terminar la ventana
 
 }
 
@@ -1013,6 +1090,10 @@ if (coreRect){
     hitRect // ← área válida donde deben caer los taps
   };
   soundLevel(level);
+  // Mantener visible la mancha durante toda la ventana
+  hotLocked = true;
+  clearTimeout(hotAutoTimer);
+
     // Aro segmentado según el nivel (X1=1/6...X5=5/6)
   const deg = Math.round((level/6)*360);
   arcShowSegment(deg, LEVEL_COLOR[level]);
@@ -1031,7 +1112,7 @@ function maybeSpawnByTap(){
   if (combo.tapCounter >= combo.nextSpawnAt){
     const lvl = targetLevel();
     const isDecoy = Math.random() < DECOY_CHANCE;
-    showHot(isDecoy ? 'decoy' : ('x'+lvl));
+    spawnHotWithTimer(isDecoy ? 'decoy' : ('x'+lvl));
     const R = SPAWN_TAPS[lvl]; // [min,max]
     combo.nextSpawnAt = combo.tapCounter + randInt(R[0], R[1]);
   }
@@ -1053,7 +1134,7 @@ const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.6, POWER_BASE=0.4000;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.4, POWER_BASE=0.4000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -1352,7 +1433,10 @@ coin.addEventListener('click', (e) => {
   // Si estamos en cooldown por 0 energía → siempre 0.0000
   if (now < (noEnergyUntil || 0)) {
     spawnGain?.(cx, cy, `+${fmt(0)}`);
-    maybeSpawnByTap?.(); render?.(); return;
+    maybeSpawnByTap?.(); render?.(); 
+    updateRefillCue();
+    return;
+   
   }
 
   // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
@@ -1360,7 +1444,9 @@ coin.addEventListener('click', (e) => {
     spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
     addTapAmount(POWER_BASE);    // base sin tocar energía
     applyComboTap(e);            // aquí añade el +5% y actualiza el numerito
-    maybeSpawnByTap?.(); render?.(); return;
+    maybeSpawnByTap?.(); render?.();
+    updateRefillCue();
+     return;
   }
 
   // Modo normal: intentar gastar energía usando addTap()
@@ -1368,9 +1454,12 @@ coin.addEventListener('click', (e) => {
 
   if (!ok) {
     // No alcanzó (0.. <1) → marcar 0.0000 y activar cooldown de 2s
-    noEnergyUntil = now + 2000;
+    noEnergyUntil = now + 5000;
     spawnGain?.(cx, cy, `+${fmt(0)}`);
-    maybeSpawnByTap?.(); render?.(); return;
+    maybeSpawnByTap?.(); render?.();
+    updateRefillCue();
+    try { navigator.vibrate && navigator.vibrate([80,40,80]); } catch(e){}
+     return;
   }
 
   // Había energía suficiente → base + posible bonus (ventana)
@@ -1379,6 +1468,7 @@ coin.addEventListener('click', (e) => {
 
   maybeSpawnByTap?.();
   render?.();
+  updateRefillCue();
 }
 );
 
@@ -1744,6 +1834,7 @@ const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
 const state     = document.getElementById("wldState");
 const refillBtn = document.getElementById("refillBtn");
+
 
 /* === Helpers UI === */
 function msg(t){ if(state){ state.textContent=t; state.style.opacity="1"; } }
