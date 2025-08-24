@@ -218,8 +218,6 @@ body{
   to   { background-position: -2000px -1200px; }
 }
 
-/* Noise va encima */
-.noise{ z-index: 1; }
 /* Hover suave dorado en iconos */
 .fab img {
   transition: transform 0.25s ease, filter 0.3s ease;
@@ -483,10 +481,56 @@ body{
     <div class="ring"></div>
     <canvas id="fx"></canvas>
     <div id="coin" class="coin" aria-label="Tap">
+      <svg id="windowArc" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform:rotate(-90deg);z-index:6">
+  <defs>
+    <linearGradient id="frenzy777" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#ff0055"/>
+      <stop offset="20%"  stop-color="#ff9500"/>
+      <stop offset="40%"  stop-color="#ffee00"/>
+      <stop offset="60%"  stop-color="#33dd55"/>
+      <stop offset="80%"  stop-color="#33aaff"/>
+      <stop offset="100%" stop-color="#aa66ff"/>
+      </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
+      </svg>
+
+      <div id="windowTag" 
+      style="position:absolute;top:8px;left:50%;transform:translateX(-50%) scale(.9);padding:4px 10px;font-weight:800;font-size:12px;line-height:1;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.70);color:#ffd872;opacity:0;transition:opacity .14s,transform .18s;pointer-events:none;z-index:999"></div>
+
+
+
       <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
       document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
-      <div id="gain" class="gain">+0.40</div>
+      <div id="gain"
+     style="position:absolute; left:0; top:0;
+            font-size:14px; font-weight:900; color:#fff;
+            text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35);
+            pointer-events:none; z-index:1001;">
+      </div>
+
+      <div id="hot" style="
+        position:absolute; inset:0;
+        pointer-events:none; opacity:0; transition:opacity .18s ease;
+        filter: drop-shadow(0 0 10px rgba(255,223,120,.25));
+      "></div>
+      <div id="hotCore" style="
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%,-50%);
+        width:0; height:0; border-radius:50%;
+        pointer-events:none; opacity:0;
+        box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);
+      "></div>
+
+<div id="comboBadge" style="
+  position:absolute; top:10px; left:10px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+  color:#ffd872; font-weight:800; font-size:12px;
+  padding:4px 8px; border-radius:10px; display:none; pointer-events:none;
+">COMBO x1</div>
+<div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
+
     </div>
   </div>
 
@@ -570,8 +614,388 @@ body{
 
 <script>
 // 👇 Flag para mostrar/ocultar el demo
-const SHOW_DEMO = false;   // cámbialo a true si quieres activarlo
+const SHOW_DEMO = true;   // cámbialo a true si quieres activarlo
 const LITE_MODE = true;   // 🔦 Modo ligero activado
+
+/* ==== COMBOS/MANCHAS (config editable) ==== */
+const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
+const WINDOW_MS = { 1:700, 2:1200, 3:1600, 4:2000, 5:2400 };       // duración de ventana
+const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas completas necesarias
+const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
+const FRENZY_MS = 4000;                                           // combo máximo
+const DECOY_CHANCE = 0.25;                                        // prob. de decoy
+const USE_TAP_SPAWN = true;                                       // usamos spawn por TAP
+
+/* ==== Estado de combo ==== */
+const combo = {
+  level: 0,                               // 0 base; 1..5 = X1..X5
+  progress: {1:0,2:0,3:0,4:0},            // ventanas completas por nivel
+  window: null,                           // ventana activa
+  frenzyUntil: 0,                         // fin de Frenzy (ms, performance.now)
+  tapCounter: 0,                          // conteo de taps global
+  nextSpawnAt: 0                          // umbral próximo spawn
+  };
+  
+function targetLevel(){ return Math.max(1, combo.level || 1); }
+// — Aplica combo/ventana/frenzy en este tap —
+function applyComboTap(e){
+  const now = performance.now();
+
+  // 1) FRENZY: +5% de POWER_BASE extra (el base ya lo sumó addTap())
+  if (now < combo.frenzyUntil){
+    const extra = POWER_BASE * 0.05;
+    addTapAmount(extra);
+    gain.textContent = `+${(POWER_BASE + extra).toFixed(3)}`;
+    updateBadge();
+    return;
+  }
+
+  // 2) Si hay ventana activa: cada tap suma extra y puede completar
+if (combo.window){
+  const L = combo.window.level;
+
+  // Solo cuenta si el tap cae dentro del núcleo capturado
+  if (!isInWindowRect(e)) return; // fuera del difuminado: sin bonus ni progreso
+
+  combo.window.tapsDone += 1;
+  if (windowTag) windowTag.textContent = 'X'+L+' '+combo.window.tapsDone+'/'+combo.window.tapsNeeded;
+
+  // extra por tap dentro de ventana
+  const extra = POWER_BASE * BONUS[L];
+  addTapAmount(extra);
+  gain.textContent = `+${(POWER_BASE + extra).toFixed(3)}`;
+
+  // ¿completa antes de que se acabe el tiempo?
+  if (combo.window.tapsDone >= combo.window.tapsNeeded){
+    const level = L;
+
+    // Feedback de éxito
+    soundWindowComplete(level);
+    arcFlash();
+
+    // Cerramos un instante después para que se vea el flash
+    setTimeout(()=>{
+      closeWindow();
+      combo.progress[level] = (combo.progress[level] || 0) + 1;
+
+      if (level === 5){
+        // FRENZY ON
+        combo.frenzyUntil = performance.now() + FRENZY_MS;
+        if (typeof soundFrenzy777 === 'function') soundFrenzy777();
+        else if (typeof soundFrenzyStart === 'function') soundFrenzyStart();
+
+        if (typeof tagShow === 'function') tagShow('FRENZY', '#ffd872');
+        if (typeof startFrenzyArc === 'function') startFrenzyArc();
+        // sonido 777 lo fijamos en el PASO 3
+        updateBadge();
+
+        // Al terminar, volver a X1 y resetear
+        setTimeout(()=>{
+          if (performance.now() >= combo.frenzyUntil){
+            combo.level = 1;
+            combo.progress = {1:0,2:0,3:0,4:0};
+            combo.frenzyUntil = 0;
+            if (typeof tagHide === 'function') tagHide();
+            if (typeof arcHide === 'function') arcHide();
+            updateBadge();
+          }
+        }, FRENZY_MS + 20);
+
+      } else {
+        // Subir si cumple requisito; si no, se mantiene
+        if (combo.progress[level] >= ADV_REQ[level]){
+          combo.level = level + 1;
+          combo.progress[level] = 0;
+        } else {
+          combo.level = Math.max(combo.level, level);
+        }
+        updateBadge();
+      }
+    }, 160);
+  }
+
+  return; // importante: salimos aquí
+}
+
+
+  // 3) No hay ventana activa → ¿tocaste mancha real?
+  const hit = (typeof hotActive!=='undefined' && hotActive && typeof isInHot==='function' && isInHot(e));
+  const skin = (typeof hotSkin==='string') ? hotSkin : '';
+  if (hit && /^x[1-5]$/.test(skin)){
+    const level = Math.max(1, Math.min(5, parseInt(skin.slice(1),10) || 1));
+    createWindow(level);
+  }
+  // Si fue decoy o no había mancha real → sin cambios
+}
+
+
+/* ==== Sonidos (usa tone() que ya tienes) ==== */
+function soundLevel(n){ const base=560+n*70; tone(base,0.05,'square',.09); setTimeout(()=>tone(base+90,0.04,'triangle',.07),70); }
+function soundMiss(){ tone(520,0.045,'sawtooth',.07); setTimeout(()=>tone(420,0.045,'sawtooth',.06),70); }
+function soundFrenzyStart(){ tone(680,0.12,'square',.10); setTimeout(()=>tone(840,0.12,'triangle',.09),120); }
+function soundFrenzy777(){
+  // campanillas rápidas tipo máquina 777
+  const seq = [620,740,880,740,880,980,1100];
+  let t = 0;
+  for (let i=0;i<seq.length;i++){
+    setTimeout(()=>tone(seq[i],0.05,'triangle',.10), t);
+    t += 70;
+  }
+}
+
+
+/* ==== Helper pequeño ==== */
+function randInt(a,b){ return (a|0)+Math.floor(Math.random()*((b|0)-(a|0)+1)); }
+// === Badge (Xn / FRENZY / oculto en base) ===
+const comboBadgeEl = document.getElementById('comboBadge');
+
+function setBadge(txt, bg, fg){
+  if (!comboBadgeEl) return;
+  if (!txt){
+    comboBadgeEl.style.display = 'none';
+    return;
+  }
+  comboBadgeEl.style.display = 'block';
+  comboBadgeEl.textContent = txt;
+  comboBadgeEl.style.background = bg || 'rgba(0,0,0,.55)';
+  comboBadgeEl.style.color = fg || '#ffd872';
+}
+
+function updateBadge(){
+  const now = performance.now();
+  if (now < combo.frenzyUntil){
+    // FRENZY activo
+    setBadge('FRENZY', 'linear-gradient(180deg,#3a2a00,#1a1200)', '#ffd872');
+    return;
+  }
+  if (combo.level >= 1){
+    const colorPorNivel = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'}[combo.level] || '#ffd872';
+    setBadge('X'+combo.level, 'rgba(0,0,0,.55)', colorPorNivel);
+  } else {
+    setBadge(null); // base: oculto
+  }
+}
+// === Ventanas (barra + temporizador) ===
+// === ARO (helpers) ===
+const windowArc = document.getElementById('windowArc');
+// Sonido de éxito al completar la ventana (corto y ascendente)
+function soundWindowComplete(level){
+  const base = 600 + level*60;
+  tone(base,0.06,'square',.10);
+  setTimeout(()=>tone(base+140,0.05,'triangle',.10),80);
+  setTimeout(()=>tone(base+260,0.05,'triangle',.09),160);
+}
+
+// Flash del aro: muestra el círculo completo y engrosa un instante
+function arcFlash(){
+  if (!windowArc || !windowArcCircle) return;
+  const prevDash  = windowArcCircle.getAttribute('stroke-dasharray') || '360 360';
+  const prevWidth = windowArcCircle.getAttribute('stroke-width') || '4';
+
+  // mostrar aro completo y más grueso por ~140ms
+  windowArcCircle.setAttribute('stroke-dasharray','360 360');
+  windowArcCircle.setAttribute('stroke-width','6');
+  windowArc.style.opacity = '1';
+
+  setTimeout(()=>{
+    windowArcCircle.setAttribute('stroke-dasharray', prevDash);
+    windowArcCircle.setAttribute('stroke-width', prevWidth);
+  }, 140);
+}
+
+const windowArcCircle = windowArc ? windowArc.querySelector('circle') : null;
+const LEVEL_COLOR = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'};
+
+function arcShowSegment(deg, color){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = color || '#ffd872';
+  windowArcCircle.setAttribute('stroke-dasharray', `${deg} 360`); // segmento visible + hueco
+  windowArcCircle.setAttribute('stroke-dashoffset', '0');         // empieza sin consumir
+  windowArc.style.opacity = '1';
+}
+
+function arcUpdateProgress(level, t){  // level: 1..5, t: 0→1
+  if (!windowArcCircle) return;
+  const deg = Math.round((level/6)*360); // X1=60°, X2=120° ... X5=300°
+  const off = Math.min(deg, deg * t);    // cuánto se consume del segmento
+  windowArcCircle.setAttribute('stroke-dashoffset', String(off));
+}
+
+function arcHide(){
+  if (windowArc) windowArc.style.opacity = '0';
+}
+// --- Mostrar el "+valor" más lento y SIEMPRE por fuera de la moneda ---
+let gainAnim = null;
+function showGain(x, y, text){
+  // x,y ahora son COORDENADAS DE PANTALLA (clientX, clientY)
+  gain.style.position = 'fixed';     // ← clave: no lo recorta el #coin
+  gain.style.left     = x + 'px';
+  gain.style.top      = (y - 70) + 'px'; // la altura que ya te gustó
+  gain.style.zIndex   = 1001;
+  gain.style.opacity  = '1';
+  gain.textContent    = text;
+
+  try { if (gainAnim) gainAnim.cancel(); } catch(e){}
+
+  // MISMA altura (~96px) pero más LENTO (1.4s)
+  gainAnim = gain.animate(
+    [
+      { transform:'translateY(0px)',   opacity: 1 },
+      { transform:'translateY(-96px)', opacity: 0 }
+    ],
+    { duration: 1800, easing: 'cubic-bezier(.2,.8,.2,1)' } // ← más lento
+  );
+
+  // Limpieza automática (no queda pegado)
+  gainAnim.onfinish = () => { gain.style.opacity = '0'; gain.textContent = ''; };
+  setTimeout(() => {
+    if (!gainAnim || gainAnim.playState !== 'running'){
+      gain.style.opacity = '0';
+      gain.textContent = '';
+    }
+  }, 1900);
+}
+
+
+
+// Letrero del nivel/progreso (si aún no lo pegaste)
+const windowTag = document.getElementById('windowTag');
+function tagShow(text, color){
+  if (!windowTag) return;
+  windowTag.textContent = text;
+  if (color) windowTag.style.color = color;
+  windowTag.style.opacity = '1';
+  windowTag.style.transform = 'scale(1.06)';
+  setTimeout(()=>{ if(windowTag) windowTag.style.transform='scale(1)'; }, 90);
+}
+function tagHide(){
+  if (!windowTag) return;
+  windowTag.style.opacity = '0';
+  windowTag.style.transform = 'scale(.9)';
+}
+
+// Aro completo para FRENZY
+function startFrenzyArc(){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = 'url(#frenzy777)';
+  windowArcCircle.setAttribute('stroke-dasharray', '360 360');
+  windowArcCircle.setAttribute('stroke-dashoffset', '0');
+  windowArc.style.opacity = '1';
+
+  const t0 = performance.now();
+  function tick(){
+    const now = performance.now();
+    const elapsed = Math.min(FRENZY_MS, now - t0);
+    const off = 360 * (elapsed / FRENZY_MS);
+    windowArcCircle.setAttribute('stroke-dashoffset', String(off));
+    if (now < combo.frenzyUntil){
+      requestAnimationFrame(tick);
+    } else {
+      arcHide();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function isInWindowRect(e){
+  if (!combo.window || !combo.window.hitRect) return false;
+  const coinRect = coin.getBoundingClientRect();
+  const x = (e.clientX - coinRect.left) / coinRect.width;
+  const y = (e.clientY - coinRect.top ) / coinRect.height;
+  const r = combo.window.hitRect;
+  return (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+}
+
+
+
+function closeWindow(){
+  if (!combo.window) return;
+  cancelAnimationFrame(combo.window.rafId);
+  combo.window = null;
+  arcHide();
+  tagHide();
+
+
+}
+
+function tickWindow(){
+  const w = combo.window; if (!w) return;
+  const now = performance.now();
+  const t = Math.min(1, (now - w.t0) / w.durationMs); // 0→1
+  arcUpdateProgress(w.level, t);
+  if (t >= 1){
+    // Tiempo agotado → FALLO
+    soundMiss();
+    if (w.level >= 2){ combo.level = w.level - 1; }
+    else { combo.level = 0; }
+    combo.progress = {1:0,2:0,3:0,4:0};
+    closeWindow();
+    updateBadge();
+    return;
+  }
+
+  combo.window.rafId = requestAnimationFrame(tickWindow);
+}
+
+function createWindow(level){
+  if (combo.window) return; // ya hay una activa, la que manda
+  // Rect del núcleo capturado (normalizado al tamaño de la moneda)
+const coinRect = coin.getBoundingClientRect();
+const coreRect = hotCore ? hotCore.getBoundingClientRect() : null;
+let hitRect = null;
+if (coreRect){
+  hitRect = {
+    x: (coreRect.left - coinRect.left) / coinRect.width,
+    y: (coreRect.top  - coinRect.top ) / coinRect.height,
+    w:  coreRect.width  / coinRect.width,
+    h:  coreRect.height / coinRect.height
+  };
+}
+
+  combo.window = {
+    level,
+    tapsNeeded: level, // regla: #taps == nivel
+    tapsDone: 0,
+    t0: performance.now(),
+    durationMs: WINDOW_MS[level],
+    rafId: 0,
+    hitRect // ← área válida donde deben caer los taps
+  };
+  soundLevel(level);
+    // Aro segmentado según el nivel (X1=1/6...X5=5/6)
+  const deg = Math.round((level/6)*360);
+  arcShowSegment(deg, LEVEL_COLOR[level]);
+
+  // (opcional) ocultar la barrita horizontal si no la quieres
+  if (windowBar){ windowBar.style.opacity='0'; windowBar.style.width='0'; }
+  tagShow('X'+level+' 0/'+level, LEVEL_COLOR[level]);
+
+  updateBadge();
+  combo.window.rafId = requestAnimationFrame(tickWindow);
+}
+// — Spawn por TAP (real o decoy) —
+function maybeSpawnByTap(){
+  // Se llama al final de CADA click (tenga o no energía)
+  combo.tapCounter++;
+  if (combo.tapCounter >= combo.nextSpawnAt){
+    const lvl = targetLevel();
+    const isDecoy = Math.random() < DECOY_CHANCE;
+    showHot(isDecoy ? 'decoy' : ('x'+lvl));
+    const R = SPAWN_TAPS[lvl]; // [min,max]
+    combo.nextSpawnAt = combo.tapCounter + randInt(R[0], R[1]);
+  }
+}
+
+// — Sumar WLGp de forma segura si el proyecto no define addTapAmount —
+if (typeof addTapAmount !== 'function'){
+  window.addTapAmount = function(amount){
+    if (!amount) return;
+    wlgp += amount;
+    localStorage.setItem('wlgp', String(wlgp));
+    // si tu render ya se llama al final del click, no hace falta aquí
+  };
+}
+
 
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
@@ -583,6 +1007,10 @@ let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
 let lastTs=+localStorage.getItem('last_ts')||Date.now();
+// === Hotspot / Combo ===
+const HOT_SHOW_MS= 1600;    // tiempo visible del hotspot 1.6s
+const HOT_CD_MIN = 2800;    // cooldown mínimo
+const HOT_CD_MAX = 4400;    // cooldown máximo
 
 /* ===== Derivados ===== */
 function capMax(){return BASE_CAP}
@@ -593,6 +1021,111 @@ function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy
 /* ===== Refs ===== */
 const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
 const coin=$('#coin'), gain=$('#gain');
+// Hotspot + Combo (refs)
+const hot = document.getElementById('hot');
+const comboBadge = document.getElementById('comboBadge');
+const hotCore = document.getElementById('hotCore');
+const windowBar = document.getElementById('windowBar'); // evita ReferenceError
+
+
+// === Hotspot: helpers y ciclo ===
+function rand(min, max){ return Math.random()*(max-min)+min; }
+// Centro y tamaño de la mancha (en % relativo a la moneda)
+let hotCX = 50, hotCY = 50; // centro (%)
+let hotCoreR = 10;          // radio del NÚCLEO (hit real) en %
+let hotGlowR = 20;          // radio del HALO (solo visual) en %
+
+// Dibuja el sector dorado radial
+function drawHot(){
+  if (!hot) return;
+  const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
+
+  // HALO (solo visual, difuminado)
+  hot.style.background = `radial-gradient(
+    circle at ${hotCX}% ${hotCY}%,
+    ${s.glowA} 0%,
+    ${s.glowB} ${Math.round(hotGlowR*0.6)}%,
+    transparent ${hotGlowR}%
+  )`;
+
+  // NÚCLEO (hitbox real)
+  if (hotCore){
+    hotCore.style.left   = hotCX + '%';
+    hotCore.style.top    = hotCY + '%';
+    hotCore.style.width  = (hotCoreR*2) + '%';
+    hotCore.style.height = (hotCoreR*2) + '%';
+    hotCore.style.background = s.core;
+  }
+}
+
+
+
+function showHot(skin = null){
+  if (!hot) return;
+
+  // Skin aleatoria para que veas colores (luego la ligamos a X1..X5)
+  if (!skin){
+    const pool = ['x1','x2','x3','x4','x5','decoy'];
+    hotSkin = pool[Math.floor(Math.random()*pool.length)];
+  } else {
+    hotSkin = skin;
+  }
+
+  // Toma tamaños según skin
+  const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
+  hotCoreR = s.coreR;
+  hotGlowR = s.glowR;
+
+  // Posición aleatoria con margen
+  hotCX = Math.random()*70 + 15; // 15..85
+  hotCY = Math.random()*70 + 15; // 15..85
+
+  drawHot();
+  hotActive = true;
+  hot.style.opacity = '1';
+  if (hotCore) hotCore.style.opacity = '1';
+setTimeout(()=>{
+  hotActive = false;
+  hot.style.opacity = '0';
+  if (hotCore) hotCore.style.opacity = '0';
+  if (!USE_TAP_SPAWN) scheduleHot();   // ← si usamos TAP, NO reprograma por tiempo
+}, HOT_SHOW_MS);
+
+}
+
+// Apariencia por tipo: X1..X5 y decoy (JAJA)
+const HOT_SKIN = {
+  x1:   { core:'#FFD872', glowA:'rgba(255,216,114,.90)', glowB:'rgba(255,216,114,.45)', coreR:10, glowR:20 },
+  x2:   { core:'#9CFF70', glowA:'rgba(156,255,112,.90)', glowB:'rgba(156,255,112,.45)', coreR:9,  glowR:18 },
+  x3:   { core:'#6AE1FF', glowA:'rgba(106,225,255,.90)', glowB:'rgba(106,225,255,.45)', coreR:8,  glowR:16 },
+  x4:   { core:'#D08BFF', glowA:'rgba(208,139,255,.90)', glowB:'rgba(208,139,255,.45)', coreR:7,  glowR:14 },
+  x5:   { core:'#FF6A6A', glowA:'rgba(255,106,106,.90)', glowB:'rgba(255,106,106,.45)', coreR:6,  glowR:12 },
+  decoy:{ core:'#A0A6FF', glowA:'rgba(160,166,255,.90)', glowB:'rgba(160,166,255,.45)', coreR:9,  glowR:17 }, // solo distrae
+};
+let hotSkin = 'x1'; // skin actual
+
+
+// Programa la siguiente aparición
+function scheduleHot(){
+  const cd = Math.round(rand(HOT_CD_MIN, HOT_CD_MAX));
+  setTimeout(()=>{ showHot(); }, cd);
+}
+
+// ¿El tap cayó dentro del NÚCLEO? (el halo NO cuenta)
+function isInHot(event){
+  if (hotSkin === 'decoy') return false; // “JAJA” nunca cuenta
+  const r = coin.getBoundingClientRect();
+  const x = ((event.clientX - r.left) / r.width ) * 100;
+  const y = ((event.clientY - r.top )  / r.height) * 100;
+  const dx = x - hotCX, dy = y - hotCY;
+  return Math.hypot(dx, dy) <= hotCoreR;
+}
+
+
+
+// Estado hotspot/combo
+let hotActive = false;
+
 const fx=$('#fx'), ctx=fx.getContext('2d');
 const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
 const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
@@ -759,46 +1292,35 @@ function render(){
 
 /* ===== Tap logic ===== */
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
-coin.addEventListener('click',(e)=>{
+coin.addEventListener('click', (e) => {
   lazyRegen();
-  const ok=addTap();
-  if(ok){
-        // Posicionar el "+ganancia" exactamente donde tocaste
-    const coinRect = coin.getBoundingClientRect();
-    const gx = e.clientX - coinRect.left;
-    const gy = e.clientY - coinRect.top;
-    gain.style.left = gx + 'px';
-    gain.style.top  = gy + 'px';
 
-    gain.textContent=`+${POWER_BASE.toFixed(2)}`;
-    gain.classList.remove('show'); void gain.offsetWidth;
-    gain.classList.add('show');
-    tone(820,0.05,'triangle',.07);
-    // Posición del tap dentro del canvas
-    const rect=fx.getBoundingClientRect();
-    const x=(e.clientX-rect.left)/(rect.width||1)*fx.width;
-    const y=(e.clientY-rect.top) /(rect.height||1)*fx.height;
-    spawn(x,y);
+  // 1) Coordenadas del toque (primero calculamos gx, gy)
+  const rect = coin.getBoundingClientRect();
+  const gx = e.clientX - rect.left;
+  const gy = e.clientY - rect.top;
 
-    //Rebote suave
-    coin.animate(
-      [{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],
-      {duration:180,easing:'cubic-beizer(0.25, 0.8, 0.25, 1)'}
-    );
-  
-    // Vibración háptica si el dispositivo lo soporta
-    if (navigator.vibrate) navigator.vibrate(10);
-    // Efecto de flash dorado en la moneda
-    if (LITE_MODE) {
-    coin.classList.add('flash');
-    setTimeout(()=> coin.classList.remove('flash'), 200);
-    }
-}else{
-    refillBtn.classList.add('shake'); 
-    setTimeout(()=>refillBtn.classList.remove('shake'),260);
+  // 2) ¿hay energía antes de sumar el tap?
+  const hadEnergy = (typeof energy !== 'undefined') ? (energy > 0) : true;
+
+  if (hadEnergy) {
+    // Suma el tap base (tu addTap ya descuenta energía y suma POWER_BASE)
+    addTap();
+
+    // Mostrar +valor (sube más alto, más lento y se limpia solo)
+    showGain(e.clientX, e.clientY, `+${POWER_BASE.toFixed(3)}`);
+
+    // Combo/ventana/Frenzy (esto puede actualizar el texto a base+bonus)
+    applyComboTap(e);
   }
-  render();
+
+  // 3) Contar el tap para el "spawn por taps" SIEMPRE (aciertes o no)
+  if (typeof maybeSpawnByTap === 'function') maybeSpawnByTap();
+
+  // 4) Tu render/actualización normal (deja el que ya usabas)
+  if (typeof render === 'function') render();
 });
+
 
 /* ===== Refill ===== */
 function doRefill(){
@@ -1097,7 +1619,18 @@ if (msgs.length === 0) {
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
-renderLogoGreeting(); // pinta "Hola Fer!" (o Hello)
+renderLogoGreeting();
+if (!USE_TAP_SPAWN) {
+      scheduleHot(); // modo clásico por tiempo
+} else {
+  // modo por TAP: configurar el primer umbral de aparición
+  combo.tapCounter = 0;
+  combo.nextSpawnAt = randInt(...SPAWN_TAPS[targetLevel()]);
+}
+updateBadge(); // inicia oculto en base
+
+
+// pinta "Hola Fer!" (o Hello)
   // === Lite Mode: apagar fondos pesados ===
   if (LITE_MODE) {
     document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
