@@ -752,7 +752,7 @@ if (combo.window){
   combo.window.tapsDone += 1;
   if (windowTag) windowTag.textContent = 'X'+L+' '+combo.window.tapsDone+'/'+combo.window.tapsNeeded;
 
-  popLabel('X'+L, e.clientX, e.clientY, { color:'#ff3030', fontSize:34, dy:-90 });
+  popLabel('X'+L, e.clientX, e.clientY, { color:'#ff3030', fontSize:36, dy:-130 });
 
   // extra por tap dentro de ventana
   const extra = POWER_BASE * BONUS[L];
@@ -802,7 +802,7 @@ if (combo.window){
   const skin = (typeof hotSkin==='string') ? hotSkin : '';
   if (hit && /^x[1-5]$/.test(skin)){
   const level = Math.max(1, Math.min(5, parseInt(skin.slice(1),10) || 1));
-  popLabel('X'+level, e.clientX, e.clientY, { color:'#ff3030', fontSize:34, dy:-90 });
+  popLabel('X'+level, e.clientX, e.clientY, { color:'#ff3030', fontSize:40, dy:-150 });
   createWindow(level);
   }
   // Si fue decoy o no había mancha real → sin cambios
@@ -942,7 +942,7 @@ function spawnGain(x, y, text){
   const anim = el.animate(
     [{ transform:'translateY(0)',   opacity:1 },
      { transform:'translateY(-96px)', opacity:0 }],
-    { duration: 1800, easing:'cubic-bezier(.2,.8,.2,1)' }
+    { duration: 2400, easing:'cubic-bezier(.18,.9,.22,1)' }
   );
   anim.onfinish = () => el.remove();
 
@@ -976,7 +976,7 @@ function showGain(x, y, text){
       { transform:'translateY(0px)',   opacity: 1 },
       { transform:'translateY(-96px)', opacity: 0 }
     ],
-    { duration: 1800, easing: 'cubic-bezier(.2,.8,.2,1)' } // ← más lento
+    { duration: 2400, easing: 'cubic-bezier(.18,.9,.22,1)' } // ← más lento
   );
 
   // Limpieza automática (no queda pegado)
@@ -993,41 +993,41 @@ function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
 function popLabel(text, x, y, opt={}){
   const {
-    fontSize = 30,     // tamaño
-    dy = -110,         // cuánto sube
-    duration = 1000,   // ms
-    color = '#ffd872', // dorado por defecto
-    weight = 900,
-    shadow = '0 2px 10px rgba(0,0,0,.45)',
-    letterSpacing = '1px'
+    fontSize = 36,        // tamaño default
+    dy       = -120,      // cuánto sube
+    duration = 1600,      // ← antes 1000 aprox
+    color    = '#ff3030', // rojo llamativo
+    weight   = 900
   } = opt;
 
+  const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
   const el = document.createElement('div');
   el.textContent = text;
   el.style.position = 'fixed';
-  const X = clamp(x, 24, window.innerWidth  - 24);
-  const Y = clamp(y, 24, window.innerHeight - 24);
-  el.style.left = X + 'px';
-  el.style.top  = Y + 'px';
-  el.style.transform = 'translate(-50%, -50%)';
+  el.style.left = clamp(x, 24, window.innerWidth-24) + 'px';
+  el.style.top  = clamp(y, 24, window.innerHeight-24) + 'px';
+  el.style.transform = 'translate(-50%,-50%)';
   el.style.fontSize = fontSize + 'px';
   el.style.fontWeight = String(weight);
   el.style.color = color;
-  el.style.textShadow = shadow;
-  el.style.letterSpacing = letterSpacing;
+  el.style.textShadow = '0 2px 10px rgba(0,0,0,.45)';
+  el.style.letterSpacing = '1px';
   el.style.pointerEvents = 'none';
   el.style.zIndex = 1002;
-  el.style.willChange = 'transform, opacity';
   document.body.appendChild(el);
 
+  // más suave: entra, se queda un poquito, luego se va
   const anim = el.animate(
-    [{ transform:'translate(-50%,-50%) scale(1)', opacity: 0 },
-     { transform:'translate(-50%,-58%) scale(1.02)', opacity: 1, offset: .25 },
-     { transform:`translate(-50%, calc(-50% + ${dy}px)) scale(1.04)`, opacity: 0 }],
-    { duration, easing:'cubic-bezier(.2,.8,.2,1)' }
+    [
+      { transform:'translate(-50%,-50%) scale(.92)',  opacity: 0   },
+      { transform:'translate(-50%,-54%) scale(1.00)', opacity: 1, offset: .38 },
+      { transform:`translate(-50%, calc(-50% + ${dy}px)) scale(1.04)`, opacity: 0 }
+    ],
+    { duration, easing:'cubic-bezier(.18,.9,.22,1)' } // easing más calmado
   );
   anim.onfinish = ()=> el.remove();
 }
+
 
 function popLaugh(x, y){
   popLabel('😂', x, y, { fontSize: 24, dy: -80, color:'#fff' });
@@ -1095,7 +1095,7 @@ function startChallengeArc(){
   const t0 = performance.now();
   function tick(){
     const now = performance.now();
-    const off = (now - t0) * 0.25; // velocidad de giro
+    const off = (now - t0) * 0.15; // velocidad de giro
     windowArcCircle.setAttribute('stroke-dashoffset', String(off % 360));
     if (challenge.active){
       challenge.arcRaf = requestAnimationFrame(tick);
@@ -1240,12 +1240,18 @@ function startFrenzy(){
 
 function endRainbowChallenge(success){
   challenge.active = false;
-  clearTimeout(challenge.timerId);
+  clearTimeout(challenge.spawnTimer);
   stopChallengeArc();
   tagHide();
   hideHotSafe();
   if (success){
-    startFrenzy(); // pasamos al Frenzy
+    // ✨ brillo centrado al ganar el desafío
+(function(){
+  const r = coin.getBoundingClientRect();
+  popSparkle(r.left + r.width/2, r.top + r.height/2);
+})();
+startFrenzy(); // pasamos al Frenzy
+
   } else {
     // falló → volver al base
     combo.level = 0;
