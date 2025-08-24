@@ -650,7 +650,23 @@ const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas c
 const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
 const FRENZY_MS = 4000;                                           // combo máximo
 const DECOY_CHANCE = 0.25;                                        // prob. de decoy
-const USE_TAP_SPAWN = true;  
+const USE_TAP_SPAWN = true; 
+/* ==== DESAFÍO ARCOÍRIS (config) ==== */
+const RAINBOW = {
+  HITS: 6,                     // toques necesarios a manchas arcoíris
+  DECOY_CHANCE: 0.45,          // probabilidad de distractor durante el desafío
+  APPEAR_MS: [420, 820],       // visibilidad de cada mancha (ms)
+  TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
+};
+
+const challenge = {
+  active: false,
+  hits: 0,
+  t0: 0,
+  arcRaf: 0,
+  timerId: 0
+};
+
 // Umbral para marcar energía baja (0..100)
 const LOW_ENERGY_THRESHOLD = 50;
 // Aparición (antes de activarla): rangos por nivel (ms)
@@ -701,6 +717,15 @@ let noEnergyUntil = 0;
 // Control del halo/mancha
 let hotAutoTimer = 0;   // timeout para auto-ocultar si NO se activa
 let hotLocked = false;  // true mientras la ventana esté activa (no ocultar)
+// --- No permitir que hideHot() oculte la mancha mientras hay ventana activa ---
+const _hideHotOrig = (typeof window.hideHot === 'function') ? window.hideHot : null;
+function hideHotSafe(){
+  if (hotLocked) return;        // si hay ventana, NO ocultes
+  _hideHotOrig && _hideHotOrig();
+}
+// reemplaza el hideHot global por el seguro
+if (_hideHotOrig) window.hideHot = hideHotSafe;
+
 
  
 function targetLevel(){ return Math.max(1, combo.level || 1); }
@@ -727,15 +752,12 @@ if (combo.window){
   combo.window.tapsDone += 1;
   if (windowTag) windowTag.textContent = 'X'+L+' '+combo.window.tapsDone+'/'+combo.window.tapsNeeded;
 
+  popLabel('X'+L, e.clientX, e.clientY, { color:'#ff3030', fontSize:34, dy:-90 });
+
   // extra por tap dentro de ventana
   const extra = POWER_BASE * BONUS[L];
   addTapAmount(extra);
   setLastGainTotal(POWER_BASE + extra);
-
-
-  // Mostrar siempre 3 decimales (0.000, 0.400, etc.)
-const GAIN_DECIMALS = 3;
-const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
 
 
   // ¿completa antes de que se acabe el tiempo?
@@ -748,40 +770,24 @@ const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
 
     // Cerramos un instante después para que se vea el flash
     setTimeout(()=>{
+      const r = coin.getBoundingClientRect();
+      popSparkle(r.left + r.width/2, r.top + r.height/2);
+
       closeWindow();
       combo.progress[level] = (combo.progress[level] || 0) + 1;
 
-      if (level === 5){
-        // FRENZY ON
-        combo.frenzyUntil = performance.now() + FRENZY_MS;
-        if (typeof soundFrenzy777 === 'function') soundFrenzy777();
-        else if (typeof soundFrenzyStart === 'function') soundFrenzyStart();
-
-        if (typeof tagShow === 'function') tagShow('FRENZY', '#ffd872');
-        if (typeof startFrenzyArc === 'function') startFrenzyArc();
-        // sonido 777 lo fijamos en el PASO 3
-        updateBadge();
-
-        // Al terminar, volver a X1 y resetear
-        setTimeout(()=>{
-          if (performance.now() >= combo.frenzyUntil){
-            combo.level = 1;
-            combo.progress = {1:0,2:0,3:0,4:0};
-            combo.frenzyUntil = 0;
-            if (typeof tagHide === 'function') tagHide();
-            if (typeof arcHide === 'function') arcHide();
-            updateBadge();
-          }
-        }, FRENZY_MS + 20);
-
+     if (level === 5){
+        // ✅ En lugar de Frenzy directo → DESAFÍO ARCOÍRIS
+        startRainbowChallenge();
+        return; // importante
       } else {
-        // Subir si cumple requisito; si no, se mantiene
-        if (combo.progress[level] >= ADV_REQ[level]){
-          combo.level = level + 1;
-          combo.progress[level] = 0;
-        } else {
-          combo.level = Math.max(combo.level, level);
-        }
+              // Subir si cumple requisito; si no, se mantiene
+              if (combo.progress[level] >= ADV_REQ[level]){
+                combo.level = level + 1;
+                combo.progress[level] = 0;
+              } else {
+                combo.level = Math.max(combo.level, level);
+              }
         updateBadge();
       }
     }, 160);
@@ -795,8 +801,9 @@ const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
   const hit = (typeof hotActive!=='undefined' && hotActive && typeof isInHot==='function' && isInHot(e));
   const skin = (typeof hotSkin==='string') ? hotSkin : '';
   if (hit && /^x[1-5]$/.test(skin)){
-    const level = Math.max(1, Math.min(5, parseInt(skin.slice(1),10) || 1));
-    createWindow(level);
+  const level = Math.max(1, Math.min(5, parseInt(skin.slice(1),10) || 1));
+  popLabel('X'+level, e.clientX, e.clientY, { color:'#ff3030', fontSize:34, dy:-90 });
+  createWindow(level);
   }
   // Si fue decoy o no había mancha real → sin cambios
 }
@@ -981,6 +988,61 @@ function showGain(x, y, text){
     }
   }, 1900);
 }
+/* ==== Stickers/Labels flotantes ==== */
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function popLabel(text, x, y, opt={}){
+  const {
+    fontSize = 30,     // tamaño
+    dy = -110,         // cuánto sube
+    duration = 1000,   // ms
+    color = '#ffd872', // dorado por defecto
+    weight = 900,
+    shadow = '0 2px 10px rgba(0,0,0,.45)',
+    letterSpacing = '1px'
+  } = opt;
+
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.position = 'fixed';
+  const X = clamp(x, 24, window.innerWidth  - 24);
+  const Y = clamp(y, 24, window.innerHeight - 24);
+  el.style.left = X + 'px';
+  el.style.top  = Y + 'px';
+  el.style.transform = 'translate(-50%, -50%)';
+  el.style.fontSize = fontSize + 'px';
+  el.style.fontWeight = String(weight);
+  el.style.color = color;
+  el.style.textShadow = shadow;
+  el.style.letterSpacing = letterSpacing;
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = 1002;
+  el.style.willChange = 'transform, opacity';
+  document.body.appendChild(el);
+
+  const anim = el.animate(
+    [{ transform:'translate(-50%,-50%) scale(1)', opacity: 0 },
+     { transform:'translate(-50%,-58%) scale(1.02)', opacity: 1, offset: .25 },
+     { transform:`translate(-50%, calc(-50% + ${dy}px)) scale(1.04)`, opacity: 0 }],
+    { duration, easing:'cubic-bezier(.2,.8,.2,1)' }
+  );
+  anim.onfinish = ()=> el.remove();
+}
+
+function popLaugh(x, y){
+  popLabel('😂', x, y, { fontSize: 24, dy: -80, color:'#fff' });
+}function popSparkle(x, y){
+  // brillo de éxito
+  popLabel('✨', x, y, { fontSize: 28, dy: -110, color:'#fff' });
+}
+
+function popBadge(text){
+  // centrado en la moneda
+  const r = coin.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2 - 20;
+  popLabel(text, cx, cy, { fontSize: 36, dy: -120 });
+}
 
 
 
@@ -1023,6 +1085,33 @@ function startFrenzyArc(){
   requestAnimationFrame(tick);
 }
 
+function startChallengeArc(){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = 'url(#frenzy777)'; // usamos el mismo gradiente multicolor
+  windowArcCircle.setAttribute('stroke-dasharray', '360 360');
+  windowArc.style.opacity = '1';
+
+  // giro infinito hasta que termine el desafío
+  const t0 = performance.now();
+  function tick(){
+    const now = performance.now();
+    const off = (now - t0) * 0.25; // velocidad de giro
+    windowArcCircle.setAttribute('stroke-dashoffset', String(off % 360));
+    if (challenge.active){
+      challenge.arcRaf = requestAnimationFrame(tick);
+    } else {
+      arcHide();
+    }
+  }
+  challenge.arcRaf = requestAnimationFrame(tick);
+}
+
+function stopChallengeArc(){
+  cancelAnimationFrame(challenge.arcRaf || 0);
+  arcHide();
+}
+
+
 function isInWindowRect(e){
   if (!combo.window || !combo.window.hitRect) return false;
   const coinRect = coin.getBoundingClientRect();
@@ -1054,6 +1143,12 @@ function tickWindow(){
   if (t >= 1){
     // Tiempo agotado → FALLO
     soundMiss();
+        // Burla centrada en la moneda cuando expira la ventana
+    (function(){
+      const r = coin.getBoundingClientRect();
+      popLaugh(r.left + r.width/2, r.top + r.height/2);
+    })();
+
     if (w.level >= 2){ combo.level = w.level - 1; }
     else { combo.level = 0; }
     combo.progress = {1:0,2:0,3:0,4:0};
@@ -1105,6 +1200,109 @@ if (coreRect){
   updateBadge();
   combo.window.rafId = requestAnimationFrame(tickWindow);
 }
+
+function spawnRainbowOrDecoy(){
+  // aparición rápida y exclusiva del desafío
+  clearTimeout(hotAutoTimer);
+  const isDecoy = Math.random() < RAINBOW.DECOY_CHANCE;
+  const skin = isDecoy ? 'decoy' : 'rb';
+  if (typeof showHot === 'function') showHot(skin);
+
+  hotLocked = false;
+  const ms = Math.round(rand(RAINBOW.APPEAR_MS[0], RAINBOW.APPEAR_MS[1]));
+  hotAutoTimer = setTimeout(()=>{
+    if (!hotLocked && typeof hideHot === 'function') hideHot();
+  }, ms);
+}
+
+function startFrenzy(){
+  // Igual que antes: activa Frenzy por FRENZY_MS y luego resetea a X1
+  combo.frenzyUntil = performance.now() + FRENZY_MS;
+  if (typeof soundFrenzy777 === 'function') soundFrenzy777();
+  else if (typeof soundFrenzyStart === 'function') soundFrenzyStart();
+
+  if (typeof tagShow === 'function') tagShow('FRENZY', '#ffd872');
+  popBadge('FRENZY');
+  if (typeof startFrenzyArc === 'function') startFrenzyArc();
+  updateBadge();
+
+  setTimeout(()=>{
+    if (performance.now() >= combo.frenzyUntil){
+      combo.level = 1;
+      combo.progress = {1:0,2:0,3:0,4:0};
+      combo.frenzyUntil = 0;
+      if (typeof tagHide === 'function') tagHide();
+      if (typeof arcHide === 'function') arcHide();
+      updateBadge();
+    }
+  }, FRENZY_MS + 20);
+}
+
+function endRainbowChallenge(success){
+  challenge.active = false;
+  clearTimeout(challenge.timerId);
+  stopChallengeArc();
+  tagHide();
+  hideHotSafe();
+  if (success){
+    startFrenzy(); // pasamos al Frenzy
+  } else {
+    // falló → volver al base
+    combo.level = 0;
+    combo.progress = {1:0,2:0,3:0,4:0};
+    updateBadge();
+  }
+}
+
+function startRainbowChallenge(){
+  challenge.active = true;
+  challenge.hits = 0;
+  challenge.t0 = performance.now();
+
+  // UI
+  tagShow(`DESAFÍO 0/${RAINBOW.HITS}`, '#ffd872');
+  startChallengeArc();
+  popBadge('RAINBOW CHALLENGE');
+
+
+ function autoSpawn(){
+    if (!challenge.active) return;
+    spawnRainbowOrDecoy();
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(600,1000)); 
+  }
+  autoSpawn();
+
+  // tiempo máximo (opcional, para que no se estanque)
+  challenge.timerId = setTimeout(()=>{
+    if (challenge.active) endRainbowChallenge(false);
+  }, RAINBOW.TOTAL_MS);
+}
+
+function handleChallengeTap(e){
+  // durante el desafío NO gastas energía NI ganas WLGp
+  // solo cuentan los toques al núcleo de la mancha 'rb'
+  const wasHit = (hotActive && hotSkin === 'rb' && typeof isInHot === 'function' && isInHot(e));
+  if (wasHit){
+    challenge.hits += 1;
+    soundLevel(Math.min(5, challenge.hits)); // feedback corto
+    tagShow(`DESAFÍO ${challenge.hits}/${RAINBOW.HITS}`, '#ffd872');
+
+    // feedback visual rápido
+    arcFlash();
+    popSparkle(e.clientX, e.clientY);
+
+
+    if (challenge.hits >= RAINBOW.HITS){
+      endRainbowChallenge(true);
+      return;
+    }
+  } else {
+    // si tocó fuera o en distractor, solo sonido de fallo sutil
+    if (hotActive) popLaugh(e.clientX, e.clientY);
+    soundMiss();
+  }
+}
+
 // — Spawn por TAP (real o decoy) —
 function maybeSpawnByTap(){
   // Se llama al final de CADA click (tenga o no energía)
@@ -1134,7 +1332,7 @@ const $=q=>document.querySelector(q);
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.4, POWER_BASE=0.4000;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.5, POWER_BASE=0.400;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -1148,7 +1346,24 @@ const HOT_CD_MAX = 4400;    // cooldown máximo
 function capMax(){return BASE_CAP}
 function regenPerSec(){return BASE_REGEN_PER_SEC}
 function priceRefill(){return +(capMax()* 0.001).toFixed(2)} // 0.1% capacidad
-function lazyRegen(){const now=Date.now(),dt=(now-lastTs)/1000;lastTs=now;energy=Math.min(capMax(),energy+regenPerSec()*dt);localStorage.setItem('last_ts',String(lastTs));localStorage.setItem('energy',String(energy));}
+function lazyRegen(){
+  const now = Date.now();
+
+  // ⛔ Pausa regeneración si estás en cooldown (noEnergyUntil)
+  if (performance.now() < (noEnergyUntil || 0)){
+    // resetea sellos para no “acumular” dt
+    lastTs = now;
+    localStorage.setItem('last_ts', String(lastTs));
+    return;
+  }
+
+  const dt = (now - lastTs) / 1000;
+  lastTs = now;
+  energy = Math.min(capMax(), energy + regenPerSec() * dt);
+  localStorage.setItem('last_ts', String(lastTs));
+  localStorage.setItem('energy', String(energy));
+}
+
 
 /* ===== Refs ===== */
 const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
@@ -1216,14 +1431,23 @@ function showHot(skin = null){
   hotActive = true;
   hot.style.opacity = '1';
   if (hotCore) hotCore.style.opacity = '1';
-setTimeout(()=>{
+// Solo auto-ocultar en el modo "por tiempo". En modo TAP lo maneja spawnHotWithTimer()
+  if (!USE_TAP_SPAWN){
+  setTimeout(()=>{
+    if (hotLocked) return;
+    if (typeof hideHot === 'function') hideHot();
+    scheduleHot();
+  }, HOT_SHOW_MS);
+}
+}
+// Helper para ocultar la mancha (usado por timeouts y al cerrar ventana)
+function hideHot(){
+  if (!hot) return;
   hotActive = false;
   hot.style.opacity = '0';
   if (hotCore) hotCore.style.opacity = '0';
-  if (!USE_TAP_SPAWN) scheduleHot();   // ← si usamos TAP, NO reprograma por tiempo
-}, HOT_SHOW_MS);
-
 }
+
 
 // Apariencia por tipo: X1..X5 y decoy (JAJA)
 const HOT_SKIN = {
@@ -1233,6 +1457,14 @@ const HOT_SKIN = {
   x4:   { core:'#D08BFF', glowA:'rgba(208,139,255,.90)', glowB:'rgba(208,139,255,.45)', coreR:7,  glowR:14 },
   x5:   { core:'#FF6A6A', glowA:'rgba(255,106,106,.90)', glowB:'rgba(255,106,106,.45)', coreR:6,  glowR:12 },
   decoy:{ core:'#A0A6FF', glowA:'rgba(160,166,255,.90)', glowB:'rgba(160,166,255,.45)', coreR:9,  glowR:17 }, // solo distrae
+  rb: {
+    core: 'conic-gradient(#ff0055, #ff9500, #ffee00, #33dd55, #33aaff, #aa66ff, #ff0055)',
+    glowA:'rgba(255,255,255,.85)',
+    glowB:'rgba(255,255,255,.35)',
+    coreR: 9,
+    glowR: 19
+  },
+
 };
 let hotSkin = 'x1'; // skin actual
 
@@ -1252,6 +1484,21 @@ function isInHot(event){
   const dx = x - hotCX, dy = y - hotCY;
   return Math.hypot(dx, dy) <= hotCoreR;
 }
+function isInHotCore(e){
+  const coinRect = coin.getBoundingClientRect();
+  const x = (e.clientX - coinRect.left) / coinRect.width;
+  const y = (e.clientY - coinRect.top ) / coinRect.height;
+  const r = hotCore ? hotCore.getBoundingClientRect() : null;
+  if (!r) return false;
+  const core = {
+    x: (r.left - coinRect.left) / coinRect.width,
+    y: (r.top  - coinRect.top ) / coinRect.height,
+    w:  r.width  / coinRect.width,
+    h:  r.height / coinRect.height
+  };
+  return (x >= core.x && x <= core.x + core.w && y >= core.y && y <= core.y + core.h);
+}
+
 
 
 
@@ -1428,7 +1675,23 @@ coin.addEventListener('click', (e) => {
   if (typeof lazyRegen === 'function') lazyRegen();
 
   const now = performance.now();
-  const cx = e.clientX, cy = e.clientY; // coords de pantalla (no se recorta)
+  const cx = e.clientX, 
+  cy = e.clientY; // coords de pantalla (no se recorta)
+
+    // 🔒 Durante el DESAFÍO: no gastas energía, no ganas WLGp, solo cuenta el reto
+  if (challenge.active) {
+    handleChallengeTap(e);
+    // no mostramos +ganancia y no tocamos energía
+    render?.();
+    updateRefillCue?.();
+    return;
+  }
+    // Si hay un DISTRACTOR y lo tocaste en el núcleo → burla (modo normal)
+  if (hotActive && hotSkin === 'decoy' && isInHotCore(e)) {
+    popLaugh(cx, cy);
+    soundMiss();
+  }
+
 
   // Si estamos en cooldown por 0 energía → siempre 0.0000
   if (now < (noEnergyUntil || 0)) {
@@ -1454,10 +1717,11 @@ coin.addEventListener('click', (e) => {
 
   if (!ok) {
     // No alcanzó (0.. <1) → marcar 0.0000 y activar cooldown de 2s
-    noEnergyUntil = now + 5000;
+    noEnergyUntil = now + 3000;
     spawnGain?.(cx, cy, `+${fmt(0)}`);
     maybeSpawnByTap?.(); render?.();
     updateRefillCue();
+    
     try { navigator.vibrate && navigator.vibrate([80,40,80]); } catch(e){}
      return;
   }
