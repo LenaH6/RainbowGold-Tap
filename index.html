@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
@@ -76,9 +77,9 @@ body{
   padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
 .pill{
   z-index:3;
-  background: #e0e0e0; border:1px solid #b5b5b5;
+  background: #292828; border:1px solid #292828;
   border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
-  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #1a1a1a;
+  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #eeeded;
 }
 .pill img{width:22px; height:22px; display:inline-block}
 
@@ -430,7 +431,29 @@ body{
   75% { transform: translateX(2px); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .pulse, .refillPulse, .refillAlarm, .stars, .stars2, .splash__logo img { animation: none !important; }
+  .drawer { transition: right .01s linear !important; }
+}
 
+/* Botón "Ideas" dentro de la moneda */
+.idea-btn{
+  position:absolute;
+  left:10px;           /* esquina inferior izquierda */
+  bottom:10px;
+  z-index:7;
+  width:44px; height:44px;
+  display:grid; place-items:center;
+  border:none; background:transparent;
+  cursor:pointer;
+}
+.idea-btn img{
+  width:50px; height:50px; display:block;
+  filter: brightness(0) saturate(100%) invert(67%) sepia(84%) saturate(423%) hue-rotate(350deg) brightness(96%) contrast(93%);
+  transition: transform .2s ease;
+}
+.idea-btn:hover img{ transform: scale(1.08); }
 
 
 </style>
@@ -461,7 +484,6 @@ body{
 
   <div class="stars"></div>
   <div class="stars2"></div>
-  <div class="noise" aria-hidden="true"></div>
 <!-- Left FABs -->
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Profile">
@@ -558,6 +580,10 @@ body{
 <div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
 
     </div>
+    <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
+  <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
+</button>
+
   </div>
 
   <!-- DOCK bajo la moneda -->
@@ -594,6 +620,30 @@ body{
 <button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
 </aside>
 <!-- Drawer Perfil -->
+ <div id="backdropID" class="backdrop"></div>
+<aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
+  <h3>Ideas</h3>
+
+  <!-- Vista inicial: pagar -->
+  <div id="ideasPayView">
+    <p>Para participar necesitas comprar un ticket de <b>1 WLD</b>.</p>
+    <button id="payIdeasBtn" class="btn-icon">
+      <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
+      <span>Comprar ticket (1 WLD)</span>
+    </button>
+  </div>
+
+  <!-- Vista desbloqueada: opciones -->
+  <div id="ideasOptionsView" style="display:none">
+    <p>Selecciona qué quieres hacer con tu ticket:</p>
+    <button id="voteBtn" class="btn-icon">Votar</button>
+    <button id="suggestBtn" class="btn-icon">Enviar sugerencia</button>
+    <p style="font-size:12px;opacity:.6;margin-top:6px">* Cada acción consume 1 ticket</p>
+  </div>
+</aside>
+
+
 <div id="backdropPF" class="backdrop"></div>
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
@@ -1517,6 +1567,37 @@ const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
 const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
+const ideasBtn=$('#ideasBtn'), drawerID=$('#drawerID'), backdropID=$('#backdropID');
+const payIdeasBtn = $('#payIdeasBtn');
+const ideasPayView = $('#ideasPayView');
+const ideasOptionsView = $('#ideasOptionsView');
+const voteBtn = $('#voteBtn');
+const suggestBtn = $('#suggestBtn');
+
+if (payIdeasBtn){
+  payIdeasBtn.onclick = () => {
+    // 👇 Aquí conectaremos el pago real (World App).
+    // Por ahora en DEV simula que pagaste y desbloquea:
+    alert("✅ Ticket comprado (simulado en DEV)");
+    ideasPayView.style.display = 'none';
+    ideasOptionsView.style.display = 'block';
+  };
+}
+
+if (voteBtn){
+  voteBtn.onclick = () => {
+    alert("Aquí irá la encuesta de votación (1 ticket)");
+    closeDrawer('ID');
+  };
+}
+
+if (suggestBtn){
+  suggestBtn.onclick = () => {
+    alert("Aquí irá el formulario de sugerencias (1 ticket)");
+    closeDrawer('ID');
+  };
+}
+
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
 // ===== Inbox: estado y render =====
 let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
@@ -1625,7 +1706,12 @@ function sizeCanvasToCoin(){
 addEventListener('resize', sizeCanvasToCoin);
 
 /* ===== Partículas con fallback ===== */
-const sparkle = new Image(); sparkle.src = 'img/sparkle.png' ;
+let sparkle = null;
+if (!LITE_MODE) {
+  sparkle = new Image();
+  sparkle.src = 'img/sparkle.png';
+}
+
 let parts=[];
 function spawn(x,y){
   if (LITE_MODE) return;  // 🔕 sin partículas en lite
@@ -1762,6 +1848,7 @@ function openDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID],   
   };
   const pair = map[which];
   if (!pair) return;
@@ -1774,6 +1861,7 @@ function closeDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID],  
   };
   const pair = map[which];
   if (!pair) return;
@@ -1789,6 +1877,8 @@ if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
 
 /* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
 if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
+if (ideasBtn) ideasBtn.onclick = () => openDrawer('ID');
+if (backdropID) backdropID.onclick = () => closeDrawer('ID');
 
 
 
@@ -2053,9 +2143,19 @@ updateBadge(); // inicia oculto en base
 
 // pinta "Hola Fer!" (o Hello)
   // === Lite Mode: apagar fondos pesados ===
-  if (LITE_MODE) {
-    document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
-  }
+ // === Lite Mode: fondos ===
+if (LITE_MODE) {
+  // En modo ligero quitamos todo lo pesado
+  document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
+} else {
+  // Solo en modo FULL creamos la capa de ruido (y así no se descarga en LITE)
+  const noiseDiv = document.createElement('div');
+  noiseDiv.className = 'noise';
+  noiseDiv.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(noiseDiv);
+}
+
+
 
 
 })(); // 👈 MUY IMPORTANTE: cerrar la IIFE
