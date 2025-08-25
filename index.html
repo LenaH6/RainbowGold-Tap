@@ -34,11 +34,15 @@ body{
 /* Topbar */
 
 .topbar{
-  position:sticky; top:0; z-index:5;
-  display:flex; align-items:center; justify-content:center; height: 60px;
+  position:sticky;
+  top:0;
+  z-index:5;
+  height:60px;
   padding:0 12px;
-  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0)); backdrop-filter:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0));
+  backdrop-filter:none;
 }
+
 
 .topbar h1{margin:0; font-size:28px}
 .top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
@@ -134,7 +138,7 @@ body{
 .action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
 .btn-icon{
   display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-  background:#b5b5b5; border:1px solid #b5b5b5; border-radius:12px; color:var(--gold-soft);
+  background:rgba(255,255,255,.06); border:1px solid #b5b5b5; border-radius:12px; color:#222;
   backdrop-filter:blur(6px)
 }
 .btn-icon img{width:34px; height:34px; display:block}
@@ -285,7 +289,6 @@ body{
 :root{
   /* Ajusta aquí sin miedo */
   --logoSize: 10px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
-  --logoColor: #cf892c;      /* color del texto */
 }
 
 /* Más específico + !important para ganar siempre */
@@ -454,7 +457,207 @@ body{
   transition: transform .2s ease;
 }
 .idea-btn:hover img{ transform: scale(1.08); }
+/* Texto más oscuro en el drawer de Ideas */
+#drawerID { color:#e6e6e6; }
+#drawerID h3 { color:#f1f1f1; }
+#ticketTimer { color:#c9a848 !important; }  /* timer dorado más oscuro */
+#drawerID .hint { color:#bdbdbd; font-size:12px; }
+#drawerID input, #drawerID textarea {
+  background:#141318; color:#f0f0f0; border:1px solid #2a2930; border-radius:10px; padding:10px;
+}
+#drawerID .btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 12px; border-radius:10px; border:1px solid #3a3844; cursor:pointer;
+  background:#1a1920; color:#eaeaea;
+}
+#drawerID .btn:hover { filter:brightness(1.1); }
 
+
+/* === Aviso neón: lista vertical en TOPBAR (ancho = píldora) === */
+:root{
+  --activityWidth: 260px;   /* lo ajusta el JS para igualar la píldora */
+}
+
+.topbar .activity-bar{
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top)); /* deja espacio para que suba */
+  left: 50%;
+  width: var(--activityWidth);                /* EXACTO al ancho de la píldora */
+  transform: translateX(-50%);
+  height: 18px;                               /* altura de “renglón” */
+  line-height: 18px;
+  text-align: center;
+  overflow: hidden;                           /* recorta arriba/abajo */
+  pointer-events: none;
+  z-index: 30;
+  white-space: nowrap;
+  font: 800 11px/18px system-ui, sans-serif;  /* letra pequeña */
+}
+
+.topbar .activity-item{
+  display: inline-block;
+  background: none;                           /* solo texto, sin caja */
+  margin: 0; padding: 0;
+  color: #00ff22;                             /* neón */
+  text-shadow:
+    0 0 1px #f716f7,
+    0 0 1px #daece3,
+    0 0 1px #a6ff00;
+  transform: translateY(24px);                /* arranca ABAJO del marco */
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.topbar .activity-item.run{
+  animation: flowSlide 3.2s ease-in-out forwards;
+}
+
+/* Lista vertical: aparece abajo → se queda vibrando → sigue subiendo → desaparece */
+@keyframes flowSlide{
+  0%   { transform: translateY(40px); opacity: 0; }   /* bien abajo */
+  20%  { transform: translateY(0);    opacity: 1; }   /* llega al centro */
+  40%  { transform: translateY(0);    opacity: 1; }   /* se mantiene */
+  50%  { transform: translateY(0) translateX(-2px); }
+  58%  { transform: translateY(0) translateX( 2px); } /* vibra horizontal */
+  66%  { transform: translateY(0) translateX(-1px); }
+  74%  { transform: translateY(0) translateX( 1px); }
+  80%  { transform: translateY(0); opacity: 1; }      /* último instante en centro */
+  100% { transform: translateY(-60px); opacity: 0; }  /* se va hacia arriba */
+}
+
+/* === Cards pro unificadas === */
+.cardPro{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.cardPro h3,.cardPro h4{margin:0 0 10px;font:700 16px/1.2 system-ui;color:#ffd872}
+
+/* === Botón pro (usa en acciones) === */
+.btnPro{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 14px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#fff;font-weight:800;letter-spacing:.2px;
+  transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+}
+.btnPro:hover{transform:translateY(-1px);background:rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.btnPro:active{transform:translateY(0)}
+.btnPro.success{border-color:rgba(0,230,140,.35);background:rgba(0,230,140,.12);color:#00e68c}
+.btnPro.warn{border-color:rgba(255,120,80,.35);background:rgba(255,120,80,.12);color:#ff9a6b}
+
+/* === Encuestas (barras lindas) === */
+.pollRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.pollLabel{min-width:72px;font-weight:800;opacity:.95}
+.pollBar{
+  flex:1;height:12px;border-radius:8px;overflow:hidden;
+  background:#0f0e13;border:1px solid rgba(255,255,255,.12);
+}
+.pollFill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#ffd872,#ffb347);
+  transition:width .35s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 0 8px rgba(255,216,114,.35);
+}
+
+/* === Inbox estilo chat === */
+.chatList{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1)}
+.msg.me{align-self:flex-end;background:rgba(255,255,255,.06)}
+.msg.other{align-self:flex-start;background:rgba(0,0,0,.35)}
+.msg .meta{font-size:11px;opacity:.7;margin-top:6px}
+
+/* === Inputs del perfil / formularios === */
+.inputPro, .textareaPro{
+  width:100%;padding:10px 12px;border-radius:10px;
+  background:rgba(255,255,255,.06);color:#fff;
+  border:1px solid rgba(255,255,255,.12);
+  outline:none;transition:border .15s ease, box-shadow .15s ease;
+}
+.inputPro:focus,.textareaPro:focus{
+  border-color:rgba(255,216,114,.45);box-shadow:0 0 0 3px rgba(255,216,114,.18)
+}
+.textareaPro{min-height:90px;resize:vertical}
+/* === Drawers pro: entrada suave y panel elegante === */
+.drawer { transition: opacity .25s ease; }
+.drawer.open { opacity: 1 !important; }
+
+/* Panel interno del drawer (cuerpo) */
+.drawer .drawer-body{
+  background: rgba(20,20,26,.78);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(8px);
+
+  transform: translateY(22px) scale(.985);
+  opacity: 0;
+  transition: transform .28s ease, opacity .24s ease, box-shadow .2s ease;
+  padding: 14px 16px; /* espacio uniforme adentro */
+}
+
+/* Al abrir: sube y aparece suave */
+.drawer.open .drawer-body{
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* Títulos dentro del panel */
+.drawer .drawer-body h3, 
+.drawer .drawer-body h4{
+  margin: 0 0 10px;
+  font: 700 16px/1.2 system-ui;
+  color: #ffd872;
+}
+
+/* Separadores suaves */
+.drawer .drawer-body .section + .section{
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255,255,255,.10);
+}
+/* === NUEVO estilo pro para paneles y tarjetas === */
+.drawer .drawer-body, .cardPro {
+  background: rgba(25, 25, 35, 0.78);          /* translúcido oscuro */
+  border: 1px solid rgba(255, 255, 255, 0.08); /* borde suave */
+  border-radius: 18px;                         /* esquinas redondeadas */
+  padding: 16px 18px;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.45),
+    0 0 0 1px rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(10px);                 /* difuminado elegante */
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Títulos dentro de tarjetas/drawers */
+.drawer .drawer-body h3,
+.drawer .drawer-body h4,
+.cardPro h3, .cardPro h4 {
+  margin: 0 0 10px;
+  font: 700 16px/1.2 system-ui;
+  color: #ffd872;
+}
+
+/* Botones pro */
+.btnPro {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 14px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:#fff; font-weight:800; letter-spacing:.2px;
+  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+}
+.btnPro:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+#markRead { color: #e4e0d8; }
+#payIdeasBtn { color: #fffcf6; }
+#claimBtn { color: #d1d0cc; }
 
 </style>
 </head>
@@ -498,7 +701,12 @@ body{
 <!-- Topbar -->
 <div class="topbar">
   <h1 class="logo-text"></h1>
+  <!-- Aviso público centrado ARRIBA (donde estaba el logo) -->
+  <div id="activityBar" class="activity-bar" aria-live="polite"></div>
 </div>
+
+
+
 
 <!-- Botón trofeo en top-actions -->
 <div class="top-actions" style="overflow:visible">
@@ -512,50 +720,47 @@ body{
     </button>
     <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
   </div>
-</div>
-
-
-
+  </div>
 
 <!-- HERO -->
 <section class="hero">
+  <!-- Pastilla de WLGp: SOLO esto adentro -->
   <div class="pill">
     <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
     WLGp: <b id="balWLGp">0.000</b>
-    
   </div>
 
+  <!-- Moneda (coin) — YA NO va dentro de .pill -->
   <div class="coinWrap" id="coinBox">
     <div class="ring"></div>
     <canvas id="fx"></canvas>
+
     <div id="coin" class="coin" aria-label="Tap">
       <svg id="windowArc" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform:rotate(-90deg);z-index:6">
-  <defs>
-    <linearGradient id="frenzy777" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#ff0055"/>
-      <stop offset="20%"  stop-color="#ff9500"/>
-      <stop offset="40%"  stop-color="#ffee00"/>
-      <stop offset="60%"  stop-color="#33dd55"/>
-      <stop offset="80%"  stop-color="#33aaff"/>
-      <stop offset="100%" stop-color="#aa66ff"/>
-      </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
+        <defs>
+          <linearGradient id="frenzy777" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stop-color="#ff0055"/>
+            <stop offset="20%"  stop-color="#ff9500"/>
+            <stop offset="40%"  stop-color="#ffee00"/>
+            <stop offset="60%"  stop-color="#33dd55"/>
+            <stop offset="80%"  stop-color="#33aaff"/>
+            <stop offset="100%" stop-color="#aa66ff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
       </svg>
 
-      <div id="windowTag" 
-      style="position:absolute;top:8px;left:50%;transform:translateX(-50%) scale(.9);padding:4px 10px;font-weight:800;font-size:12px;line-height:1;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.70);color:#ffd872;opacity:0;transition:opacity .14s,transform .18s;pointer-events:none;z-index:999"></div>
+      <div id="windowTag"
+        style="position:absolute;top:8px;left:50%;transform:translateX(-50%) scale(.9);padding:4px 10px;font-weight:800;font-size:12px;line-height:1;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.70);color:#ffd872;opacity:0;transition:opacity .14s,transform .18s;pointer-events:none;z-index:999"></div>
 
-
-
-      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();
-      document.getElementById('fallback').style.display='block'">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
+
       <div id="gain"
-     style="position:absolute; left:0; top:0;
-            font-size:14px; font-weight:900; color:#fff;
-            text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35);
-            pointer-events:none; z-index:1001;">
+        style="position:absolute; left:0; top:0;
+               font-size:14px; font-weight:900; color:#fff;
+               text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35);
+               pointer-events:none; z-index:1001;">
       </div>
 
       <div id="hot" style="
@@ -563,6 +768,7 @@ body{
         pointer-events:none; opacity:0; transition:opacity .18s ease;
         filter: drop-shadow(0 0 10px rgba(255,223,120,.25));
       "></div>
+
       <div id="hotCore" style="
         position:absolute; left:50%; top:50%;
         transform:translate(-50%,-50%);
@@ -571,19 +777,21 @@ body{
         box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);
       "></div>
 
-<div id="comboBadge" style="
-  position:absolute; top:10px; left:10px;
-  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
-  color:#ffd872; font-weight:800; font-size:12px;
-  padding:4px 8px; border-radius:10px; display:none; pointer-events:none;
-">COMBO x1</div>
-<div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
+      <div id="comboBadge" style="
+        position:absolute; top:10px; left:10px;
+        background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+        color:#ffd872; font-weight:800; font-size:12px;
+        padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
+        COMBO x1
+      </div>
 
+      <div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
     </div>
-    <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
-  <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
-</button>
 
+    <!-- Botón Ideas anclado a la moneda -->
+    <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
+      <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
+    </button>
   </div>
 
   <!-- DOCK bajo la moneda -->
@@ -603,6 +811,10 @@ body{
   </div>
 </section>
 
+
+
+
+
 <!-- Drawers (Boosters simple + Inbox placeholder+Perfil) -->
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
@@ -616,8 +828,8 @@ body{
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
 <h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
-<div id="inboxList" class="inbox-list"></div>
-<button id="markRead" class="btn-icon" data-i18n="mark_read">Marcar como leído</button>
+<div id="inboxList" class="inbox-list cardPro"></div>
+<button id="markRead" class="btn-icon" data-i18n="mark_read"><i>Marcar como leído</i></button>
 </aside>
 <!-- Drawer Perfil -->
  <div id="backdropID" class="backdrop"></div>
@@ -626,21 +838,86 @@ body{
   <h3>Ideas</h3>
 
   <!-- Vista inicial: pagar -->
-  <div id="ideasPayView">
-    <p>Para participar necesitas comprar un ticket de <b>1 WLD</b>.</p>
+  <div id="ideasPayView" class="cardPro"> 
+    <p>¡Sé parte de los desarrolladores y carrera con la comunidad <b>PARTICIPA!</b>.</p>
     <button id="payIdeasBtn" class="btn-icon">
       <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
-      <span>Comprar ticket (1 WLD)</span>
+      <span><b>1 WLD 🎟️</b></span>
     </button>
   </div>
 
   <!-- Vista desbloqueada: opciones -->
-  <div id="ideasOptionsView" style="display:none">
-    <p>Selecciona qué quieres hacer con tu ticket:</p>
-    <button id="voteBtn" class="btn-icon">Votar</button>
-    <button id="suggestBtn" class="btn-icon">Enviar sugerencia</button>
-    <p style="font-size:12px;opacity:.6;margin-top:6px">* Cada acción consume 1 ticket</p>
+  <div id="ideasOptionsView" class="cardPro" style="display:none">
+    <p><b>Escoge una opción</b>
+
+    </p>
+    <p id="ticketTimer" style="margin:10px 0;font-size:14px;color:#ffd872;font-weight:bold">
+    Tiempo restante: 05:00
+  </p>
+
+    <button id="voteBtn" class="btn-icon btnPro"><b>Votar✍️</b></button>
+    <button id="suggestBtn" class="btn-icon btnPro"><b>Sugerencia💡</b></button>
+    <p style="font-size:12px;opacity:.6;margin-top:6px"><i>*Cada acción consume 1 ticket</i></p>
   </div>
+  <!-- Vista: Encuesta -->
+<div id="ideasPollView" class="cardPro" style="display:none">
+  <h4 style="margin:6px 0 8px">🏁 EMPIEZA LA CARRERA!</h4>
+  <p class="hint"><b>TÚ ELIGES💊</b></p>
+
+  <!-- Opciones -->
+  <div style="display:grid; gap:8px; margin:10px 0 12px;">
+    <button class="btn" id="pollOptA"><b>Comodidad/Seguridad🔵</b></button>
+    <button class="btn" id="pollOptB"><b>Cambio/Riesgo🔴</b></button>
+    <button class="btn" id="pollOptC"><b>Autotap 🤖</b></button>
+  </div>
+
+  <!-- Resultados (barras simples) -->
+  <div id="pollResults" style="display:none; margin-top:10px;">
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">A</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barA" style="height:100%;width:0;background:#c9a848"></div>
+      </div>
+      <span id="pctA" style="width:48px;text-align:right">0%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">B</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barB" style="height:100%;width:0;background:#9aa0ff"></div>
+      </div>
+      <span id="pctB" style="width:48px;text-align:right">0%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">C</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barC" style="height:100%;width:0;background:#78d59c"></div>
+      </div>
+      <span id="pctC" style="width:48px;text-align:right">0%</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <button class="btn" id="pollClose">Cerrar</button>
+  </div>
+</div>
+
+<!-- Vista: Enviar sugerencia -->
+<div id="ideasSuggestView" class="cardPro" style="display:none">
+  <h4 style="margin:6px 0 8px">¿Alguna idea?</h4>
+  <p class="hint"><b>Máx. 400 caracteres.</b></p>
+
+  <textarea id="suggestText" class="textareaPro" rows="5" maxlength="240" placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
+  <div style="display:flex;justify-content:space-between;margin-top:8px;">
+    <span class="hint"><span id="sugCount">0</span>/240</span>
+    <button class="btn" id="sendSuggestBtn">Enviar</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:10px;">
+    <button class="btn" id="sugClose">Cerrar</button>
+  </div>
+</div>
+
+
 </aside>
 
 
@@ -648,9 +925,11 @@ body{
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
   <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
+  <div class="cardPro">
+
 
 <label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
-<input id="usernameInput" type="text"
+<input id="usernameInput"  class="inputPro" type="text"
   style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
   data-i18n-placeholder="username_placeholder"
   placeholder="Tu nombre">
@@ -671,7 +950,7 @@ body{
   <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
   <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
 </div>
-
+</div>
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 
 </aside>
@@ -969,6 +1248,8 @@ function arcUpdateProgress(level, t){  // level: 1..5, t: 0→1
 function arcHide(){
   if (windowArc) windowArc.style.opacity = '0';
 }
+
+
 // ==== Ganancias flotantes (un div por cada tap) ====
 let lastGainEl = null;
 const gainPool = []; // para no acumular infinitos
@@ -1385,10 +1666,15 @@ if (typeof addTapAmount !== 'function'){
 
 /* ===== Helpers ===== */
 const $=q=>document.querySelector(q);
+
+
+
+
+
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.5, POWER_BASE=0.400;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.400;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -1567,36 +1853,307 @@ const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
 const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
-const ideasBtn=$('#ideasBtn'), drawerID=$('#drawerID'), backdropID=$('#backdropID');
-const payIdeasBtn = $('#payIdeasBtn');
-const ideasPayView = $('#ideasPayView');
-const ideasOptionsView = $('#ideasOptionsView');
-const voteBtn = $('#voteBtn');
-const suggestBtn = $('#suggestBtn');
+// === Ideas: refs y lógica ===
+const ideasBtn         = document.querySelector('#ideasBtn');
+const drawerID         = document.querySelector('#drawerID');
+const backdropID       = document.querySelector('#backdropID');
+const payIdeasBtn      = document.querySelector('#payIdeasBtn');
+const ideasPayView     = document.querySelector('#ideasPayView');
+const ideasOptionsView = document.querySelector('#ideasOptionsView');
+const voteBtn          = document.querySelector('#voteBtn');
+const suggestBtn       = document.querySelector('#suggestBtn');
+let ideasTicketActive = false;
+// === Encuesta: refs y estado ===
+const ideasPollView = document.getElementById('ideasPollView');
+const pollOptA = document.getElementById('pollOptA');
+const pollOptB = document.getElementById('pollOptB');
+const pollOptC = document.getElementById('pollOptC');
+const pollResults = document.getElementById('pollResults');
+const barA = document.getElementById('barA');
+const barB = document.getElementById('barB');
+const barC = document.getElementById('barC');
+const pctA = document.getElementById('pctA');
+const pctB = document.getElementById('pctB');
+const pctC = document.getElementById('pctC');
+const pollClose = document.getElementById('pollClose');
 
-if (payIdeasBtn){
-  payIdeasBtn.onclick = () => {
-    // 👇 Aquí conectaremos el pago real (World App).
-    // Por ahora en DEV simula que pagaste y desbloquea:
-    alert("✅ Ticket comprado (simulado en DEV)");
-    ideasPayView.style.display = 'none';
-    ideasOptionsView.style.display = 'block';
-  };
+// Estado local (solo demo)
+let votes = JSON.parse(localStorage.getItem('wg_votes') || '{"A":0,"B":0,"C":0}');
+function saveVotes(){ localStorage.setItem('wg_votes', JSON.stringify(votes)); }
+
+function renderPoll(){
+  const total = votes.A + votes.B + votes.C;
+  const pA = total ? Math.round((votes.A/total)*100) : 0;
+  const pB = total ? Math.round((votes.B/total)*100) : 0;
+  const pC = total ? Math.round((votes.C/total)*100) : 0;
+  barA.style.width = pA + '%'; pctA.textContent = pA + '%';
+  barB.style.width = pB + '%'; pctB.textContent = pB + '%';
+  barC.style.width = pC + '%'; pctC.textContent = pC + '%';
 }
+
+function showPoll(){
+  ideasOptionsView.style.display = 'none';
+  ideasPollView.style.display = 'block';
+  pollResults.style.display = 'block'; // muestra resultados siempre
+  renderPoll();
+}
+
+function consumeTicketAndReset(){
+  // consumir acceso: volver a pagar
+  ideasTicketActive = false; 
+  clearInterval(ticketTimerId);
+  document.getElementById('ticketTimer')?.style && (document.getElementById('ticketTimer').textContent='⛔ Ticket vencido');
+  ideasPollView.style.display = 'none';
+  ideasSuggestView.style.display = 'none';
+  ideasOptionsView.style.display = 'none';
+  ideasPayView.style.display = 'block';
+}
+/* === Feed público: lista vertical con cola === */
+const activityBar = document.getElementById('activityBar');
+const noticeQueue = [];
+let noticeRunning = false;
+
+// igualar ancho del aviso al ancho real de la píldora (responsive)
+(function syncActivityWidth(){
+  const pill = document.querySelector('.pill');
+  function apply(){
+    if (!pill) return;
+    const w = Math.round(pill.getBoundingClientRect().width);
+    document.documentElement.style.setProperty('--activityWidth', w + 'px');
+  }
+  apply();
+  window.addEventListener('resize', apply);
+  setTimeout(apply, 0);
+})();
+
+function postActivity(html){
+  if (!activityBar) return;
+  noticeQueue.push(html);
+  if (!noticeRunning) runNextNotice();
+}
+
+function runNextNotice(){
+  const html = noticeQueue.shift();
+  if (!html){ noticeRunning = false; return; }
+  noticeRunning = true;
+
+  // un solo item visible a la vez
+  activityBar.innerHTML = '';
+
+  const el = document.createElement('div');
+  el.className = 'activity-item';
+  el.innerHTML = html;
+  activityBar.appendChild(el);
+
+  // arrancar la animación (entra desde abajo → vibra → sube y sale)
+  requestAnimationFrame(() => el.classList.add('run'));
+
+  el.addEventListener('animationend', () => {
+    el.remove();
+    runNextNotice();          // mostrar el siguiente de la cola
+  }, { once: true });
+}
+
+
+
+function handleVote(key){
+
+  // bloquear doble clic
+  [pollOptA,pollOptB,pollOptC].forEach(b=> b && (b.disabled = true));
+  // % antes
+  const totalBefore = votes.A + votes.B + votes.C;
+  const beforePct = totalBefore ? Math.round(((votes[key]||0) / totalBefore) * 100) : 0;
+
+  // sumar voto
+  votes[key] = (votes[key] || 0) + 1;
+  saveVotes();
+
+  // % después
+  const totalAfter = votes.A + votes.B + votes.C;
+  const afterPct = totalAfter ? Math.round(((votes[key]||0) / totalAfter) * 100) : 0;
+  const delta = afterPct - beforePct;
+
+  renderPoll();
+
+  // nombre y etiqueta opción
+  const user = (typeof getUsername === 'function') ? getUsername() : 'Usuario';
+  const optName = ({A:'🔴',B:'🔵',C:'🤖'})[key] || key;
+
+  // mensaje público
+  const deltaTxt = (delta === 0) ? '±0%' : (delta>0 ? `+${delta}%` : `${delta}%`);
+  postActivity(`${user} reached <b>${optName}</b> (${deltaTxt})=<b>${afterPct}%</b>`);
+
+  alert('✅ Voto registrado');
+    consumeTicketAndReset();
+    closeDrawer('ID');
+document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
+
+
+// reactivar por si vuelven a entrar con nuevo ticket
+  [pollOptA,pollOptB,pollOptC].forEach(b=> b && (b.disabled = false));
+// anunciar en el feed
+try {
+  const user = (localStorage.getItem('username') || 'Usuario');
+  // calcula % actual tras tu lógica de conteo
+  const total = (pollA + pollB + pollC) || 1;
+  const pct =
+    key==='A' ? Math.round((pollA/total)*100) :
+    key==='B' ? Math.round((pollB/total)*100) :
+                 Math.round((pollC/total)*100);
+
+  postActivity(`<b>${user}</b> votó (${pct}%)`);
+} catch(e){}
+
+
+}
+
 
 if (voteBtn){
   voteBtn.onclick = () => {
-    alert("Aquí irá la encuesta de votación (1 ticket)");
-    closeDrawer('ID');
+    if (!ideasTicketActive) { alert('Necesitas un ticket activo'); return; }
+    showPoll();
   };
+}
+if (pollOptA) pollOptA.onclick = () => handleVote('A');
+if (pollOptB) pollOptB.onclick = () => handleVote('B');
+if (pollOptC) pollOptC.onclick = () => handleVote('C');
+if (pollClose) pollClose.onclick = () => { ideasPollView.style.display='none'; ideasOptionsView.style.display='block'; };
+if (ideasBtn)   ideasBtn.onclick   = () => openDrawer('ID');
+if (backdropID) backdropID.onclick = () => closeDrawer('ID');
+
+// === Sugerencias: refs y lógica ===
+const ideasSuggestView = document.getElementById('ideasSuggestView');
+const suggestBtnEl = document.getElementById('suggestBtn');  // ya existe arriba como suggestBtn
+const suggestText = document.getElementById('suggestText');
+const sendSuggestBtn = document.getElementById('sendSuggestBtn');
+const sugClose = document.getElementById('sugClose');
+const sugCount = document.getElementById('sugCount');
+
+function showSuggest(){
+  ideasOptionsView.style.display = 'none';
+  ideasSuggestView.style.display = 'block';
+  if (suggestText) { suggestText.value=''; sugCount.textContent='0'; suggestText.focus(); }
+}
+
+function safeText(s){
+  // bloqueo básico de HTML: reemplaza < y >
+  return String(s || '').replaceAll('<','&lt;').replaceAll('>','&gt;').trim();
 }
 
 if (suggestBtn){
   suggestBtn.onclick = () => {
-    alert("Aquí irá el formulario de sugerencias (1 ticket)");
-    closeDrawer('ID');
+    if (!ideasTicketActive) { alert('Necesitas un ticket activo'); return; }
+    showSuggest();
   };
 }
+
+if (suggestText){
+  suggestText.addEventListener('input', () => {
+    const n = (suggestText.value || '').length;
+    sugCount.textContent = String(n);
+  });
+}
+
+if (sendSuggestBtn){
+  sendSuggestBtn.onclick = () => {
+    const txt = safeText(suggestText.value);
+    if (!txt || txt.length < 4){
+      alert('Escribe al menos 4 caracteres.');
+      return;
+    }
+    // Guarda privado en localStorage (solo tú lo ves)
+    const box = JSON.parse(localStorage.getItem('wg_suggestions') || '[]');
+    box.unshift({ txt, ts: Date.now() });
+    localStorage.setItem('wg_suggestions', JSON.stringify(box));
+
+    alert('✅ Sugerencia enviada (privada)');
+    postActivity(`${(typeof getUsername==='function'?getUsername():'Usuario')} sent a suggestion!`);
+
+    consumeTicketAndReset();
+    closeDrawer('ID');
+document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
+
+  };
+}
+
+if (sugClose){
+  sugClose.onclick = () => {
+    ideasSuggestView.style.display = 'none';
+    ideasOptionsView.style.display = 'block';
+  };
+}
+
+
+// ==== Temporizador del ticket ====
+let ticketTimerId = null;
+let ticketExpiresAt = 0;
+
+function startTicketTimer(minutes=5){
+  ticketExpiresAt = Date.now() + minutes*60*1000;
+  updateTicketTimer();
+  ticketTimerId = setInterval(updateTicketTimer, 1000);
+}
+
+function updateTicketTimer(){
+  const el = document.getElementById('ticketTimer');
+  if (!el) return;
+  const remaining = ticketExpiresAt - Date.now();
+
+  if (remaining <= 0){
+    clearInterval(ticketTimerId);
+    el.textContent = "⛔ Ticket vencido";
+    ideasPayView.style.display = 'block';
+    ideasOptionsView.style.display = 'none';
+    return;
+  }
+
+  const m = Math.floor(remaining/60000);
+  const s = Math.floor((remaining%60000)/1000);
+  el.textContent = `Tiempo restante: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ==== Pago (DEV simulado o real con World App) ====
+if (payIdeasBtn){
+  payIdeasBtn.onclick = async () => {
+    if (window.WG_DEV_MODE){
+      alert("✅ Ticket comprado (simulación DEV)");
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
+      startTicketTimer(5);
+      return;
+    }
+
+    try{
+      const { status, finalPayload } = await MiniKit.commandsAsync.verify({
+  action: "ideas",                    
+  verification_level: VerificationLevel.Device
+});
+
+
+      if (status !== "success"){
+        alert("❌ Pago cancelado");
+        return;
+      }
+
+      await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalPayload)
+      });
+
+      alert("✅ Ticket Ideas comprado con éxito");
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      startTicketTimer(5);
+
+    }catch(e){
+      console.error("Error en pago Ideas:", e);
+      alert("⚠️ Hubo un problema con el pago");
+    }
+  };
+}
+
 
 const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
 // ===== Inbox: estado y render =====
@@ -1935,20 +2492,6 @@ function setUsername(v){
   return s;
 }
 
-// === Saludo en el logo (NIVEL RAÍZ, fuera de cualquier función) ===
-function renderLogoGreeting(){
-  try{
-    const cur = (typeof getLang === 'function') ? getLang() : 'es';
-    const hasI18N = typeof I18N !== 'undefined' && I18N && I18N[cur];
-    const T = hasI18N ? I18N[cur] : { hello_user: (cur==='en' ? 'Hello {name}!' : 'Hola {name}!') };
-    const user = (typeof getUsername === 'function') ? getUsername() : 'Player';
-    const h1 = document.querySelector('.logo-text');
-    if (!h1) return;
-    const text = (T.hello_user || (cur==='en' ? 'Hello {name}!' : 'Hola {name}!')).replace('{name}', user || 'Player');
-    h1.textContent = text;
-  }catch(e){ console.error('[greeting] error:', e); }
-}
-
 
 /* Diccionario i18n (UNA sola vez) */
 /* Diccionario i18n (UNA sola vez) */
@@ -1975,10 +2518,7 @@ const I18N = {
     profile_wlg_label:     'WLG Balance:',
     profile_wld_label:     'WLD Balance:',
 
-    // 👇 Saludo del logo
-    hello_user:            'Hola {name}!',
-
-    // 👇 Seeds del Inbox (si usas addMessageKey)
+      // 👇 Seeds del Inbox (si usas addMessageKey)
     seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. 💌',
     seed_get_wallet:  'Prepara tu billetera para ganar a lo GRANDE . 💸',
     seed_farming_time:'¡Hora de farmear $WLG! Alístate para la sorpresa y toma la delantera. 🎮',
@@ -2004,9 +2544,6 @@ const I18N = {
     profile_wlgp_label:    'WLGp:',
     profile_wlg_label:     'WLG Balance:',
     profile_wld_label:     'WLD Balance:',
-
-    // 👇 Logo greeting
-    hello_user:            'Hello {name}!',
 
     // 👇 Inbox seeds
     seed_stay_tuned:  'Stay tuned — big updates soon. 💌',
@@ -2038,7 +2575,6 @@ function applyLang(){
 
   // Redibuja partes dependientes de idioma
   renderInbox();                         // Inbox por clave
-  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // Hola/Hello {name}
 }
 
 
@@ -2072,7 +2608,6 @@ function loadProfileFields(){
     clearTimeout(savedBadge._t);
     savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
   }
-  if (typeof renderLogoGreeting === 'function') renderLogoGreeting(); // una sola vez
 };
 
     }
@@ -2130,7 +2665,6 @@ if (msgs.length === 0) {
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
-renderLogoGreeting();
 if (!USE_TAP_SPAWN) {
       scheduleHot(); // modo clásico por tiempo
 } else {
@@ -2160,6 +2694,23 @@ if (LITE_MODE) {
 
 })(); // 👈 MUY IMPORTANTE: cerrar la IIFE
 
+// === Sincroniza clase .open para animación de drawers ===
+(function(){
+  const prevOpen = window.openDrawer;
+  const prevClose = window.closeDrawer;
+
+  window.openDrawer = function(id){
+    if (typeof prevOpen === 'function') prevOpen(id);
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
+  };
+
+  window.closeDrawer = function(id){
+    if (typeof prevClose === 'function') prevClose(id);
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+  };
+})();
 
 </script>
 <script>
@@ -2181,7 +2732,9 @@ if (LITE_MODE) {
 
 <script type="module">
 // 🔧 FLAG de desarrollo — ponlo en false para enviar a revisión
-const DEV_MODE = true;
+const DEV_MODE = true ;
+window.WG_DEV_MODE = DEV_MODE;   // ← hace global el flag
+
 
 /* === Carga del SDK === */
 let MiniKit, VerificationLevel;
@@ -2189,6 +2742,9 @@ try {
   const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
   MiniKit = m.MiniKit;
   VerificationLevel = m.VerificationLevel;
+  window.MiniKit = MiniKit;               // ← expón el SDK
+  window.VerificationLevel = VerificationLevel;
+
 } catch (e) {
   console.error("Error cargando MiniKit:", e);
 }
