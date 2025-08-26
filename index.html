@@ -138,7 +138,7 @@ body{
 .action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
 .btn-icon{
   display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-  background:rgba(255,255,255,.06); border:1px solid #b5b5b5; border-radius:12px; color:#222;
+  background:rgba(255,255,255,.06); border:1px solid #b5b5b5; border-radius:12px; color:#f0e2e2;
   backdrop-filter:blur(6px)
 }
 .btn-icon img{width:34px; height:34px; display:block}
@@ -498,11 +498,11 @@ body{
   display: inline-block;
   background: none;                           /* solo texto, sin caja */
   margin: 0; padding: 0;
-  color: #00ff22;                             /* neón */
+  color: #758e91;                             /* neón */
   text-shadow:
-    0 0 1px #f716f7,
+    0 0 1px #252125,
     0 0 1px #daece3,
-    0 0 1px #a6ff00;
+    0 0 1px #97aa73;
   transform: translateY(24px);                /* arranca ABAJO del marco */
   opacity: 0;
   will-change: transform, opacity;
@@ -977,19 +977,20 @@ const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre PO
 const WINDOW_MS = { 1:700, 2:1200, 3:1600, 4:2000, 5:2400 };       // duración de ventana
 const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas completas necesarias
 const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
-const FRENZY_MS = 4000;                                           // combo máximo
+const FRENZY_MS = 5500;                                           // combo máximo
 const DECOY_CHANCE = 0.25;                                        // prob. de decoy
 const USE_TAP_SPAWN = true; 
 /* ==== DESAFÍO ARCOÍRIS (config) ==== */
 const RAINBOW = {
   HITS: 6,                     // toques necesarios a manchas arcoíris
   DECOY_CHANCE: 0.45,          // probabilidad de distractor durante el desafío
-  APPEAR_MS: [420, 820],       // visibilidad de cada mancha (ms)
+  APPEAR_MS: [1100, 1700],       // visibilidad de cada mancha (ms)
   TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
 };
 
 const challenge = {
   active: false,
+  completed: false,
   hits: 0,
   t0: 0,
   arcRaf: 0,
@@ -1079,6 +1080,8 @@ if (combo.window){
   if (!isInWindowRect(e)) return; // fuera del difuminado: sin bonus ni progreso
 
   combo.window.tapsDone += 1;
+    soundTapProgress(L, combo.window.tapsDone);
+
   if (windowTag) windowTag.textContent = 'X'+L+' '+combo.window.tapsDone+'/'+combo.window.tapsNeeded;
 
   popLabel('X'+L, e.clientX, e.clientY, { color:'#ff3030', fontSize:36, dy:-130 });
@@ -1093,8 +1096,7 @@ if (combo.window){
   if (combo.window.tapsDone >= combo.window.tapsNeeded){
     const level = L;
 
-    // Feedback de éxito
-    soundWindowComplete(level);
+
     arcFlash();
 
     // Cerramos un instante después para que se vea el flash
@@ -1106,6 +1108,7 @@ if (combo.window){
       combo.progress[level] = (combo.progress[level] || 0) + 1;
 
      if (level === 5){
+       playSnd('rainbow', { volume: 1.0 }); // anuncio RAINBOW RACE
         // ✅ En lugar de Frenzy directo → DESAFÍO ARCOÍRIS
         startRainbowChallenge();
         return; // importante
@@ -1142,7 +1145,15 @@ if (combo.window){
 function soundLevel(n){ const base=560+n*70; tone(base,0.05,'square',.09); setTimeout(()=>tone(base+90,0.04,'triangle',.07),70); }
 function soundMiss(){ tone(520,0.045,'sawtooth',.07); setTimeout(()=>tone(420,0.045,'sawtooth',.06),70); }
 function soundFrenzyStart(){ tone(680,0.12,'square',.10); setTimeout(()=>tone(840,0.12,'triangle',.09),120); }
+function soundTapProgress(level, tapIndex){
+  // Pitch crece por nivel y por el índice del tap
+  const base = 1000 + level*120 + (tapIndex-1)*90;
+  tone(base, .035, 'square', .07);
+  if (typeof playSnd === 'function') playSnd('tick', { volume: .7 });
+}
+
 function soundFrenzy777(){
+
   // campanillas rápidas tipo máquina 777
   const seq = [620,740,880,740,880,980,1100];
   let t = 0;
@@ -1260,7 +1271,7 @@ function spawnGain(x, y, text){
   el.style.position = 'fixed';          // fuera de la moneda, no se recorta
   el.style.left = x + 'px';
   el.style.top  = (y - 70) + 'px';
-  el.style.fontSize = '14px';
+  el.style.fontSize = '18px';
   el.style.fontWeight = '900';
   el.style.color = '#fff';
   el.style.pointerEvents = 'none';
@@ -1272,8 +1283,8 @@ function spawnGain(x, y, text){
   // animación más lenta y alta (no tocamos la altura)
   const anim = el.animate(
     [{ transform:'translateY(0)',   opacity:1 },
-     { transform:'translateY(-96px)', opacity:0 }],
-    { duration: 2400, easing:'cubic-bezier(.18,.9,.22,1)' }
+     { transform:'translateY(-100px)', opacity:0 }],
+    { duration: 3200, easing:'cubic-bezier(.18,.9,.22,1)' }
   );
   anim.onfinish = () => el.remove();
 
@@ -1361,11 +1372,19 @@ function popLabel(text, x, y, opt={}){
 
 
 function popLaugh(x, y){
-  popLabel('😂', x, y, { fontSize: 24, dy: -80, color:'#fff' });
+  popLabel('😂', x, y, { fontSize: 40, dy: -120, duration: 2200, color:'#fff' });
 }function popSparkle(x, y){
-  // brillo de éxito
-  popLabel('✨', x, y, { fontSize: 28, dy: -110, color:'#fff' });
+  function popSparkleSilent(x, y){
+  // brillo visual igual, pero sin reproducir 'nice'
+  popLabel('✨', x, y, { fontSize: 40, dy: -120, duration: 2200, color:'#fff' });
 }
+
+  // brillo de éxito
+  popLabel('✨', x, y, { fontSize: 40, dy: -120, duration:2200, color:'#fff' });
+ // NICE solo cuando aparece el brillo
+  if (typeof playSnd === 'function') playSnd('nice', { volume: 0.95 });
+}
+
 
 function popBadge(text){
   // centrado en la moneda
@@ -1479,6 +1498,8 @@ function tickWindow(){
       const r = coin.getBoundingClientRect();
       popLaugh(r.left + r.width/2, r.top + r.height/2);
     })();
+    playSnd('laugh', { volume: 0.9 });
+
 
     if (w.level >= 2){ combo.level = w.level - 1; }
     else { combo.level = 0; }
@@ -1549,6 +1570,10 @@ function spawnRainbowOrDecoy(){
 function startFrenzy(){
   // Igual que antes: activa Frenzy por FRENZY_MS y luego resetea a X1
   combo.frenzyUntil = performance.now() + FRENZY_MS;
+
+  if (typeof arcHide === 'function') arcHide();     // limpia estado previo
+  requestAnimationFrame(()=> startFrenzyArc());     // arranca el arco con un frame de respiro
+
   if (typeof soundFrenzy777 === 'function') soundFrenzy777();
   else if (typeof soundFrenzyStart === 'function') soundFrenzyStart();
 
@@ -1570,21 +1595,34 @@ function startFrenzy(){
 }
 
 function endRainbowChallenge(success){
+  clearTimeout(challenge.timerId);   // 👈 matar timer
+  
+  challenge.completed = true;
+
+
+  // 🔇 cortar música de tensión (hard stop + refuerzo)
+  stopSnd('tension');
+  setTimeout(()=> stopSnd('tension'), 50);
+
   challenge.active = false;
   clearTimeout(challenge.spawnTimer);
   stopChallengeArc();
   tagHide();
   hideHotSafe();
+
   if (success){
     // ✨ brillo centrado al ganar el desafío
 (function(){
   const r = coin.getBoundingClientRect();
   popSparkle(r.left + r.width/2, r.top + r.height/2);
 })();
+playSnd('freeze', { volume: 1.0 });
+    setTimeout(()=> playSnd('slot', { volume: 0.9, loop: true }), 400); // arranca un poco después
+    setTimeout(()=> stopSnd('slot'), 5500); // corta a los 5s
 startFrenzy(); // pasamos al Frenzy
 
   } else {
-    // falló → volver al base
+    playSnd('laugh', { volume: 0.9 });
     combo.level = 0;
     combo.progress = {1:0,2:0,3:0,4:0};
     updateBadge();
@@ -1592,7 +1630,12 @@ startFrenzy(); // pasamos al Frenzy
 }
 
 function startRainbowChallenge(){
+
+playSnd('rainbow', { volume: 1.0 });
+playSnd('tension', { volume: 0.7, loop: true });
+
   challenge.active = true;
+  challenge.completed = false;
   challenge.hits = 0;
   challenge.t0 = performance.now();
 
@@ -1605,40 +1648,62 @@ function startRainbowChallenge(){
  function autoSpawn(){
     if (!challenge.active) return;
     spawnRainbowOrDecoy();
-    challenge.spawnTimer = setTimeout(autoSpawn, randInt(600,1000)); 
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(900,1300)); 
   }
   autoSpawn();
 
-  // tiempo máximo (opcional, para que no se estanque)
+  clearTimeout(challenge.timerId); 
   challenge.timerId = setTimeout(()=>{
     if (challenge.active) endRainbowChallenge(false);
   }, RAINBOW.TOTAL_MS);
 }
 
 function handleChallengeTap(e){
-  // durante el desafío NO gastas energía NI ganas WLGp
-  // solo cuentan los toques al núcleo de la mancha 'rb'
+  if (!challenge.active || challenge.completed) return;
+
+  // Acierto en mancha arcoíris real (rb)
   const wasHit = (hotActive && hotSkin === 'rb' && typeof isInHot === 'function' && isInHot(e));
+  // Acierto en DECOY (usa el núcleo real para que sí detecte)
+  const hitDecoy = (hotActive && hotSkin === 'decoy' && typeof isInHotCore === 'function' && isInHotCore(e));
+
   if (wasHit){
-    challenge.hits += 1;
-    soundLevel(Math.min(5, challenge.hits)); // feedback corto
+     playSnd('tick', { volume: .8 });
+    challenge.hits = Math.min(RAINBOW.HITS, challenge.hits + 1);
+   
+    arcFlash();
+    if (typeof popSparkleSilent === 'function') {
+    popSparkleSilent(e.clientX, e.clientY);}
     tagShow(`DESAFÍO ${challenge.hits}/${RAINBOW.HITS}`, '#ffd872');
 
-    // feedback visual rápido
-    arcFlash();
-    popSparkle(e.clientX, e.clientY);
 
+      // 👇 Un tap por mancha: desaparecer al instante
+    clearTimeout(hotAutoTimer);
+    hotLocked = false;
+    hideHotSafe();
 
     if (challenge.hits >= RAINBOW.HITS){
-      endRainbowChallenge(true);
-      return;
+      challenge.completed = true;
+      clearTimeout(challenge.timerId);
+      clearTimeout(challenge.spawnTimer);
+      hotLocked = false;
+      hideHotSafe();
+      setTimeout(()=> endRainbowChallenge(true), 80);
     }
-  } else {
-    // si tocó fuera o en distractor, solo sonido de fallo sutil
-    if (hotActive) popLaugh(e.clientX, e.clientY);
-    soundMiss();
+    return;
   }
+
+  if (hitDecoy){
+   
+  if (hotActive) 
+    popLaugh(e.clientX, e.clientY);
+    playSnd('laugh', { volume: 0.9 });
+    soundMiss();
+    return;
+  }
+
+  // Tap fuera de cualquier cosa → ignorar (NO termina el desafío)
 }
+
 
 // — Spawn por TAP (real o decoy) —
 function maybeSpawnByTap(){
@@ -1672,6 +1737,53 @@ const $=q=>document.querySelector(q);
 
 
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
+
+/* === Audio divertido (samples + fallback) === */
+const SND = {
+  nice:    new Audio('snd/nice.mp3'),           // ✅ di “nice”
+  rainbow: new Audio('snd/rainbow_race.mp3'),   // ✅ “Rainbow Race”
+  freeze:  new Audio('snd/freeze.mp3'),         // ✅ “Freeze”
+  laugh:   new Audio('snd/laugh.mp3'),          // ✅ carcajada
+  slot:    new Audio('snd/slot_loop.mp3'),      // ✅ sonido tragamonedas (loop)
+  tension: new Audio('snd/tension_loop.mp3'),   // ✅ música tensión (loop)
+  tick:    new Audio('snd/tick.mp3')            // ✅ “tin” corto por tap de progreso
+};
+
+// Volúmenes recomendados
+SND.slot.loop = true;
+SND.tension.loop = true;
+[SND.nice, SND.rainbow, SND.freeze, SND.laugh, SND.tick].forEach(a => a && (a.preload = 'auto'));
+
+// Play seguro (si no existe el archivo → usa “tone” como fallback)
+function playSnd(name, {volume=1, loop=false} = {}){
+  const a = SND[name];
+  if (a && a.play){
+    try{
+      a.pause(); a.currentTime = 0;
+      a.loop = loop;
+      a.volume = volume;
+      a.play();
+      return;
+    }catch(e){}
+  }
+  // Fallback sintetizado
+  if (name === 'nice'){ tone(880,.10,'square',.09); setTimeout(()=>tone(1320,.08,'triangle',.08),120); }
+  else if (name === 'rainbow'){ tone(740,.10,'square',.10); setTimeout(()=>tone(920,.10,'triangle',.10),100); setTimeout(()=>tone(1100,.10,'triangle',.10),200); }
+  else if (name === 'freeze'){ tone(520,.12,'square',.10); setTimeout(()=>tone(420,.12,'triangle',.10),140); }
+  else if (name === 'laugh'){ // risita sintetizada
+    [680,520,740,520,620].forEach((f,i)=> setTimeout(()=> tone(f,.05,'sawtooth',.10), i*70));
+  }
+  else if (name === 'tick'){ tone(1400,.03,'square',.06); }
+  else if (name === 'slot'){ // “traga” corto repetible (simulación)
+    let t=0; for(let i=0;i<10;i++){ setTimeout(()=>tone(900+Math.random()*300,.04,'triangle',.06), t); t+=70; }
+  }
+  else if (name === 'tension'){ [360,420,380,460].forEach((f,i)=> setTimeout(()=> tone(f,.12,'triangle',.06), i*180)); }
+}
+
+function stopSnd(name){
+  const a = SND[name];
+  if (a && a.pause){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+}
 
 /* ===== Estado base (demo) ===== */
 const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.400;
@@ -1981,7 +2093,7 @@ function handleVote(key){
 
   // mensaje público
   const deltaTxt = (delta === 0) ? '±0%' : (delta>0 ? `+${delta}%` : `${delta}%`);
-  postActivity(`${user} reached <b>${optName}</b> (${deltaTxt})=<b>${afterPct}%</b>`);
+  postActivity(`${user} reached<b>${optName}</b>(${deltaTxt})=<b>${afterPct}%</b>`);
 
   alert('✅ Voto registrado');
     consumeTicketAndReset();
@@ -2114,7 +2226,8 @@ function updateTicketTimer(){
 
 // ==== Pago (DEV simulado o real con World App) ====
 if (payIdeasBtn){
-  payIdeasBtn.onclick = async () => {
+  payIdeasBtn.onclick = async (ev) => {
+    ev.preventDefault();
     if (window.WG_DEV_MODE){
       alert("✅ Ticket comprado (simulación DEV)");
       ideasPayView.style.display = 'none';
@@ -2124,27 +2237,30 @@ if (payIdeasBtn){
       return;
     }
 
-    try{
-      const { status, finalPayload } = await MiniKit.commandsAsync.verify({
-  action: "ideas",                    
-  verification_level: VerificationLevel.Device
-});
+   try{
+      const res = await MiniKit.commandsAsync.pay({
+        to: MERCHANT,
+        token: "WLD",
+        amount: "1",
+        reference: crypto.randomUUID()
+      });
 
 
-      if (status !== "success"){
+     if (res.status !== "success"){
         alert("❌ Pago cancelado");
         return;
       }
 
-      await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+      await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalPayload)
+        body: JSON.stringify(res)
       });
 
       alert("✅ Ticket Ideas comprado con éxito");
       ideasPayView.style.display = 'none';
       ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
       startTicketTimer(5);
 
     }catch(e){
@@ -2340,6 +2456,7 @@ coin.addEventListener('click', (e) => {
     popLaugh(cx, cy);
     soundMiss();
   }
+
 
 
   // Si estamos en cooldown por 0 energía → siempre 0.0000
