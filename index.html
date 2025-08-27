@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#1b103a">
 <style>
 :root{
+  -webkit-tap-highlight-color: transparent;
   --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
   --gold:#F4C542; --gold-soft:#FFD872;
   /* MÁS GRANDE y calzada */
@@ -160,35 +161,17 @@ body{
 .energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
 
 /* Drawer simple */
-.backdrop{position:fixed; inset:0;
-   background:rgba(0,0,0,.35);
-    opacity:0; pointer-events:none;
-     transition:opacity .2s;
-      z-index:40}
+.backdrop{
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.03), rgba(10,10,14,.88) 60%, rgba(0,0,0,.95) 100%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity:0; pointer-events:none;
+  transition: opacity .28s ease;
+  position:fixed; inset:0; z-index:40;
+}
 .backdrop.show{opacity:1; pointer-events:auto}
-.drawer{
-  position: fixed;
-  top: 0;
-  right: -380px;
-  width: min(360px, 92vw);
-  height: 100dvh;
-  background: linear-gradient(180deg, #1a1a1f 0%, #0a0a0a 100%);
-  border-left: 1px solid rgba(255,216,114,.18);
-  box-shadow: -6px 0 18px rgba(255,216,114,.08);
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
-  overflow: auto;
-  z-index: 60;
 
-  transition: right 0.45s cubic-bezier(0.22, 1, 0.36, 1), 
-              opacity 0.3s ease;
-/* sutil vidrio */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 
-}
-.drawer.show {
-  right: 0;
-}
 
 .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
   background:transparent; color:#fff; cursor:pointer; font-size:18px}
@@ -292,6 +275,7 @@ body{
 .msg-system .msg-time{ color: #ffd872; }
 /* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
 :root{
+  -webkit-tap-highlight-color: transparent;
   /* Ajusta aquí sin miedo */
   --logoSize: 10px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
 }
@@ -442,7 +426,7 @@ body{
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   .pulse, .refillPulse, .refillAlarm, .stars, .stars2, .splash__logo img { animation: none !important; }
-  .drawer { transition: right .01s linear !important; }
+  
 }
 
 /* Botón "Ideas" dentro de la moneda */
@@ -480,6 +464,7 @@ body{
 
 /* === Aviso neón: lista vertical en TOPBAR (ancho = píldora) === */
 :root{
+  -webkit-tap-highlight-color: transparent;
   --activityWidth: 260px;   /* lo ajusta el JS para igualar la píldora */
 }
 
@@ -587,7 +572,7 @@ body{
 }
 .textareaPro{min-height:90px;resize:vertical}
 /* === Drawers pro: entrada suave y panel elegante === */
-.drawer { transition: opacity .25s ease; }
+
 .drawer.open { opacity: 1 !important; }
 
 /* Panel interno del drawer (cuerpo) */
@@ -664,16 +649,6 @@ body{
 #payIdeasBtn { color: #fffcf6; }
 #claimBtn { color: #d1d0cc; }
 
-button:focus,
-button:focus-visible,
-a:focus,
-a:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-* {
-  -webkit-tap-highlight-color: rgba(255, 216, 114, 0.35); /* dorado suave */
-}
 /* === Drawer estilo Floating Card === */
 .drawer {
   position: fixed;
@@ -775,11 +750,6 @@ a:focus-visible {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0);   }
 }
-
-
-
-
-
 
 </style>
 </head>
@@ -1078,20 +1048,13 @@ a:focus-visible {
 </aside>
 
 
-<div id="demoSection">
-  <!-- Demo tools -->
-  <section class="card">
-    <h3 id="demoTitle" data-i18n="demo_title" style="margin:0 0 8px">Herramientas de prueba (demo)</h3>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button id="btnAddWLD">+5 WLD</button>
-      <button id="btnReset">Reset</button>
-    </div>
+
   </section>
 </div>
 
 <script>
 // 👇 Flag para mostrar/ocultar el demo
-const SHOW_DEMO = true;   // cámbialo a true si quieres activarlo
+const SHOW_DEMO = false;   // cámbialo a true si quieres activarlo
 const LITE_MODE = true;   // 🔦 Modo ligero activado
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
@@ -1504,6 +1467,7 @@ function popLaugh(x, y){
   // brillo de éxito
   popLabel('✨', x, y, { fontSize: 40, dy: -120, duration:2200, color:'#fff' });
  // NICE solo cuando aparece el brillo
+  if (typeof playSnd === 'function') playSnd('nice', { volume: 0.95 });
 }
 
 
@@ -1867,8 +1831,9 @@ const SND = {
   laugh:   new Audio('snd/laugh.mp3'),          // ✅ carcajada
   slot:    new Audio('snd/slot_loop.mp3'),      // ✅ sonido tragamonedas (loop)
   tension: new Audio('snd/tension_loop.mp3'),   // ✅ música tensión (loop)
-  tick:    new Audio('snd/tick.mp3'),          // ✅ “tin” corto por tap de progreso
-  join:    new Audio('snd/join.mp3)')
+  tick:    new Audio('snd/tick.mp3')            // ✅ “tin” corto por tap de progreso
+,
+  join: new Audio('snd/join.mp3')
 };
 
 // Volúmenes recomendados
@@ -2884,10 +2849,7 @@ function renderProfile(){
 
 /* ===== Init ===== */
 (function init(){
-  if (!SHOW_DEMO) {
-  const demo = document.getElementById("demoSection");
-  if (demo) demo.remove();   // elimina todo el bloque demo
-}
+  
   sizeCanvasToCoin();
   // Partículas de arranque para confirmar que se ven
   setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
@@ -3006,7 +2968,9 @@ function msg(t){ if(state){ state.textContent=t; state.style.opacity="1"; } }
 function unlock(){
   document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el=>el.style.pointerEvents="");
   if (splash){ splash.classList.add("splash--hide"); setTimeout(()=>splash.remove(),450); }
-playSnd('join', { volume: 0.9 });
+
+  // sonido de ingreso
+  playSnd('join', { volume: 0.9 });
 }
 function requireMiniKit(){
   if (DEV_MODE) return true; // en dev no exige World App
