@@ -4,6 +4,32 @@
 <meta charset="utf-8">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<!-- ✅ CSP etapa 1: compatible con scripts/estilos inline -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  font-src 'self';
+  connect-src 'self' https://cdn.jsdelivr.net https://worldgold-api-o87j.vercel.app;
+  media-src 'self';
+  frame-ancestors 'none';
+">
+<!-- Referrer mínima (no filtramos URL) -->
+<meta http-equiv="Referrer-Policy" content="no-referrer">
+
+<!-- Permissions-Policy: cerramos sensores/cámara/mic/etc. -->
+<meta http-equiv="Permissions-Policy" content="
+  accelerometer=(),
+  camera=(),
+  geolocation=(),
+  gyroscope=(),
+  magnetometer=(),
+  microphone=(),
+  payment=(),
+  usb=()
+">
+
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
 
@@ -825,7 +851,7 @@ body.has-drawer{
   <!-- Pastilla de WLGp: SOLO esto adentro -->
   <div class="pill">
     <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
-    WLGp: <b id="balWLGp">0.000</b>
+    WLGp: <b id="balWLGp" aria-live="polite">0.000</b>
   </div>
 
   <!-- Moneda (coin) — YA NO va dentro de .pill -->
@@ -1050,38 +1076,31 @@ body.has-drawer{
   <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
   <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
 </div>
-<div class="setting-item" style="display:flex;align-items:center;gap:10px;margin:12px 0;">
-  <input type="checkbox" id="liteToggle" />
-  <label for="liteToggle" style="user-select:none;cursor:pointer;">
-  <b data-i18n="lite_mode_label">Modo Lite</b>
-</label>
-
-
-</div>
 
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 
 </aside>
 
 <script>
+  window.VERIFIED = false;
+function setVerifiedUI(on){
+  const rb = document.getElementById('refillBtn');
+  const ib = document.getElementById('payIdeasBtn');
+  if (on){
+    rb?.removeAttribute('disabled');
+    ib?.removeAttribute('disabled');
+  }else{
+    rb?.setAttribute('disabled','');
+    ib?.setAttribute('disabled','');
+  }
+}
+  
+  // Clickjacking guard (defensa extra al CSP)
+try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
+
 // 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
-let LITE_MODE = JSON.parse(localStorage.getItem('lite_mode') ?? 'true'); // ON por defecto
-window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
-
-function applyLiteMode(){
-  // 1) Audio loops pesados
-  try {
-    if (LITE_MODE) {
-      if (window.SND?.slot)    { SND.slot.pause();    SND.slot.currentTime = 0; SND.slot.loop = false; }
-      if (window.SND?.tension) { SND.tension.pause(); SND.tension.currentTime = 0; SND.tension.loop = false; }
-    } else {
-      if (window.SND?.slot)    SND.slot.loop = true;
-      if (window.SND?.tension) SND.tension.loop = true;
-    }
-  } catch(_){}
-}
-applyLiteMode(); // aplicar al cargar
+window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -1175,13 +1194,18 @@ function applyComboTap(e){
   const now = performance.now();
 
   // 1) FRENZY: +5% de POWER_BASE extra (el base ya lo sumó addTap())
-  if (now < combo.frenzyUntil){
-    const extra = POWER_BASE * 0.05;
-    addTapAmount(extra);
-     setLastGainTotal(POWER_BASE + extra);
-    updateBadge();
-    return;
-  }
+if (now < combo.frenzyUntil){
+  const extra = POWER_BASE * 0.05;
+  addTapAmount(extra);
+  setLastGainTotal(POWER_BASE + extra);
+
+  // 👉 NUEVO: durante Frenzy sí suena tick.mp3
+  try { if (typeof playSnd === 'function') playSnd('tick', { volume: .7 }); } catch(_){}
+
+  updateBadge();
+  return;
+}
+
 
   // 2) Si hay ventana activa: cada tap suma extra y puede completar
 if (combo.window){
@@ -1484,17 +1508,14 @@ function popLabel(text, x, y, opt={}){
 
 function popLaugh(x, y){
   popLabel('😂', x, y, { fontSize: 40, dy: -120, duration: 2200, color:'#fff' });
-}function popSparkle(x, y){
-  function popSparkleSilent(x, y){
-  // brillo visual igual, pero sin reproducir 'nice'
-  popLabel('✨', x, y, { fontSize: 40, dy: -120, duration: 2200, color:'#fff' });
+}
+function popSparkle(x, y){
+  // Sin brillo visual (sin emoji ✨); conservamos solo el sonido NICE
+  try {
+    if (typeof playSnd === 'function') playSnd('nice', { volume: 0.95 });
+  } catch (_){}
 }
 
-  // brillo de éxito
-  popLabel('✨', x, y, { fontSize: 40, dy: -120, duration:2200, color:'#fff' });
- // NICE solo cuando aparece el brillo
-  if (typeof playSnd === 'function') playSnd('nice', { volume: 0.95 });
-}
 
 
 function popBadge(text){
@@ -1679,6 +1700,8 @@ function spawnRainbowOrDecoy(){
 }
 
 function startFrenzy(){
+  setTickModeMp3(true);
+
   // Igual que antes: activa Frenzy por FRENZY_MS y luego resetea a X1
   combo.frenzyUntil = performance.now() + FRENZY_MS;
 
@@ -1694,7 +1717,8 @@ function startFrenzy(){
   updateBadge();
 
   setTimeout(()=>{
-    if (performance.now() >= combo.frenzyUntil){
+        if (performance.now() >= combo.frenzyUntil){
+          setTickModeMp3(false);
       combo.level = 1;
       combo.progress = {1:0,2:0,3:0,4:0};
       combo.frenzyUntil = 0;
@@ -1706,6 +1730,8 @@ function startFrenzy(){
 }
 
 function endRainbowChallenge(success){
+  setTickModeMp3(false);
+
   clearTimeout(challenge.timerId);   // 👈 matar timer
   
   challenge.completed = true;
@@ -1741,6 +1767,8 @@ startFrenzy(); // pasamos al Frenzy
 }
 
 function startRainbowChallenge(){
+setTickModeMp3(true);
+
 
 playSnd('rainbow', { volume: 1.0 });
 playSnd('tension', { volume: 0.7, loop: true });
@@ -1848,7 +1876,8 @@ const $=q=>document.querySelector(q);
 
 
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
-
+window.__tickUseMp3 = false;
+window.setTickModeMp3 = (on) => { window.__tickUseMp3 = !!on; };
 
 // === Audio optimizado (WebAudio + fallback) ===
 (() => {
@@ -1873,14 +1902,25 @@ let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.Aud
       a.preload = (k==='tick' || k==='nice') ? 'auto' : 'metadata';
       tag[k] = a;
     }
-    window.playSnd = function(name, {volume=1, loop=false} = {}) {
-      if (window.LITE_MODE && (name==='slot' || name==='tension' || name==='rainbow')) return;
-      const a = tag[name];
-      if (!a) return;
-      try {
-        a.pause(); a.currentTime = 0; a.loop = loop; a.volume = volume; a.play();
-      } catch(e){}
-    };
+ // Fallback basado en <audio> (sin WebAudio)
+window.playSnd = function(name, { volume = 1, loop = false } = {}) {
+  // Tick: fuera de Rainbow/Frenzy NO reproducimos mp3 (el beep lo hace tone())
+  if (name === 'tick' && !window.__tickUseMp3) {
+    return;
+  }
+
+  const a = tag[name];
+  if (!a) return;
+
+  try {
+    a.pause();
+    a.currentTime = 0;
+    a.loop = !!loop;
+    a.volume = volume ?? 1;
+    a.play();
+  } catch (_) { /* noop */ }
+};
+
     window.stopSnd = function(name){
       const a = tag[name]; if (a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
     };
@@ -1890,7 +1930,6 @@ let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.Aud
   // --- WebAudio manager ---
   const Ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   const master = Ctx.createGain(); master.gain.value = 1; master.connect(Ctx.destination);
-
   const buffers = new Map();        // name -> AudioBuffer
   const loops   = new Map();        // name -> {src, gain}
   const lastHit = {};               // throttling (p.ej. 'tick')
@@ -1966,39 +2005,42 @@ let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.Aud
 
   // Precarga liviana en idle (golpes cortos)
   idle(() => { ['tick','nice','laugh','freeze'].forEach(n => loadBuffer(n).catch(()=>{})); });
-  // Loops (slot/tension/rainbow) solo se cargan cuando se pidan, o en no-lite
-  if (!window.LITE_MODE) idle(() => { ['slot','tension','rainbow'].forEach(n => loadBuffer(n).catch(()=>{})); });
+ // ===== WebAudio =====
+window.playSnd = async function(name, {volume=1, loop=false} = {}){
+  // Tick.mp3 solo en Rainbow/Frenzy; afuera no reproducimos el mp3
+  if (name === 'tick' && !window.__tickUseMp3) return;
 
-  // API pública (misma firma que usabas)
-  window.playSnd = async function(name, {volume=1, loop=false} = {}){
-    if (window.LITE_MODE && (name==='slot' || name==='tension' || name==='rainbow')) return;
+  // throttle para 'tick' (evita spam y jank)
+  if (name === 'tick') {
+    const now = performance.now();
+    if (lastHit.tick && now - lastHit.tick < 45) return;
+    lastHit.tick = now;
+  }
 
-    // throttle para 'tick' (evita spam y jank)
-    if (name === 'tick') {
-      const now = performance.now();
-      if (lastHit.tick && now - lastHit.tick < 45) return;
-      lastHit.tick = now;
-    }
+  try {
+    if (!buffers.has(name)) await loadBuffer(name);
+    if (loop) playLoop(name, volume);
+    else      playOnce(name, volume);
+  } catch(e) {
+    // Fallback mínimo con WebAudio si falla la carga
     try {
-      if (!buffers.has(name)) await loadBuffer(name);
-      if (loop) playLoop(name, volume);
-      else      playOnce(name, volume);
-    } catch(e) {
-      // último fallback: pitidos sintéticos
-      try {
-        // tono simple (reproduce la lógica de tu “tone”)
-        const o = Ctx.createOscillator(), g = Ctx.createGain();
-        o.type = 'triangle'; o.frequency.value = (name==='tick') ? 1400 : 560;
-        g.gain.value = 0.08 * volume;
-        o.connect(g).connect(master);
-        o.start();
-        g.gain.exponentialRampToValueAtTime(0.0001, Ctx.currentTime + 0.05);
-        o.stop(Ctx.currentTime + 0.07);
-      } catch(_){}
-    }
-  };
+      const o = Ctx.createOscillator(), g = Ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = (name==='tick') ? 1400 : 560;
+      g.gain.value = 0.08 * volume;
+      o.connect(g).connect(master);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, Ctx.currentTime + 0.05);
+      o.stop(Ctx.currentTime + 0.07);
+    } catch(_){}
+  }
+};
+
 
   window.stopSnd = function(name){ stopLoop(name); };
+  // Preload mínimo en idle (móvil)
+  ('requestIdleCallback' in window ? requestIdleCallback : cb=>setTimeout(cb,0))(()=>{
+    ['nice','laugh','freeze','tick'].forEach(n=>loadBuffer(n).catch(()=>{}));
+    });
 })();
 
 
@@ -2442,6 +2484,8 @@ function updateTicketTimer(){
 if (payIdeasBtn){
   payIdeasBtn.onclick = async (ev) => {
     ev.preventDefault();
+    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
     if (window.WG_DEV_MODE){
       {
         const cur = getLang(); const T = I18N[cur] || I18N.es;
@@ -2597,15 +2641,12 @@ function sizeCanvasToCoin(){
 addEventListener('resize', sizeCanvasToCoin);
 
 /* ===== Partículas con fallback ===== */
-let sparkle = null;
-if (!LITE_MODE) {
-  sparkle = new Image();
-  sparkle.src = 'img/sparkle.png';
-}
+let sparkle = new Image();
+sparkle.src = 'img/sparkle.png';
+
 
 let parts=[];
 function spawn(x,y){
-  if (LITE_MODE) return;  // 🔕 sin partículas en lite
   for(let i=0;i<10;i++){
     const a  = Math.random()*Math.PI*2;
     const sp = 1.3 + Math.random()*2.0;
@@ -2620,6 +2661,7 @@ function spawn(x,y){
     });
   }
 }
+
 
 
 function stepFX(dt){
@@ -2653,8 +2695,51 @@ function render(){
 
 
 /* ===== Tap logic ===== */
+// === Cola de taps → servidor ===
+let tapQueue = 0;
+async function flushTapQueue(){
+  if (!tapQueue || !window.SESSION_TOKEN) return;
+  try{
+    const resp = await fetch("https://worldgold-api-o87j.vercel.app/api/tapBatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
+    });
+    const data = await resp.json();
+    if (data?.ok && data?.token && data?.state){
+      // nuevo token firmado
+      window.SESSION_TOKEN = data.token;
+      // fuente autoritativa:
+      wld    = +data.state.wld;
+      wlgp   = +data.state.wlgp;
+      energy = +data.state.energy;
+      render?.();
+    }
+  }catch(e){ console.warn("flushTapQueue error", e); }
+  tapQueue = 0;
+}
+// cada ~4s
+setInterval(flushTapQueue, 4000);
+
 function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
+// Anti-autotap: rate limit
+let lastTapTime = 0;
+let tapCount = 0;
+
 coin.addEventListener('click', (e) => {
+  if (!window.VERIFIED) return; // 🔒 sin verificación no hay tap
+    // 🔒 Anti-autotap: ignorar clicks sintéticos
+  if (!e.isTrusted) return;
+    const nowMs = Date.now();
+  if (nowMs - lastTapTime < 1000) {
+    tapCount++;
+    if (tapCount > 12) return; // más de 12 taps en un segundo → ignorar
+  } else {
+    tapCount = 1;
+    lastTapTime = nowMs;
+  }
+
+
   if (typeof lazyRegen === 'function') lazyRegen();
 
   const now = performance.now();
@@ -2713,7 +2798,8 @@ coin.addEventListener('click', (e) => {
   // Había energía suficiente → base + posible bonus (ventana)
   spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
   applyComboTap(e);
-
+ // 👇 Cola servidor: sumamos 1 tap (se sincroniza en lote)
+  tapQueue++;
   maybeSpawnByTap?.();
   render?.();
   updateRefillCue();
@@ -2835,22 +2921,67 @@ if (resetBtn) {
   });
 }
 
-/* ===== Main loop (FX + regeneración visible) ===== */
-let tPrev = performance.now();
-function frame(t){
-  const dt = t - tPrev; tPrev = t;
-  if (!LITE_MODE) stepFX(dt);             // partículas/sombras
-  requestAnimationFrame(frame);
+/* ===== OPF: Orquestador Presupuestado de Frames (≤8ms) + integración ===== */
+const BUDGET_MS = 8;
+const OPF_Q = { now: [], next: [], idle: [] };
+let OPF_over = 0;
+
+function opfNow(fn){ OPF_Q.now.push(fn); }
+function opfNext(fn){ OPF_Q.next.push(fn); }
+function opfIdle(fn){ OPF_Q.idle.push(fn); }
+
+function __opfTick(){
+  const start = performance.now();
+  let i = 0;
+  for (; i < OPF_Q.now.length; i++){
+    try { OPF_Q.now[i](); } catch(e){}
+    if (performance.now() - start > BUDGET_MS){
+      OPF_Q.next = OPF_Q.now.slice(i+1).concat(OPF_Q.next);
+      OPF_over++;
+      break;
+    }
+  }
+  OPF_Q.now = OPF_Q.next;
+  OPF_Q.next = [];
+  if (OPF_Q.idle.length){
+    const runIdle = () => {
+      const t0 = performance.now();
+      const B = 12;
+      while (OPF_Q.idle.length && (performance.now() - t0) < B){
+        try { OPF_Q.idle.shift()(); } catch(e){}
+      }
+    };
+    if ('requestIdleCallback' in window) requestIdleCallback(runIdle, { timeout: 60 });
+    else setTimeout(runIdle, 0);
+  }
+  if (OPF_over > 3){ document.body.dataset.lowpower = '1'; OPF_over = 0; }
+  requestAnimationFrame(__opfTick);
 }
-requestAnimationFrame(frame);
+requestAnimationFrame(__opfTick);
 
-// Regeneración y UI cada 250 ms (sube 1 en 1 a su ritmo)
+/* ===== Integración: FX por frame y Regen/UI temporizados ===== */
+let __tPrev = performance.now();
+function __fxStepTask(){
+  const t = performance.now();
+  const dt = t - __tPrev; __tPrev = t;
+  if (typeof stepFX === 'function') stepFX(dt);
+}
+
+(function __enqueueFX(){
+  opfNow(__fxStepTask);
+  requestAnimationFrame(__enqueueFX);
+})();
+
 const REGEN_UI_MS = 500;
-setInterval(() => {
-  lazyRegen();            // calcula energía con tiempo real
-  render();               // actualiza barra y números
-}, REGEN_UI_MS);
-
+let __nextRU = performance.now();
+(function __scheduleRU(){
+  const now = performance.now();
+  if (now >= __nextRU){
+    __nextRU = now + REGEN_UI_MS;
+    opfNow(() => { try{ lazyRegen(); }catch(_){} try{ render(); }catch(_){} });
+  }
+  requestAnimationFrame(__scheduleRU);
+})();
 
 /* ===== Perfil: nombre de usuario + idioma ===== */
 /* Helpers sin TDZ */
@@ -2922,7 +3053,6 @@ const I18N = {
     sug_sent_private: '✅ Sugerencia enviada (privada)',
     ticket_expired: '⛔ Ticket vencido',
     ticket_bought_dev: '✅ Ticket comprado (simulación DEV)',
-    lite_mode_label: 'Modo Lite',
     preparing_session: 'Preparando tu sesión',
 
   
@@ -2980,7 +3110,6 @@ en: {
     sug_sent_private: '✅ Suggestion sent (private)',
     ticket_expired: '⛔ Ticket expired',
     ticket_bought_dev: '✅ Ticket purchased (DEV simulation)',
-    lite_mode_label: 'Lite Mode',
     preparing_session: 'Preparing your session',
 
   
@@ -3129,35 +3258,6 @@ updateBadge(); // inicia oculto en base
   };
 })();
 
-// ===== Toggle Lite Mode (Perfil) =====
-(function(){
-  const el = document.getElementById('liteToggle');
-  if (!el) return;
-
-  // Estado inicial (ON por defecto)
-  el.checked = !!LITE_MODE;
-
-  el.addEventListener('change', () => {
-    LITE_MODE = el.checked;
-    localStorage.setItem('lite_mode', JSON.stringify(LITE_MODE));
-    applyLiteMode();
-    try { playSnd('nice', { volume: 0.5 }); } catch(_) {}
-  });
-})();
-
-// ===== Warm-up en idle (solo si LITE está OFF) =====
-(function(){
-  const warm = () => {
-    if (LITE_MODE) return;
-    const list = ['slot','tension','rainbow'];
-    list.forEach(n => { try { SND[n]?.load?.(); } catch(_) {} });
-  };
-
-  // requestIdleCallback (o fallback a setTimeout)
-  const idle = window.requestIdleCallback || function(cb){ setTimeout(cb, 700); };
-  idle(warm);
-})();
-
 // ===== Lazy images (excepto las marcadas data-critical) =====
 (function(){
   const imgs = document.querySelectorAll('img:not([data-critical])');
@@ -3188,6 +3288,14 @@ updateBadge(); // inicia oculto en base
   // Llamada inicial por si ya hay alguno abierto al cargar
   update();
 })();
+// 🔒 Anti-autotap: pausar juego si está en background
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    noEnergyUntil = performance.now() + 9999999; // bloquea mientras esté oculto
+  } else {
+    noEnergyUntil = 0; // desbloquea al volver
+  }
+});
 
 </script>
 <script>
@@ -3210,6 +3318,13 @@ updateBadge(); // inicia oculto en base
 <script type="module">
 // ===== MiniKit World App — Bloque mínimo con DEV =====
 const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
+// 👇 Solo para DEV: desbloquear juego sin verificar cada vez
+if (DEV_MODE) {
+  window.VERIFIED = true;
+  window.SESSION_TOKEN = 'dev-' + (crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+  setVerifiedUI?.(true);
+  try { unlock?.(); } catch (_) {}
+}
 
 let MiniKit, VerificationLevel;
 
@@ -3283,6 +3398,24 @@ async function startVerify(){
       body: JSON.stringify(finalPayload)
     });
 
+        const vr = await r.json();
+              if (vr?.ok){
+        window.VERIFIED = true;
+        setVerifiedUI?.(true);
+      } else {
+        window.VERIFIED = false;
+        setVerifiedUI?.(false);
+        alert("Verificación inválida. Inténtalo de nuevo.");
+        return;
+      }
+
+    if (!vr?.ok || !vr?.token){
+      if (btn) btn.disabled = false;
+      msg("Verificación inválida en servidor.");
+      return;
+    }
+    window.SESSION_TOKEN = vr.token; // 👈 guardamos token firmada en memoria (no localStorage)
+
     if (!r.ok){
       if (btn) btn.disabled = false;
       msg("Verificación inválida en servidor.");
@@ -3304,6 +3437,8 @@ if (btn) btn.addEventListener("click", startVerify);
 // === Pago (Refill) ===
 async function payRefill(){
   if (!requireMiniKit()) return;
+  if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
 
   if (DEV_MODE){
     alert("✅ DEV: Pago simulado de 0.10 WLD");
@@ -3319,6 +3454,7 @@ async function payRefill(){
     });
 
     if (res.status === "success"){
+      
       try {
         await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
           method: "POST",
@@ -3326,6 +3462,9 @@ async function payRefill(){
           body: JSON.stringify(res)
         });
       } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
+            // ➜ cargar la energía y descontar el WLD en el cliente
+      try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
+
       alert("✅ Pago realizado");
     } else {
       alert("Pago cancelado");
@@ -3342,6 +3481,10 @@ if (refillBtn){
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
 
+<footer style="text-align:center;opacity:.7;font-size:12px;margin:18px 0">
+  <a href="#" onclick="alert('Pronto');return false;">Términos</a> ·
+  <a href="#" onclick="alert('Pronto');return false;">Privacidad</a>
+</footer>
 
 
 </body>
