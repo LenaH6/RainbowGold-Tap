@@ -189,31 +189,8 @@ body{
   .price-pill{font-size:13px; padding:3px 6px}
   .action-dock{gap:10px}
 }/* === Estrellas sutiles === */
-.stars, .stars2{
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-repeat: repeat;
-  z-index: 0;
-}
 
-.stars{
-  background-image: radial-gradient(rgba(255,255,255,.30) 2.1px, transparent 1px);
-  background-size: 70px 70px;   /* menos densas */
-  opacity: .40;                   /* más suave */
-  animation: stars-pan 160s linear infinite;
-}
 
-.stars2{
-  background-image: radial-gradient(rgba(173,216,230,.2) 1.76px, transparent 1px);
-  background-size: 30px 30px;     /* un poco más densas que la capa 1 */
-  opacity: .30;
-  animation: stars-pan 220s linear infinite reverse;
-}
-@keyframes stars-pan {
-  from { background-position: 0 0; }
-  to   { background-position: -2000px -1200px; }
-}
 
 /* Hover suave dorado en iconos */
 .fab img {
@@ -427,11 +404,6 @@ body{
   75% { transform: translateX(2px); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-  .pulse, .refillPulse, .refillAlarm, .stars, .stars2, .splash__logo img { animation: none !important; }
-  
-}
 
 /* Botón "Ideas" dentro de la moneda */
 .idea-btn{
@@ -804,18 +776,15 @@ body.has-drawer{
 </button>
 
   
-  <div id="wldState" class="splash__hint" 
-     style="margin-top:10px;opacity:1;transform:translateY(0)">
-  Preparando tu sesión<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+ <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
+  <span data-i18n="preparing_session">Preparando tu sesión</span>
+  <span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
 
 
+
 </div>
 
-
-
-  <div class="stars"></div>
-  <div class="stars2"></div>
 <!-- Left FABs -->
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Profile">
@@ -949,7 +918,7 @@ body.has-drawer{
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 data-i18n="boosters_title">Impulsores</h3>
-  <p style="opacity:.85" data-i18n="coming_soon">Proximamente</p>
+  <p style="opacity:.85" data-i18n="coming_soon">Proximamente... ✔</p>
 </aside>
 
 
@@ -975,6 +944,7 @@ body.has-drawer{
   <span data-i18n="ideas_pay_btn">Comprar ticket</span>
   <span class="price-pill"><b>1 WLD 🎟️</b></span>
 </button>
+</div>
 
 
   <!-- Vista desbloqueada: opciones -->
@@ -1083,8 +1053,10 @@ body.has-drawer{
 <div class="setting-item" style="display:flex;align-items:center;gap:10px;margin:12px 0;">
   <input type="checkbox" id="liteToggle" />
   <label for="liteToggle" style="user-select:none;cursor:pointer;">
-    <b>Lite Mode</b>
-  </label>
+  <b data-i18n="lite_mode_label">Modo Lite</b>
+</label>
+
+
 </div>
 
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
@@ -1106,17 +1078,6 @@ function applyLiteMode(){
     } else {
       if (window.SND?.slot)    SND.slot.loop = true;
       if (window.SND?.tension) SND.tension.loop = true;
-    }
-  } catch(_){}
-
-  // (opcional) quitar/poner efectos visuales pesados
-  try {
-    if (LITE_MODE) {
-      document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
-    } else {
-      if (!document.querySelector('.stars'))  { const s=document.createElement('div'); s.className='stars';  document.body.appendChild(s); }
-      if (!document.querySelector('.stars2')) { const s=document.createElement('div'); s.className='stars2'; document.body.appendChild(s); }
-      if (!document.querySelector('.noise'))  { const n=document.createElement('div'); n.className='noise'; n.setAttribute('aria-hidden','true'); document.body.appendChild(n); }
     }
   } catch(_){}
 }
@@ -1888,65 +1849,158 @@ const $=q=>document.querySelector(q);
 
 let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
 
-/* === Audio divertido (samples + fallback) === */
-const SND = {
-  nice:    new Audio('snd/nice.mp3'),           // ✅ di “nice”
-  rainbow: new Audio('snd/rainbow_race.mp3'),   // ✅ “Rainbow Race”
-  freeze:  new Audio('snd/freeze.mp3'),         // ✅ “Freeze”
-  laugh:   new Audio('snd/laugh.mp3'),          // ✅ carcajada
-  slot:    new Audio('snd/slot_loop.mp3'),      // ✅ sonido tragamonedas (loop)
-  tension: new Audio('snd/tension_loop.mp3'),   // ✅ música tensión (loop)
-  tick:    new Audio('snd/tick.mp3')            // ✅ “tin” corto por tap de progreso
-,
-  join: new Audio('snd/join.mp3')
-};
 
-// Volúmenes recomendados
-SND.slot.loop = true;
-SND.tension.loop = true;
-// Preload mínimo: nada por defecto (salvo el de ingreso 'join')
-[SND.nice, SND.rainbow, SND.freeze, SND.laugh, SND.tick, SND.slot, SND.tension]
-  .forEach(a => a && (a.preload = 'none'));
-if (SND.join) SND.join.preload = 'auto';
+// === Audio optimizado (WebAudio + fallback) ===
+(() => {
+  const hasWA = !!(window.AudioContext || window.webkitAudioContext);
+  const manifest = {
+    nice:'snd/nice.mp3',
+    rainbow:'snd/rainbow_race.mp3',
+    freeze:'snd/freeze.mp3',
+    laugh:'snd/laugh.mp3',
+    slot:'snd/slot_loop.mp3',
+    tension:'snd/tension_loop.mp3',
+    tick:'snd/tick.mp3',
+    join:'snd/join.mp3'
+  };
 
+  // --- Fallback súper simple si no hay WebAudio (mantiene API) ---
+  if (!hasWA) {
+    const tag = {};
+    for (const k in manifest) {
+      const a = new Audio(manifest[k]);
+      if (k==='slot' || k==='tension') a.loop = true;
+      a.preload = (k==='tick' || k==='nice') ? 'auto' : 'metadata';
+      tag[k] = a;
+    }
+    window.playSnd = function(name, {volume=1, loop=false} = {}) {
+      if (window.LITE_MODE && (name==='slot' || name==='tension' || name==='rainbow')) return;
+      const a = tag[name];
+      if (!a) return;
+      try {
+        a.pause(); a.currentTime = 0; a.loop = loop; a.volume = volume; a.play();
+      } catch(e){}
+    };
+    window.stopSnd = function(name){
+      const a = tag[name]; if (a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+    };
+    return;
+  }
 
-// --- Lite/Dev: silenciar loops pesados ---
-if (LITE_MODE) {
-  try { SND.slot.pause(); SND.slot.currentTime = 0; SND.slot.loop = false; } catch(_) {}
-  try { SND.tension.pause(); SND.tension.currentTime = 0; SND.tension.loop = false; } catch(_) {}
-}
+  // --- WebAudio manager ---
+  const Ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  const master = Ctx.createGain(); master.gain.value = 1; master.connect(Ctx.destination);
 
-// Play seguro (si no existe el archivo → usa “tone” como fallback)
-function playSnd(name, {volume=1, loop=false} = {}){
-  if (LITE_MODE && (name === 'slot' || name === 'tension' || name === 'rainbow')) return;
-  const a = SND[name];
-  if (a && a.play){
-    try{
-      a.pause(); a.currentTime = 0;
-      a.loop = loop;
-      a.volume = volume;
-      a.play();
+  const buffers = new Map();        // name -> AudioBuffer
+  const loops   = new Map();        // name -> {src, gain}
+  const lastHit = {};               // throttling (p.ej. 'tick')
+
+  function resumeOnGestureOnce(){
+    const resume = () => { Ctx.resume().catch(()=>{}); cleanup(); };
+    const cleanup = () => {
+      window.removeEventListener('pointerdown', resume, true);
+      window.removeEventListener('keydown', resume, true);
+      window.removeEventListener('touchstart', resume, true);
+    };
+    window.addEventListener('pointerdown', resume, true);
+    window.addEventListener('keydown', resume, true);
+    window.addEventListener('touchstart', resume, true);
+  }
+  resumeOnGestureOnce();
+
+  // Suspender en background para ahorrar batería/CPU
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { Ctx.suspend().catch(()=>{}); }
+    else { Ctx.resume().catch(()=>{}); }
+  });
+
+  function idle(fn){ ('requestIdleCallback' in window) ? requestIdleCallback(fn, {timeout:1500}) : setTimeout(fn,0); }
+
+  async function loadBuffer(name){
+    if (buffers.has(name)) return buffers.get(name);
+    const url = manifest[name];
+    const resp = await fetch(url);
+    const ab   = await resp.arrayBuffer();
+    const buf  = await Ctx.decodeAudioData(ab);
+    buffers.set(name, buf);
+    return buf;
+  }
+
+  function playOnce(name, volume=1){
+    const nodeGain = Ctx.createGain();
+    nodeGain.gain.value = volume;
+    nodeGain.connect(master);
+    const src = Ctx.createBufferSource();
+    src.buffer = buffers.get(name);
+    src.connect(nodeGain);
+    src.start();
+    // liberar al terminar
+    src.onended = () => { nodeGain.disconnect(); };
+  }
+
+  function playLoop(name, volume=1){
+    // si ya está sonando, solo ajusta volumen
+    if (loops.has(name)) {
+      const obj = loops.get(name);
+      obj.gain.gain.setTargetAtTime(volume, Ctx.currentTime, 0.01);
       return;
-    }catch(e){}
+    }
+    const g = Ctx.createGain(); g.gain.value = volume; g.connect(master);
+    const src = Ctx.createBufferSource();
+    src.buffer = buffers.get(name);
+    src.loop = true;
+    src.connect(g);
+    src.start();
+    loops.set(name, { src, gain: g });
   }
-  // Fallback sintetizado
-  if (name === 'nice'){ tone(880,.10,'square',.09); setTimeout(()=>tone(1320,.08,'triangle',.08),120); }
-  else if (name === 'rainbow'){ tone(740,.10,'square',.10); setTimeout(()=>tone(920,.10,'triangle',.10),100); setTimeout(()=>tone(1100,.10,'triangle',.10),200); }
-  else if (name === 'freeze'){ tone(520,.12,'square',.10); setTimeout(()=>tone(420,.12,'triangle',.10),140); }
-  else if (name === 'laugh'){ // risita sintetizada
-    [680,520,740,520,620].forEach((f,i)=> setTimeout(()=> tone(f,.05,'sawtooth',.10), i*70));
-  }
-  else if (name === 'tick'){ tone(1400,.03,'square',.06); }
-  else if (name === 'slot'){ // “traga” corto repetible (simulación)
-    let t=0; for(let i=0;i<10;i++){ setTimeout(()=>tone(900+Math.random()*300,.04,'triangle',.06), t); t+=70; }
-  }
-  else if (name === 'tension'){ [360,420,380,460].forEach((f,i)=> setTimeout(()=> tone(f,.12,'triangle',.06), i*180)); }
-}
 
-function stopSnd(name){
-  const a = SND[name];
-  if (a && a.pause){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
-}
+  function stopLoop(name){
+    const obj = loops.get(name);
+    if (!obj) return;
+    // fade out corto
+    obj.gain.gain.setTargetAtTime(0.0001, Ctx.currentTime, 0.03);
+    try { obj.src.stop(Ctx.currentTime + 0.035); } catch(e){}
+    setTimeout(() => { obj.gain.disconnect(); }, 60);
+    loops.delete(name);
+  }
+
+  // Precarga liviana en idle (golpes cortos)
+  idle(() => { ['tick','nice','laugh','freeze'].forEach(n => loadBuffer(n).catch(()=>{})); });
+  // Loops (slot/tension/rainbow) solo se cargan cuando se pidan, o en no-lite
+  if (!window.LITE_MODE) idle(() => { ['slot','tension','rainbow'].forEach(n => loadBuffer(n).catch(()=>{})); });
+
+  // API pública (misma firma que usabas)
+  window.playSnd = async function(name, {volume=1, loop=false} = {}){
+    if (window.LITE_MODE && (name==='slot' || name==='tension' || name==='rainbow')) return;
+
+    // throttle para 'tick' (evita spam y jank)
+    if (name === 'tick') {
+      const now = performance.now();
+      if (lastHit.tick && now - lastHit.tick < 45) return;
+      lastHit.tick = now;
+    }
+    try {
+      if (!buffers.has(name)) await loadBuffer(name);
+      if (loop) playLoop(name, volume);
+      else      playOnce(name, volume);
+    } catch(e) {
+      // último fallback: pitidos sintéticos
+      try {
+        // tono simple (reproduce la lógica de tu “tone”)
+        const o = Ctx.createOscillator(), g = Ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = (name==='tick') ? 1400 : 560;
+        g.gain.value = 0.08 * volume;
+        o.connect(g).connect(master);
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.0001, Ctx.currentTime + 0.05);
+        o.stop(Ctx.currentTime + 0.07);
+      } catch(_){}
+    }
+  };
+
+  window.stopSnd = function(name){ stopLoop(name); };
+})();
+
 
 /* ===== Estado base (demo) ===== */
 const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
@@ -2734,7 +2788,27 @@ document.addEventListener('keydown', (e) => {
 
 /* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
 if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
-if (ideasBtn) ideasBtn.onclick = () => openDrawer('ID');
+if (ideasBtn) {
+  ideasBtn.onclick = () => {
+    openDrawer('ID');
+
+    // vistas: pago / opciones / encuesta / sugerencia
+    const pay  = document.getElementById('ideasPayView');
+    const opts = document.getElementById('ideasOptionsView');
+    const poll = document.getElementById('ideasPollView');
+    const sugg = document.getElementById('ideasSuggestView');
+
+    // si no hay ticket activo, muestra "Comprar"; si hay, muestra "Opciones"
+    if (window.ideasTicketActive) {
+      if (pay)  pay.style.display  = 'none';
+      if (opts) opts.style.display = 'block';
+    } else {
+      if (pay)  pay.style.display  = 'block';
+      if (opts) opts.style.display = 'none';
+    }
+
+    if (poll) poll.style.display = 'none';
+    if (sugg) sugg.style.display = 'none';};}
 
 
 
@@ -2798,7 +2872,7 @@ function setUsername(v){
 const I18N = {
   es: {
     wld_balance:   'Saldo WLD:',
-    coming_soon:   'Próximamente... ✔',
+    coming_soon:   'Próximamente',
     inbox_title:   'Buzón',
     boosters_title:'Impulsores',
     profile_title: 'Perfil',
@@ -2848,13 +2922,15 @@ const I18N = {
     sug_sent_private: '✅ Sugerencia enviada (privada)',
     ticket_expired: '⛔ Ticket vencido',
     ticket_bought_dev: '✅ Ticket comprado (simulación DEV)',
+    lite_mode_label: 'Modo Lite',
+    preparing_session: 'Preparando tu sesión',
 
   
   },
 
 en: {
     wld_balance:   'WLD Balance:',
-    coming_soon:   'Coming Soon... ✔',
+    coming_soon:   'Coming Soon',
     inbox_title:   'Inbox',
     boosters_title:'Boosters',
     profile_title: 'Profile',
@@ -2904,6 +2980,8 @@ en: {
     sug_sent_private: '✅ Suggestion sent (private)',
     ticket_expired: '⛔ Ticket expired',
     ticket_bought_dev: '✅ Ticket purchased (DEV simulation)',
+    lite_mode_label: 'Lite Mode',
+    preparing_session: 'Preparing your session',
 
   
   
