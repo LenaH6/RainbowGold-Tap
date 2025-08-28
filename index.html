@@ -4,8 +4,12 @@
 <meta charset="utf-8">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
+
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
+
 <style>
 :root{
   -webkit-tap-highlight-color: transparent;
@@ -750,6 +754,37 @@ body{
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0);   }
 }
+/* ===== Drawers optimizados ===== */
+.drawer{
+  transform: translate3d(0,100%,0);
+  transition: transform .28s ease, opacity .28s ease;
+  will-change: transform, opacity;
+  contain: layout paint;
+}
+.drawer.drawer--open{
+  transform: translate3d(0,0,0);
+}
+
+.backdrop{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.backdrop.backdrop--show{
+  opacity: .85;        /* ajusta si quieres más/menos oscuro */
+  pointer-events: auto;
+}
+
+/* Menos mareo para quienes prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce){
+  .drawer, .backdrop { transition: none !important; }
+}
+/* Evita scroll del fondo cuando hay drawer abierto */
+body.has-drawer{
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
 
 </style>
 </head>
@@ -757,16 +792,18 @@ body{
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
   <div class="splash__logo">
-    <img src="img/logo-splash.png" alt="WorldGold" onerror="this.style.display='none'">
+    <img src="img/logo-splash.png" alt="WorldGold" data-critical fetchpriority="high" decoding="async">
+
   </div>
 
-  <button id="wldSignIn"
-    style="margin-top:18px;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
-           background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
-           color:#fff;font-weight:700;cursor:pointer">
-    Sign in with World ID
-  </button>
+  <button id="wldSignIn" data-i18n="signin_wld"
+  style="margin-top:18px;padding:12px 16px;border-radius:12px;
+         background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+         color:#fff;font-weight:700;cursor:pointer">
+  Entrar con World ID
+</button>
 
+  
   <div id="wldState" class="splash__hint" 
      style="margin-top:10px;opacity:1;transform:translateY(0)">
   Preparando tu sesión<span class="dots"><span>.</span><span>.</span><span>.</span></span>
@@ -912,7 +949,7 @@ body{
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
   <h3 data-i18n="boosters_title">Impulsores</h3>
-  <p style="opacity:.85">Coming Soon... ✔</p>
+  <p style="opacity:.85" data-i18n="coming_soon">Proximamente</p>
 </aside>
 
 
@@ -923,45 +960,48 @@ body{
 <div id="inboxList" class="inbox-list cardPro"></div>
 <button id="markRead" class="btn-icon" data-i18n="mark_read"><i>Marcar como leído</i></button>
 </aside>
-<!-- Drawer Perfil -->
+<!-- Drawer IDEAS -->
  <div id="backdropID" class="backdrop"></div>
 <aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
-  <h3>Ideas</h3>
+ <h3 data-i18n="ideas_title">Ideas</h3>
+
 
   <!-- Vista inicial: pagar -->
   <div id="ideasPayView" class="cardPro"> 
-    <p>¡Sé parte de los desarrolladores y carrera con la comunidad <b>PARTICIPA!</b>.</p>
-    <button id="payIdeasBtn" class="btn-icon">
-      <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
-      <span><b>1 WLD 🎟️</b></span>
-    </button>
-  </div>
+   <p data-i18n="ideas_pay_intro">¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!</p>
+  <button id="payIdeasBtn" class="btn-icon">
+  <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
+  <span data-i18n="ideas_pay_btn">Comprar ticket</span>
+  <span class="price-pill"><b>1 WLD 🎟️</b></span>
+</button>
+
 
   <!-- Vista desbloqueada: opciones -->
   <div id="ideasOptionsView" class="cardPro" style="display:none">
-    <p><b>Escoge una opción</b>
-
-    </p>
-    <p id="ticketTimer" style="margin:10px 0;font-size:14px;color:#ffd872;font-weight:bold">
-    Tiempo restante: 05:00
+  <p><b data-i18n="ideas_choose">Escoge una opción</b></p>
+  <p id="ticketTimer" style="margin:10px 0;font-size:14px;color:#ffd872;font-weight:bold">
+  Tiempo restante: 05:00
+  </p>
+  <button id="voteBtn" class="btn-icon btnPro"><b data-i18n="vote">Votar✍️</b></button>
+  <button id="suggestBtn" class="btn-icon btnPro"><b data-i18n="suggest">Sugerencia💡</b></button>
+  <p style="font-size:12px;opacity:.6;margin-top:6px">
+  <i data-i18n="each_action_consumes">*Cada acción consume 1 ticket</i>
   </p>
 
-    <button id="voteBtn" class="btn-icon btnPro"><b>Votar✍️</b></button>
-    <button id="suggestBtn" class="btn-icon btnPro"><b>Sugerencia💡</b></button>
-    <p style="font-size:12px;opacity:.6;margin-top:6px"><i>*Cada acción consume 1 ticket</i></p>
   </div>
   <!-- Vista: Encuesta -->
 <div id="ideasPollView" class="cardPro" style="display:none">
-  <h4 style="margin:6px 0 8px">🏁 EMPIEZA LA CARRERA!</h4>
-  <p class="hint"><b>TÚ ELIGES💊</b></p>
+<h4 style="margin:6px 0 8px" data-i18n="poll_title">🏁 ¡EMPIEZA LA CARRERA!</h4>
+<p class="hint"><b data-i18n="poll_hint">TÚ ELIGES💊</b></p>
+
 
   <!-- Opciones -->
   <div style="display:grid; gap:8px; margin:10px 0 12px;">
-    <button class="btn" id="pollOptA"><b>Comodidad/Seguridad🔵</b></button>
-    <button class="btn" id="pollOptB"><b>Cambio/Riesgo🔴</b></button>
-    <button class="btn" id="pollOptC"><b>Autotap 🤖</b></button>
-  </div>
+    <button class="btn" id="pollOptA"><b data-i18n="opt_a">Comodidad/Seguridad🔵</b></button>
+<button class="btn" id="pollOptB"><b data-i18n="opt_b">Cambio/Riesgo🔴</b></button>
+<button class="btn" id="pollOptC"><b data-i18n="opt_c">Autotap 🤖</b></button>
+</div>
 
   <!-- Resultados (barras simples) -->
   <div id="pollResults" style="display:none; margin-top:10px;">
@@ -989,23 +1029,21 @@ body{
   </div>
 
   <div style="display:flex;gap:8px;margin-top:12px;">
-    <button class="btn" id="pollClose">Cerrar</button>
+   <button class="btn" id="pollClose" data-i18n="poll_close">Cerrar</button>
   </div>
 </div>
 
 <!-- Vista: Enviar sugerencia -->
 <div id="ideasSuggestView" class="cardPro" style="display:none">
-  <h4 style="margin:6px 0 8px">¿Alguna idea?</h4>
-  <p class="hint"><b>Máx. 400 caracteres.</b></p>
+  <h4 style="margin:6px 0 8px" data-i18n="suggest_title">¿Alguna idea?</h4>
+<p class="hint"><b data-i18n="suggest_hint">Máx. 400 caracteres.</b></p>
+<textarea id="suggestText" class="textareaPro" rows="5" maxlength="240"
+  data-i18n-placeholder="placeholder_suggest"
+  placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
 
-  <textarea id="suggestText" class="textareaPro" rows="5" maxlength="240" placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
-  <div style="display:flex;justify-content:space-between;margin-top:8px;">
-    <span class="hint"><span id="sugCount">0</span>/240</span>
-    <button class="btn" id="sendSuggestBtn">Enviar</button>
-  </div>
+<button class="btn" id="sendSuggestBtn" data-i18n="send">Enviar</button>
+<button class="btn" id="sugClose" data-i18n="close">Cerrar</button>
 
-  <div style="display:flex;gap:8px;margin-top:10px;">
-    <button class="btn" id="sugClose">Cerrar</button>
   </div>
 </div>
 
@@ -1042,20 +1080,47 @@ body{
   <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
   <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
 </div>
+<div class="setting-item" style="display:flex;align-items:center;gap:10px;margin:12px 0;">
+  <input type="checkbox" id="liteToggle" />
+  <label for="liteToggle" style="user-select:none;cursor:pointer;">
+    <b>Lite Mode</b>
+  </label>
 </div>
+
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 
 </aside>
 
-
-
-  </section>
-</div>
-
 <script>
 // 👇 Flag para mostrar/ocultar el demo
-const SHOW_DEMO = false;   // cámbialo a true si quieres activarlo
-const LITE_MODE = true;   // 🔦 Modo ligero activado
+const SHOW_DEMO = false;
+let LITE_MODE = JSON.parse(localStorage.getItem('lite_mode') ?? 'true'); // ON por defecto
+window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
+
+function applyLiteMode(){
+  // 1) Audio loops pesados
+  try {
+    if (LITE_MODE) {
+      if (window.SND?.slot)    { SND.slot.pause();    SND.slot.currentTime = 0; SND.slot.loop = false; }
+      if (window.SND?.tension) { SND.tension.pause(); SND.tension.currentTime = 0; SND.tension.loop = false; }
+    } else {
+      if (window.SND?.slot)    SND.slot.loop = true;
+      if (window.SND?.tension) SND.tension.loop = true;
+    }
+  } catch(_){}
+
+  // (opcional) quitar/poner efectos visuales pesados
+  try {
+    if (LITE_MODE) {
+      document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
+    } else {
+      if (!document.querySelector('.stars'))  { const s=document.createElement('div'); s.className='stars';  document.body.appendChild(s); }
+      if (!document.querySelector('.stars2')) { const s=document.createElement('div'); s.className='stars2'; document.body.appendChild(s); }
+      if (!document.querySelector('.noise'))  { const n=document.createElement('div'); n.className='noise'; n.setAttribute('aria-hidden','true'); document.body.appendChild(n); }
+    }
+  } catch(_){}
+}
+applyLiteMode(); // aplicar al cargar
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -1113,7 +1178,7 @@ function updateRefillCue(){
 }
 
 // === decimales fijos y helpers del numerito ===
-const GAIN_DECIMALS = 3;
+const GAIN_DECIMALS = 4;
 const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
 const setLastGainTotal = (tot) => { if (lastGainEl) lastGainEl.textContent = `+${fmt(tot)}`; };
                                     // usamos spawn por TAP
@@ -1664,7 +1729,7 @@ function startFrenzy(){
 
   if (typeof tagShow === 'function') tagShow('FRENZY', '#ffd872');
   popBadge('FRENZY');
-  if (typeof startFrenzyArc === 'function') startFrenzyArc();
+
   updateBadge();
 
   setTimeout(()=>{
@@ -1839,10 +1904,21 @@ const SND = {
 // Volúmenes recomendados
 SND.slot.loop = true;
 SND.tension.loop = true;
-[SND.nice, SND.rainbow, SND.freeze, SND.laugh, SND.tick].forEach(a => a && (a.preload = 'auto'));
+// Preload mínimo: nada por defecto (salvo el de ingreso 'join')
+[SND.nice, SND.rainbow, SND.freeze, SND.laugh, SND.tick, SND.slot, SND.tension]
+  .forEach(a => a && (a.preload = 'none'));
+if (SND.join) SND.join.preload = 'auto';
+
+
+// --- Lite/Dev: silenciar loops pesados ---
+if (LITE_MODE) {
+  try { SND.slot.pause(); SND.slot.currentTime = 0; SND.slot.loop = false; } catch(_) {}
+  try { SND.tension.pause(); SND.tension.currentTime = 0; SND.tension.loop = false; } catch(_) {}
+}
 
 // Play seguro (si no existe el archivo → usa “tone” como fallback)
 function playSnd(name, {volume=1, loop=false} = {}){
+  if (LITE_MODE && (name === 'slot' || name === 'tension' || name === 'rainbow')) return;
   const a = SND[name];
   if (a && a.play){
     try{
@@ -1873,7 +1949,7 @@ function stopSnd(name){
 }
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.400;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -2180,36 +2256,25 @@ function handleVote(key){
 
   // mensaje público
   const deltaTxt = (delta === 0) ? '±0%' : (delta>0 ? `+${delta}%` : `${delta}%`);
-  postActivity(`${user} reached<b>${optName}</b>(${deltaTxt})=<b>${afterPct}%</b>`);
+  const cur = getLang(); const T = I18N[cur] || I18N.es;
+const msgVote = (cur === 'en')
+  ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
+  : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
+postActivity(msgVote);
+alert(T.vote_recorded || '✅ Voto registrado');
 
-  alert('✅ Voto registrado');
     consumeTicketAndReset();
     closeDrawer('ID');
 document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
-
-
-// reactivar por si vuelven a entrar con nuevo ticket
-  [pollOptA,pollOptB,pollOptC].forEach(b=> b && (b.disabled = false));
-// anunciar en el feed
-try {
-  const user = (localStorage.getItem('username') || 'Usuario');
-  // calcula % actual tras tu lógica de conteo
-  const total = (pollA + pollB + pollC) || 1;
-  const pct =
-    key==='A' ? Math.round((pollA/total)*100) :
-    key==='B' ? Math.round((pollB/total)*100) :
-                 Math.round((pollC/total)*100);
-
-  postActivity(`<b>${user}</b> votó (${pct}%)`);
-} catch(e){}
-
 
 }
 
 
 if (voteBtn){
   voteBtn.onclick = () => {
-    if (!ideasTicketActive) { alert('Necesitas un ticket activo'); return; }
+    if (!ideasTicketActive) { const cur = getLang(); const T = I18N[cur] || I18N.es;
+alert(T.need_active_ticket || 'Necesitas un ticket activo');
+ return; }
     showPoll();
   };
 }
@@ -2217,8 +2282,6 @@ if (pollOptA) pollOptA.onclick = () => handleVote('A');
 if (pollOptB) pollOptB.onclick = () => handleVote('B');
 if (pollOptC) pollOptC.onclick = () => handleVote('C');
 if (pollClose) pollClose.onclick = () => { ideasPollView.style.display='none'; ideasOptionsView.style.display='block'; };
-if (ideasBtn)   ideasBtn.onclick   = () => openDrawer('ID');
-if (backdropID) backdropID.onclick = () => closeDrawer('ID');
 
 // === Sugerencias: refs y lógica ===
 const ideasSuggestView = document.getElementById('ideasSuggestView');
@@ -2241,7 +2304,9 @@ function safeText(s){
 
 if (suggestBtn){
   suggestBtn.onclick = () => {
-    if (!ideasTicketActive) { alert('Necesitas un ticket activo'); return; }
+    if (!ideasTicketActive) { const cur = getLang(); const T = I18N[cur] || I18N.es;
+alert(T.need_active_ticket || 'Necesitas un ticket activo');
+ return; }
     showSuggest();
   };
 }
@@ -2265,8 +2330,13 @@ if (sendSuggestBtn){
     box.unshift({ txt, ts: Date.now() });
     localStorage.setItem('wg_suggestions', JSON.stringify(box));
 
-    alert('✅ Sugerencia enviada (privada)');
-    postActivity(`${(typeof getUsername==='function'?getUsername():'Usuario')} sent a suggestion!`);
+    {
+  const cur = getLang(); const T = I18N[cur] || I18N.es;
+  alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
+  const u = (typeof getUsername==='function'?getUsername():'Usuario');
+  const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
+  postActivity(msgSug);
+}
 
     consumeTicketAndReset();
     closeDrawer('ID');
@@ -2297,10 +2367,12 @@ function updateTicketTimer(){
   const el = document.getElementById('ticketTimer');
   if (!el) return;
   const remaining = ticketExpiresAt - Date.now();
+  const cur = getLang();
+  const T = I18N[cur] || I18N.es;
 
   if (remaining <= 0){
     clearInterval(ticketTimerId);
-    el.textContent = "⛔ Ticket vencido";
+    el.textContent = T.ticket_expired || "⛔ Ticket vencido";
     ideasPayView.style.display = 'block';
     ideasOptionsView.style.display = 'none';
     return;
@@ -2308,15 +2380,20 @@ function updateTicketTimer(){
 
   const m = Math.floor(remaining/60000);
   const s = Math.floor((remaining%60000)/1000);
-  el.textContent = `Tiempo restante: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.textContent = `${T.ticket_time_left || 'Tiempo restante:'} ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
+
 
 // ==== Pago (DEV simulado o real con World App) ====
 if (payIdeasBtn){
   payIdeasBtn.onclick = async (ev) => {
     ev.preventDefault();
     if (window.WG_DEV_MODE){
-      alert("✅ Ticket comprado (simulación DEV)");
+      {
+        const cur = getLang(); const T = I18N[cur] || I18N.es;
+          alert(T.ticket_bought_dev || "✅ Ticket comprado (simulación DEV)");
+       }
+
       ideasPayView.style.display = 'none';
       ideasOptionsView.style.display = 'block';
       ideasTicketActive = true;
@@ -2630,16 +2707,35 @@ function closeDrawer(which){
   dr.classList.remove('show');
   bd.classList.remove('show');
 }
+// 1) Clic en cualquier backdrop: cierra su drawer correspondiente
+document.addEventListener('click', (ev) => {
+  const el = ev.target;
+  if (!el.classList || !el.classList.contains('backdrop')) return;
+  // ids: backdropUP / backdropIN / backdropPF / backdropID
+  const code = el.id.replace('backdrop',''); // "UP" | "IN" | "PF" | "ID"
+  closeDrawer(code);
+});
 
-/* Cerrar tocando el fondo */
-if (backdropUP) backdropUP.onclick = () => closeDrawer('UP');
-if (backdropIN) backdropIN.onclick = () => closeDrawer('IN');
-if (backdropPF) backdropPF.onclick = () => closeDrawer('PF');
+// 2) Clic en la "x" de cualquier drawer
+document.querySelectorAll('.drawer .close').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const aside = btn.closest('.drawer');
+    if (!aside || !aside.id) return;
+    const code = aside.id.replace('drawer',''); // "UP" | "IN" | "PF" | "ID"
+    closeDrawer(code);
+  });
+});
+
+// 3) Tecla ESC: cierra todos los drawers abiertos
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  ['UP','IN','PF','ID'].forEach(code => closeDrawer(code));
+});
 
 /* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
 if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
 if (ideasBtn) ideasBtn.onclick = () => openDrawer('ID');
-if (backdropID) backdropID.onclick = () => closeDrawer('ID');
+
 
 
 
@@ -2702,7 +2798,7 @@ function setUsername(v){
 const I18N = {
   es: {
     wld_balance:   'Saldo WLD:',
-    coming_soon:   'Próximamente',
+    coming_soon:   'Próximamente... ✔',
     inbox_title:   'Buzón',
     boosters_title:'Impulsores',
     profile_title: 'Perfil',
@@ -2726,10 +2822,39 @@ const I18N = {
     seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. 💌',
     seed_get_wallet:  'Prepara tu billetera para ganar a lo GRANDE . 💸',
     seed_farming_time:'¡Hora de farmear $WLG! Alístate para la sorpresa y toma la delantera. 🎮',
+  // --- Ideas / Boosters / Varios ---
+    ideas_title: 'Ideas',
+    ideas_pay_intro: '¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!',
+    ideas_pay_btn: 'Comprar ticket',
+    ideas_choose: 'Escoge una opción',
+    ticket_time_left: 'Tiempo restante:',
+    vote: 'Votar✍️',
+    suggest: 'Sugerencia💡',
+    each_action_consumes: '*Cada acción consume 1 ticket',
+    poll_title: '🏁 ¡EMPIEZA LA CARRERA!',
+    poll_hint: 'TÚ ELIGES💊',
+    opt_a: 'Comodidad/Seguridad🔵',
+    opt_b: 'Cambio/Riesgo🔴',
+    opt_c: 'Autotap 🤖',
+    poll_close: 'Cerrar',
+    suggest_title: '¿Alguna idea?',
+    suggest_hint: 'Máx. 400 caracteres.',
+    placeholder_suggest: 'Escribe tu idea o mejora aquí…',
+    send: 'Enviar',
+    close: 'Cerrar',
+    signin_wld: 'Entrar con World ID',
+    need_active_ticket: 'Necesitas un ticket activo',
+    vote_recorded: '✅ Voto registrado',
+    sug_sent_private: '✅ Sugerencia enviada (privada)',
+    ticket_expired: '⛔ Ticket vencido',
+    ticket_bought_dev: '✅ Ticket comprado (simulación DEV)',
+
+  
   },
-  en: {
+
+en: {
     wld_balance:   'WLD Balance:',
-    coming_soon:   'Coming Soon',
+    coming_soon:   'Coming Soon... ✔',
     inbox_title:   'Inbox',
     boosters_title:'Boosters',
     profile_title: 'Profile',
@@ -2753,7 +2878,38 @@ const I18N = {
     seed_stay_tuned:  'Stay tuned — big updates soon. 💌',
     seed_get_wallet:  'Get your wallet ready to earn BIG. 💸',
     seed_farming_time:'Farming time for $WLG! Get ready for surprise and take the lead. 🎮',
+    // --- Ideas / Boosters / Misc ---
+    ideas_title: 'Ideas',
+    ideas_pay_intro: 'Be part of the devs and race with the community. PARTICIPATE!',
+    ideas_pay_btn: 'Buy ticket',
+    ideas_choose: 'Choose an option',
+    ticket_time_left: 'Time left:',
+    vote: 'Vote✍️',
+    suggest: 'Suggestion💡',
+    each_action_consumes: '*Each action consumes 1 ticket',
+    poll_title: '🏁 START THE RACE!',
+    poll_hint: 'YOU CHOOSE💊',
+    opt_a: 'Comfort/Security🔵',
+    opt_b: 'Change/Risk🔴',
+    opt_c: 'Autotap 🤖',
+    poll_close: 'Close',
+    suggest_title: 'Any idea?',
+    suggest_hint: 'Max. 400 characters.',
+    placeholder_suggest: 'Type your idea or improvement…',
+    send: 'Send',
+    close: 'Close',
+    signin_wld: 'Sign in with World ID',
+    need_active_ticket: 'You need an active ticket',
+    vote_recorded: '✅ Vote recorded',
+    sug_sent_private: '✅ Suggestion sent (private)',
+    ticket_expired: '⛔ Ticket expired',
+    ticket_bought_dev: '✅ Ticket purchased (DEV simulation)',
+
+  
+  
+  
   }
+  
 };
 
 
@@ -2875,24 +3031,6 @@ if (!USE_TAP_SPAWN) {
 }
 updateBadge(); // inicia oculto en base
 
-
-// pinta "Hola Fer!" (o Hello)
-  // === Lite Mode: apagar fondos pesados ===
- // === Lite Mode: fondos ===
-if (LITE_MODE) {
-  // En modo ligero quitamos todo lo pesado
-  document.querySelectorAll('.stars, .stars2, .noise').forEach(el => el.remove());
-} else {
-  // Solo en modo FULL creamos la capa de ruido (y así no se descarga en LITE)
-  const noiseDiv = document.createElement('div');
-  noiseDiv.className = 'noise';
-  noiseDiv.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(noiseDiv);
-}
-
-
-
-
 })(); // 👈 MUY IMPORTANTE: cerrar la IIFE
 
 // === Sincroniza clase .open para animación de drawers ===
@@ -2911,6 +3049,66 @@ if (LITE_MODE) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
   };
+})();
+
+// ===== Toggle Lite Mode (Perfil) =====
+(function(){
+  const el = document.getElementById('liteToggle');
+  if (!el) return;
+
+  // Estado inicial (ON por defecto)
+  el.checked = !!LITE_MODE;
+
+  el.addEventListener('change', () => {
+    LITE_MODE = el.checked;
+    localStorage.setItem('lite_mode', JSON.stringify(LITE_MODE));
+    applyLiteMode();
+    try { playSnd('nice', { volume: 0.5 }); } catch(_) {}
+  });
+})();
+
+// ===== Warm-up en idle (solo si LITE está OFF) =====
+(function(){
+  const warm = () => {
+    if (LITE_MODE) return;
+    const list = ['slot','tension','rainbow'];
+    list.forEach(n => { try { SND[n]?.load?.(); } catch(_) {} });
+  };
+
+  // requestIdleCallback (o fallback a setTimeout)
+  const idle = window.requestIdleCallback || function(cb){ setTimeout(cb, 700); };
+  idle(warm);
+})();
+
+// ===== Lazy images (excepto las marcadas data-critical) =====
+(function(){
+  const imgs = document.querySelectorAll('img:not([data-critical])');
+  imgs.forEach(img => {
+    // Evita tocar las del splash crítico
+    if (img.closest('#splash')) return;
+    try {
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      // para móviles antiguos sin soporte 'loading', no pasa nada
+    } catch(_) {}
+  });
+})();
+// ===== Body lock cuando hay drawers abiertos =====
+(function(){
+  const drawers = document.querySelectorAll('.drawer');
+  if (!drawers.length) return;
+
+  const update = () => {
+    const anyOpen = Array.from(drawers).some(d => d.classList.contains('show'));
+    document.body.classList.toggle('has-drawer', anyOpen);
+  };
+
+  // Observa cambios de clase en cada drawer (abre/cierra)
+  const mo = new MutationObserver(update);
+  drawers.forEach(d => mo.observe(d, { attributes: true, attributeFilter: ['class'] }));
+
+  // Llamada inicial por si ya hay alguno abierto al cargar
+  update();
 })();
 
 </script>
@@ -2932,87 +3130,62 @@ if (LITE_MODE) {
 </script>
 
 <script type="module">
-// 🔧 FLAG de desarrollo — ponlo en false para enviar a revisión
-const DEV_MODE = true ;
-window.WG_DEV_MODE = DEV_MODE;   // ← hace global el flag
+// ===== MiniKit World App — Bloque mínimo con DEV =====
+const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
 
-
-/* === Carga del SDK === */
 let MiniKit, VerificationLevel;
+
 try {
+  // Aunque estemos en DEV, intentamos cargar; si falla no importa.
   const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
   MiniKit = m.MiniKit;
   VerificationLevel = m.VerificationLevel;
-  window.MiniKit = MiniKit;               // ← expón el SDK
-  window.VerificationLevel = VerificationLevel;
-
 } catch (e) {
-  console.error("Error cargando MiniKit:", e);
+  console.warn("MiniKit no cargó (ok si estás en DEV):", e);
 }
 
-/* === Config === */
-const ACTION_ID = "worldgold";                                   // tu Action Identifier
-const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";   // tu wallet
-const TOKEN     = "WLD";                                          // o "USDC"
-const AMOUNT    = "0.10";                                         // monto de refill
+// === Configuración ===
+const ACTION_ID = "worldgold";                                  // tu Action Identifier
+const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
+const TOKEN     = "WLD";
+const AMOUNT    = "0.10";
 
-/* === UI refs === */
+// === Referencias UI ===
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
 const state     = document.getElementById("wldState");
 const refillBtn = document.getElementById("refillBtn");
 
-
-/* === Helpers UI === */
-function msg(t){ if(state){ state.textContent=t; state.style.opacity="1"; } }
+// === Helpers UI ===
+function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
 function unlock(){
-  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el=>el.style.pointerEvents="");
-  if (splash){ splash.classList.add("splash--hide"); setTimeout(()=>splash.remove(),450); }
-
-  // sonido de ingreso
-  playSnd('join', { volume: 0.9 });
+  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
+  if (splash){ splash.classList.add("splash-hide"); setTimeout(() => splash.remove(), 450); }
+  try { playSnd('join', { volume: 0.9 }); } catch(_) {}
+}
+function hasMiniKit(){
+  return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
 }
 function requireMiniKit(){
-  if (DEV_MODE) return true; // en dev no exige World App
-  const ok = !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
+  const ok = hasMiniKit();
   if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
   return ok;
 }
 
-/* === DEV MODE overrides (solo cuando DEV_MODE = true) === */
-if (DEV_MODE) {
-  // Banner rojo
-  const banner = document.createElement("div");
-  banner.id = "devBanner";
-  banner.textContent = "OJO ⚠️ Estás en MODO DESARROLLADOR";
-  document.body.appendChild(banner);
-
-  // Login simulado (entra directo)
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = "JOIN (DEV)";
-    btn.onclick = (e) => {
-      e.preventDefault();
-      unlock();
-      if (state) state.textContent = "Entraste en modo DEV";
-    };
-  }
-
-  // Refill bloqueado en DEV (anula cualquier handler anterior)
-  if (refillBtn) {
-    refillBtn.onclick = (e) => {
-      e.preventDefault();
-      alert("Pago desactivado en modo desarrollador");
-    };
-  }
-}
-
-/* === Verificación real (solo se usa cuando DEV_MODE = false) === */
+// === Verificación ===
 async function startVerify(){
   if (!requireMiniKit()) return;
   if (btn) btn.disabled = true;
-  msg("Abriendo verificación…");
 
+  if (DEV_MODE){
+    msg("DEV: Verificación simulada ✔");
+    // Simula trabajo y desbloquea la app
+    setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
+    return;
+  }
+
+  msg("Abriendo verificación…");
   try{
     const { status, finalPayload } = await MiniKit.commandsAsync.verify({
       action: ACTION_ID,
@@ -3026,43 +3199,38 @@ async function startVerify(){
     }
 
     // Valida el proof en tu backend
-    try {
-      const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalPayload)
-      });
-      if (!r.ok) {
-        if (btn) btn.disabled = false;
-        msg("Verificación inválida en servidor.");
-        return;
-      }
-    } catch (e) {
-      console.error("verify backend error:", e);
+    const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalPayload)
+    });
+
+    if (!r.ok){
       if (btn) btn.disabled = false;
-      msg("Error validando en servidor.");
+      msg("Verificación inválida en servidor.");
       return;
     }
 
-    console.log("✅ Verificación OK:", finalPayload);
     msg("¡Listo!");
     unlock();
 
-  }catch(err){
+  } catch (err){
     console.error(err);
     if (btn) btn.disabled = false;
     msg("Error al verificar.");
   }
 }
 
-/* Conecta el botón de login SOLO si NO estás en DEV */
-if (!DEV_MODE && btn) {
-  btn.addEventListener("click", startVerify);
-}
+if (btn) btn.addEventListener("click", startVerify);
 
-/* === Pago real (solo cuando DEV_MODE = false) === */
+// === Pago (Refill) ===
 async function payRefill(){
   if (!requireMiniKit()) return;
+
+  if (DEV_MODE){
+    alert("✅ DEV: Pago simulado de 0.10 WLD");
+    return;
+  }
 
   try{
     const res = await MiniKit.commandsAsync.pay({
@@ -3072,35 +3240,31 @@ async function payRefill(){
       reference: crypto.randomUUID()
     });
 
-    console.log("Resultado pay()", res);
-
     if (res.status === "success"){
-      // opcional: confirma en backend
       try {
         await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(res)
         });
-      } catch (e) {
-        console.warn("No se pudo confirmar en backend:", e);
-      }
+      } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
       alert("✅ Pago realizado");
     } else {
       alert("Pago cancelado");
     }
-
-  }catch(e){
+  } catch (e){
     console.error(e);
     alert("Error en el pago");
   }
 }
 
-/* Conecta refill SOLO cuando NO estás en DEV (así evitamos duplicados) */
-if (!DEV_MODE && refillBtn) {
+if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
+// ===== Fin bloque MiniKit (DEV) =====
 </script>
+
+
 
 </body>
 </html>
