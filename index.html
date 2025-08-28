@@ -1095,7 +1095,7 @@ const USE_TAP_SPAWN = true;
 const RAINBOW = {
   HITS: 6,                     // toques necesarios a manchas arcoíris
   DECOY_CHANCE: 0.45,          // probabilidad de distractor durante el desafío
-  APPEAR_MS: [1100, 1700],       // visibilidad de cada mancha (ms)
+  APPEAR_MS: [1500, 2300],       // visibilidad de cada mancha (ms)
   TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
 };
 
@@ -1759,7 +1759,7 @@ playSnd('tension', { volume: 0.7, loop: true });
  function autoSpawn(){
     if (!challenge.active) return;
     spawnRainbowOrDecoy();
-    challenge.spawnTimer = setTimeout(autoSpawn, randInt(900,1300)); 
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(1200,1600)); 
   }
   autoSpawn();
 
