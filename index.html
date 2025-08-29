@@ -1112,8 +1112,8 @@ const USE_TAP_SPAWN = true;
 /* ==== DESAFÍO ARCOÍRIS (config) ==== */
 const RAINBOW = {
   HITS: 6,                     // toques necesarios a manchas arcoíris
-  DECOY_CHANCE: 0.45,          // probabilidad de distractor durante el desafío
-  APPEAR_MS: [1500, 2300],       // visibilidad de cada mancha (ms)
+  DECOY_CHANCE: 0.25,          // probabilidad de distractor durante el desafío
+  APPEAR_MS: [2500, 3200],       // visibilidad de cada mancha (ms)
   TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
 };
 
@@ -1786,7 +1786,7 @@ playSnd('tension', { volume: 0.7, loop: true });
  function autoSpawn(){
     if (!challenge.active) return;
     spawnRainbowOrDecoy();
-    challenge.spawnTimer = setTimeout(autoSpawn, randInt(1200,1600)); 
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(700,1100)); 
   }
   autoSpawn();
 
@@ -2044,7 +2044,7 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.4, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -3359,7 +3359,7 @@ function hasMiniKit(){
   return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
 }
 function requireMiniKit(){
-  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
+  if (DEV_MODE) return false; // en DEV no exigimos MiniKit
   const ok = hasMiniKit();
   if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
   return ok;
