@@ -138,7 +138,7 @@ body{
     0 0 15px rgba(255, 223, 120, 0.7),
     0 0 35px rgba(255, 200, 80, 0.4),
     0 0 60px rgba(255, 180, 60, 0.25);
-  transition:transform .08s ease; position:relative; overflow:hidden;
+  transition:transform .08s ease; position:relative; overflow:visible;
 }
 
 .coin:active{transform:scale(.98)}
@@ -782,6 +782,51 @@ body.has-drawer{
   overscroll-behavior: contain;
   touch-action: none;
 }
+/* === Combo badge fijo arriba-izquierda de la moneda === */
+#comboBadge{
+  position:absolute; top:10px; left:10px; transform:none; z-index:3000;
+  font-weight:900; font-size:16px; letter-spacing:1px; pointer-events:none;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+  border-radius:10px; padding:4px 8px; color:#ffd872;
+}
+
+/* Texto arcoíris animado */
+.rainbowText{
+  background:linear-gradient(90deg,#ff0048,#ff8a00,#ffe600,#35d45b,#2aa5ff,#a86bff,#ff0048);
+  background-size:400% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; /* imprescindible */
+  animation:hueSlide 4s linear infinite;
+}
+/* Cuando el texto es arcoíris y debe latir, corre ambas animaciones */
+.rainbowText.pulseBeat{
+  animation: hueSlide 4s linear infinite, pulseBeat 1.05s ease-in-out infinite;
+}
+
+/* Pulso suave */
+.pulseBeat{ animation:pulseBeat 1.05s ease-in-out infinite; transform-origin:center; }
+
+@keyframes hueSlide{ 0%{background-position:0% 0} 100%{background-position:400% 0} }
+@keyframes pulseBeat{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+
+/* === Animaciones globales === */
+@keyframes wiggleX {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-2px); }
+  40%  { transform: translateX(2px); }
+  60%  { transform: translateX(-2px); }
+  80%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+/* Vibración horizontal para FRENZY (ambos lados) */
+.vibeX {
+  animation: wiggleX .28s ease-in-out infinite;
+}
+
+
+
 
 </style>
 </head>
@@ -874,7 +919,15 @@ body.has-drawer{
       </svg>
 
       <div id="windowTag"
-        style="position:absolute;top:8px;left:50%;transform:translateX(-50%) scale(.9);padding:4px 10px;font-weight:800;font-size:12px;line-height:1;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.70);color:#ffd872;opacity:0;transition:opacity .14s,transform .18s;pointer-events:none;z-index:999"></div>
+  style="position:absolute;top:8px;right:10px;
+         transform:none;
+         padding:4px 10px;font-weight:800;font-size:12px;
+         line-height:1;border-radius:12px;
+         border:1px solid rgba(255,255,255,.18);
+         background:rgba(0,0,0,.70);color:#ffd872;
+         opacity:0;transition:opacity .14s,transform .18s;
+         pointer-events:none;z-index:999"></div>
+
 
       <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
@@ -899,17 +952,18 @@ body.has-drawer{
         pointer-events:none; opacity:0;
         box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);
       "></div>
+      
 
-      <div id="comboBadge" style="
-        position:absolute; top:10px; left:10px;
-        background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
-        color:#ffd872; font-weight:800; font-size:12px;
-        padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
-        COMBO x1
-      </div>
 
-      <div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
-    </div>
+<div id="comboBadge" style="
+  position:absolute; top:10px; left:10px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+  color:#ffd872; font-weight:800; font-size:12px;
+  padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
+  <span id="comboTxt">COMBO x1</span>
+</div>
+
+
 
     <!-- Botón Ideas anclado a la moneda -->
     <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
@@ -1080,7 +1134,7 @@ body.has-drawer{
 
 </aside>
 
-<script>
+ <script>
   window.VERIFIED = false;
 function setVerifiedUI(on){
   const rb = document.getElementById('refillBtn');
@@ -1114,7 +1168,7 @@ const RAINBOW = {
   HITS: 6,                     // toques necesarios a manchas arcoíris
   DECOY_CHANCE: 0.25,          // probabilidad de distractor durante el desafío
   APPEAR_MS: [2500, 3200],       // visibilidad de cada mancha (ms)
-  TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
+  TOTAL_MS: 12000,              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
 };
 
 const challenge = {
@@ -1302,6 +1356,82 @@ function soundFrenzy777(){
 function randInt(a,b){ return (a|0)+Math.floor(Math.random()*((b|0)-(a|0)+1)); }
 // === Badge (Xn / FRENZY / oculto en base) ===
 const comboBadgeEl = document.getElementById('comboBadge');
+let comboTxtEl = document.getElementById('comboTxt');
+function setBadge(txt, bg, fg){
+  if (!comboBadgeEl) return;
+
+  // Asegura span interno
+  if (!comboTxtEl){
+    comboTxtEl = document.createElement('span');
+    comboTxtEl.id = 'comboTxt';
+    comboBadgeEl.innerHTML = '';
+    comboBadgeEl.appendChild(comboTxtEl);
+  }
+
+  if (!txt){
+    comboBadgeEl.style.display = 'none';
+    comboTxtEl.classList.remove('rainbowText','pulseBeat');
+    comboTxtEl.style.color = ''; // limpia el color del texto
+    return;
+  }
+
+  comboBadgeEl.style.display = 'block';
+  comboTxtEl.textContent = txt;
+
+  // Posición fija a la izquierda (no recentrar nunca)
+  comboBadgeEl.style.position = 'absolute';
+  comboBadgeEl.style.left = '10px';
+  comboBadgeEl.style.top = '10px';
+  comboBadgeEl.style.transform = 'none';
+  comboBadgeEl.style.zIndex = '3000';
+
+// Pastilla base (en el CONTENEDOR, no en el texto)
+comboBadgeEl.style.background   = (bg === undefined) ? 'rgba(0,0,0,.70)' : bg; // mismo alpha que la derecha
+comboBadgeEl.style.border       = '1px solid rgba(255,255,255,.18)';
+comboBadgeEl.style.borderRadius = '12px'; // 12px = igual a la derecha
+comboBadgeEl.style.padding      = '4px 10px'; // 4x10 = igual a la derecha
+comboBadgeEl.style.fontWeight   = '800';  // = windowTag
+comboBadgeEl.style.fontSize     = '12px'; // = windowTag
+comboBadgeEl.style.letterSpacing= '0';    // la derecha no usa tracking
+
+
+
+  // Color del TEXTO (en el span). Si queremos arcoíris → transparente
+  if (fg === 'transparent'){
+    comboTxtEl.style.color = 'transparent';
+  } else {
+    comboTxtEl.style.color = (fg === undefined) ? '#ffd872' : fg;
+  }
+}
+
+
+
+
+function updateBadge(){
+if (challenge?.active) {
+  setBadge('RAINBOW RACE', 'rgba(0,0,0,.55)', 'transparent');
+  comboTxtEl?.classList.add('rainbowText','pulseBeat');  // 👈 clases al TEXTO
+  return;
+} else {
+  comboTxtEl?.classList.remove('rainbowText','pulseBeat');
+}
+
+  const now = performance.now();
+
+  if (now < combo.frenzyUntil){
+    
+    setBadge('FRENZY', 'linear-gradient(180deg,#3a2a00,#1a1200)', '#ffd872');
+    return;
+  }
+
+  if (combo.level >= 1){
+    const colorPorNivel = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'}[combo.level] || '#ffd872';
+    setBadge('X'+combo.level, 'rgba(0,0,0,.55)', colorPorNivel);
+  } else {
+    setBadge(null);
+  }
+}
+
 function spawnHotWithTimer(skin){
   // skin: 'x1'..'x5' o 'decoy'
   if (typeof showHot === 'function') showHot(skin);
@@ -1318,33 +1448,7 @@ function spawnHotWithTimer(skin){
   }, ms);
 }
 
-function setBadge(txt, bg, fg){
-  if (!comboBadgeEl) return;
-  if (!txt){
-    comboBadgeEl.style.display = 'none';
-    return;
-  }
-  comboBadgeEl.style.display = 'block';
-  comboBadgeEl.textContent = txt;
-  comboBadgeEl.style.background = bg || 'rgba(0,0,0,.55)';
-  comboBadgeEl.style.color = fg || '#ffd872';
-}
 
-function updateBadge(){
-  const now = performance.now();
-  if (now < combo.frenzyUntil){
-    // FRENZY activo
-    setBadge('FRENZY', 'linear-gradient(180deg,#3a2a00,#1a1200)', '#ffd872');
-    return;
-  }
-  if (combo.level >= 1){
-    const colorPorNivel = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'}[combo.level] || '#ffd872';
-    setBadge('X'+combo.level, 'rgba(0,0,0,.55)', colorPorNivel);
-  } else {
-    setBadge(null); // base: oculto
-  }
-}
-// === Ventanas (barra + temporizador) ===
 // === ARO (helpers) ===
 const windowArc = document.getElementById('windowArc');
 // Sonido de éxito al completar la ventana (corto y ascendente)
@@ -1676,8 +1780,6 @@ if (coreRect){
   const deg = Math.round((level/6)*360);
   arcShowSegment(deg, LEVEL_COLOR[level]);
 
-  // (opcional) ocultar la barrita horizontal si no la quieres
-  if (windowBar){ windowBar.style.opacity='0'; windowBar.style.width='0'; }
   tagShow('X'+level+' 0/'+level, LEVEL_COLOR[level]);
 
   updateBadge();
@@ -1714,15 +1816,24 @@ function startFrenzy(){
   popBadge('FRENZY');
 
   updateBadge();
+  // 👉 Vibrar ambos FRENZY mientras dura
+if (typeof comboBadgeEl !== 'undefined' && comboBadgeEl) comboBadgeEl.classList.add('vibeX');
+if (typeof windowTag !== 'undefined' && windowTag) windowTag.classList.add('vibeX');
+
 
   setTimeout(()=>{
         if (performance.now() >= combo.frenzyUntil){
           setTickModeMp3(false);
-      combo.level = 1;
+      combo.level = 0;
       combo.progress = {1:0,2:0,3:0,4:0};
       combo.frenzyUntil = 0;
       if (typeof tagHide === 'function') tagHide();
       if (typeof arcHide === 'function') arcHide();
+// 👉 Apagar vibración al terminar FRENZY
+if (typeof comboBadgeEl !== 'undefined' && comboBadgeEl) comboBadgeEl.classList.remove('vibeX');
+if (typeof windowTag !== 'undefined' && windowTag) windowTag.classList.remove('vibeX');
+
+
       updateBadge();
     }
   }, FRENZY_MS + 20);
@@ -1734,7 +1845,8 @@ function endRainbowChallenge(success){
   clearTimeout(challenge.timerId);   // 👈 matar timer
   
   challenge.completed = true;
-
+  if (comboBadgeEl) comboBadgeEl.classList.remove('rainbowPulse');
+  updateBadge();  // 👈 vuelve a FRENZY o Xn según corresponda
 
   // 🔇 cortar música de tensión (hard stop + refuerzo)
   stopSnd('tension');
@@ -1773,6 +1885,7 @@ playSnd('rainbow', { volume: 1.0 });
 playSnd('tension', { volume: 0.7, loop: true });
 
   challenge.active = true;
+    updateBadge();  // 👈 muestra “RAINBOW RACE” con pulso al iniciar
   challenge.completed = false;
   challenge.hits = 0;
   challenge.t0 = performance.now();
@@ -2044,7 +2157,7 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.4, POWER_BASE=0.1000;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
@@ -2084,8 +2197,6 @@ const coin=$('#coin'), gain=$('#gain');
 const hot = document.getElementById('hot');
 const comboBadge = document.getElementById('comboBadge');
 const hotCore = document.getElementById('hotCore');
-const windowBar = document.getElementById('windowBar'); // evita ReferenceError
-
 
 // === Hotspot: helpers y ciclo ===
 function rand(min, max){ return Math.random()*(max-min)+min; }
@@ -2100,12 +2211,24 @@ function drawHot(){
   const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
 
   // HALO (solo visual, difuminado)
-  hot.style.background = `radial-gradient(
-    circle at ${hotCX}% ${hotCY}%,
-    ${s.glowA} 0%,
-    ${s.glowB} ${Math.round(hotGlowR*0.6)}%,
-    transparent ${hotGlowR}%
-  )`;
+  const r = hotGlowR;
+hot.style.background = `radial-gradient(
+  circle at ${hotCX}% ${hotCY}%,
+  ${s.glowA} 0%,
+  ${s.glowA} ${Math.round(r*0.42)}%,
+  ${s.glowB} ${Math.round(r*0.78)}%,
+  transparent ${r}%
+)`;
+// Difuminado y fusión con el fondo
+hot.style.filter = 'blur(4px) drop-shadow(0 0 12px rgba(255,223,120,.35))';
+
+hot.style.mixBlendMode = 'screen';   // glow que se integra con la luz de la moneda
+if (hotCore){
+  hotCore.style.opacity = '0';      // visualmente invisible
+  hotCore.style.background = 'transparent'; // sin relleno
+  hotCore.style.boxShadow = 'none'; // sin borde duro
+}
+
 
   // NÚCLEO (hitbox real)
   if (hotCore){
@@ -2140,10 +2263,10 @@ function showHot(skin = null){
   hotCY = Math.random()*70 + 15; // 15..85
 
   drawHot();
-  hotActive = true;
-  hot.style.opacity = '1';
-  if (hotCore) hotCore.style.opacity = '1';
-// Solo auto-ocultar en el modo "por tiempo". En modo TAP lo maneja spawnHotWithTimer()
+    hotActive = true;
+    hot.style.opacity = '1';
+
+ // Solo auto-ocultar en el modo "por tiempo". En modo TAP lo maneja spawnHotWithTimer()
   if (!USE_TAP_SPAWN){
   setTimeout(()=>{
     if (hotLocked) return;
@@ -2163,21 +2286,19 @@ function hideHot(){
 
 // Apariencia por tipo: X1..X5 y decoy (JAJA)
 const HOT_SKIN = {
-  x1:   { core:'#FFD872', glowA:'rgba(255,216,114,.90)', glowB:'rgba(255,216,114,.45)', coreR:10, glowR:20 },
-  x2:   { core:'#9CFF70', glowA:'rgba(156,255,112,.90)', glowB:'rgba(156,255,112,.45)', coreR:9,  glowR:18 },
-  x3:   { core:'#6AE1FF', glowA:'rgba(106,225,255,.90)', glowB:'rgba(106,225,255,.45)', coreR:8,  glowR:16 },
-  x4:   { core:'#D08BFF', glowA:'rgba(208,139,255,.90)', glowB:'rgba(208,139,255,.45)', coreR:7,  glowR:14 },
-  x5:   { core:'#FF6A6A', glowA:'rgba(255,106,106,.90)', glowB:'rgba(255,106,106,.45)', coreR:6,  glowR:12 },
-  decoy:{ core:'#A0A6FF', glowA:'rgba(160,166,255,.90)', glowB:'rgba(160,166,255,.45)', coreR:9,  glowR:17 }, // solo distrae
-  rb: {
-    core: 'conic-gradient(#ff0055, #ff9500, #ffee00, #33dd55, #33aaff, #aa66ff, #ff0055)',
-    glowA:'rgba(255,255,255,.85)',
-    glowB:'rgba(255,255,255,.35)',
-    coreR: 9,
-    glowR: 19
-  },
-
+  x1:{core:'#FFD872', glowA:'rgba(255,216,114,.72)', glowB:'rgba(255,216,114,.34)', coreR:10, glowR:28},
+  x2:{core:'#9CFF70', glowA:'rgba(156,255,112,.72)', glowB:'rgba(156,255,112,.34)', coreR:9,  glowR:26},
+  x3:{core:'#6AE1FF', glowA:'rgba(106,225,255,.72)', glowB:'rgba(106,225,255,.34)', coreR:8,  glowR:24},
+  x4:{core:'#D08BFF', glowA:'rgba(208,139,255,.72)', glowB:'rgba(208,139,255,.34)', coreR:7,  glowR:22},
+  x5:{core:'#FF6A6A', glowA:'rgba(255,106,106,.72)', glowB:'rgba(255,106,106,.34)', coreR:6,  glowR:22},
+  decoy:{core:'#A0A6FF', glowA:'rgba(160,166,255,.72)', glowB:'rgba(160,166,255,.34)', coreR:9, glowR:26},
+  rb:{core:'conic-gradient(#ff0055,#ff9500,#ffee00,#33dd55,#33aaff,#aa66ff,#ff0055)',
+      glowA:'rgba(255,255,255,.70)', glowB:'rgba(255,255,255,.30)', coreR:9, glowR:28}
 };
+
+
+
+
 let hotSkin = 'x1'; // skin actual
 
 
@@ -2292,7 +2413,6 @@ let noticeRunning = false;
     document.documentElement.style.setProperty('--activityWidth', w + 'px');
   }
   apply();
-  window.addEventListener('resize', apply);
   setTimeout(apply, 0);
 })();
 
@@ -3316,7 +3436,7 @@ document.addEventListener('visibilitychange', () => {
 
 <script type="module">
 // ===== MiniKit World App — Bloque mínimo con DEV =====
-const DEV_MODE = false;  // <<<<<< ACTIVADO (simula verify/pay)
+const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
 // 👇 Solo para DEV: desbloquear juego sin verificar cada vez
 if (DEV_MODE) {
   window.VERIFIED = true;
@@ -3359,7 +3479,7 @@ function hasMiniKit(){
   return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
 }
 function requireMiniKit(){
-  if (DEV_MODE) return false; // en DEV no exigimos MiniKit
+  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
   const ok = hasMiniKit();
   if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
   return ok;
