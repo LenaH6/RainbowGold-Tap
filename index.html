@@ -162,7 +162,14 @@ html, body{
 /* Coin area */
 .coinWrap{
   position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
-  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
+  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);.coinWrap{
+  align-self: start;   /* en vez de centrado vertical puro */
+  margin-top: -12px;   /* 👈 sube todo el bloque un poquito */
+}
+
+.action-dock{
+  margin-top: 4px;     /* reduce separación extra */
+}
   box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
 }
 .ring{position:absolute; inset:0; border-radius:50%;
