@@ -108,18 +108,40 @@ body{
 
 /* Hero */
 :root{ --topH: 60px; }  /* altura real de tu topbar tras quitar la windowbar */
-
-/* HERO – apilado arriba sin huecos */
+html, body{
+  height:100%;
+  margin:0;
+  overflow:hidden;              /* <- SIN SCROLL */
+  overscroll-behavior:none;     /* <- SIN REBOTE */
+  touch-action: manipulation;   /* <- taps sin gestos de scroll */
+}
+/* HERO — layout estable con grid */
 .hero{
-  min-height: calc(100svh - var(--topH)); /* sin env() aquí */
+  min-height: calc(100svh - var(--topH));
   display: grid;
+  grid-template-rows: 
+    auto   /* pill WLGp (arriba) */
+    1fr    /* zona elástica para CENTRAR la moneda */
+    auto   /* dock de botones */
+    auto;  /* barra de energía */
   justify-items: center;
-  align-content: start;
-  gap: 10px;
-  padding: 6px 14px 8px;  /* padding base */
+  row-gap: 8px;
+  padding: 8px 14px 10px;
   position: relative;
   z-index: 1;
 }
+
+/* moneda responsiva sin empujar nada */
+.brandmark, .brandmark img{
+  max-width: min(92vw, 560px);
+  max-height: min(48vh, 560px);
+  width: auto; height: auto; aspect-ratio: 1 / 1;
+}
+
+/* evita que el dock/energía “crezcan” y desplacen la moneda */
+.action-dock{ margin:0; }
+.energyWrap{ margin:0; }
+
 
 /* Solo si el navegador soporta env(safe-area-inset-bottom),
    sumamos ese extra al padding inferior */
@@ -3700,19 +3722,6 @@ if (refillBtn){
   <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank" >Términos</a> ·
   <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank" >Privacidad</a>
 </footer>
-
-<script>
-  document.querySelectorAll('.legal-links a').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const url = a.href;
-      const win = window.open(url, '_blank', 'noopener');
-      if (!win) location.href = url; // fallback si la webview bloquea window.open
-    });
-  });
-</script>
-
-
 
 
 
