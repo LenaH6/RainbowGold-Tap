@@ -225,7 +225,7 @@ html, body{
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
 
 /* Energy bar */
-.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px; align-self: end}
+.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px;}
 .energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
 .energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
 @keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
@@ -905,6 +905,46 @@ body.has-drawer{
 }
 .legal-in-profile a:hover{ text-decoration:underline; }
 
+/* === Distribución móvil pro (override) === */
+@media (max-width: 768px){
+  /* El contenedor ocupa TODA la pantalla con 100dvh (corrige bugs de 100vh) */
+  .hero{
+    min-height: calc(100dvh - var(--topH));
+    display: grid;
+    grid-template-rows:
+      auto    /* pill WLGp (arriba) */
+      1fr     /* moneda centrada */
+      auto;   /* dock debajo de la moneda */
+    align-items: center;         /* centra verticalmente */
+    justify-items: center;       /* centra horizontalmente */
+    row-gap: 12px;
+    /* Acolchonamos el fondo para NO tapar nada con la barra fija */
+    padding: 8px 14px calc(86px + env(safe-area-inset-bottom,0px));
+  }
+
+  /* Dock pegado debajo de la moneda, sin empujar hacia arriba */
+  .action-dock{
+    margin-top: 6px;
+  }
+
+  /* Barra de energía SIEMPRE pegada al fondo y centrada */
+  .energyWrap{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(8px + env(safe-area-inset-bottom,0px));
+    width: min(94vw, 560px);
+    margin: 0;                 /* sin márgenes que “inflen” */
+    z-index: 9;                /* por encima del fondo */
+  }
+
+  /* La barra interior se mantiene igual; solo aseguramos altura cómoda */
+  .energyBar{ height: 16px; }
+  .energyLbl{ margin-top: 6px; }
+
+  /* Moneda bien centrada y sin estirarse */
+  .coinWrap{ justify-self: center; align-self: center; }
+}
 
 
 </style>
