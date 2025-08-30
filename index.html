@@ -885,6 +885,25 @@ body.has-drawer{
   text-decoration: underline;
 }
 
+/* Legales dentro del panel de Perfil */
+.legal-in-profile{
+  position: sticky;        /* se queda al fondo del scroll del panel */
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 0 calc(8px + env(safe-area-inset-bottom,0px));
+  font-size: 12px;
+  color: #aaa;
+  opacity: .9;
+  z-index: 1;              /* encima del contenido del panel */
+}
+.legal-in-profile a{
+  color:#ffd872;
+  text-decoration:none;
+  font-weight:600;
+}
+.legal-in-profile a:hover{ text-decoration:underline; }
 
 
 
@@ -1181,8 +1200,6 @@ body.has-drawer{
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
   <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
   <div class="cardPro">
-
-
 <label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
 <input id="usernameInput"  class="inputPro" type="text"
   style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
@@ -1207,7 +1224,11 @@ body.has-drawer{
 </div>
 
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
-
+</div>
+<div class="legal-in-profile">
+  <a href="https://worldgold-api-o87j.vercel.app/terminos?v=3" target="_blank" rel="noopener">Términos</a> ·
+  <a href="https://worldgold-api-o87j.vercel.app/privacidad?v=3" target="_blank" rel="noopener">Privacidad</a>
+</div>
 </aside>
 
  <script>
@@ -3717,13 +3738,5 @@ if (refillBtn){
 }
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
-
-<footer class="legal-links">
-  <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank" >Términos</a> ·
-  <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank" >Privacidad</a>
-</footer>
-
-
-
 </body>
 </html>
