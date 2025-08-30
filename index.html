@@ -107,9 +107,10 @@ body{
           font-size:10px; font-weight:700; padding:0 6px}
 
 /* Hero */
-.hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
-  padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
-.pill{
+.hero {
+   min-height: calc(100svh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
+  padding:6px 14px 0; margin-bottom: 20px; position:relative; z-index:1}
+.pill {
   z-index:3;
   background: #292828; border:1px solid #292828;
   border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
@@ -824,6 +825,24 @@ body.has-drawer{
 .vibeX {
   animation: wiggleX .28s ease-in-out infinite;
 }
+.legal-links {
+  margin-top: 18px;
+  margin-bottom: env(safe-area-inset-bottom, 10px);
+  text-align: center;
+  font-size: 12px;
+  color: #aaa;
+  opacity: 0.8;
+}
+
+.legal-links a {
+  color: #ffd872;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.legal-links a:hover {
+  text-decoration: underline;
+}
 
 
 
@@ -914,6 +933,22 @@ body.has-drawer{
             <stop offset="80%"  stop-color="#33aaff"/>
             <stop offset="100%" stop-color="#aa66ff"/>
           </linearGradient>
+        <!-- ⭐ Gradiente radial para el aro (más intenso) -->
+  <radialGradient id="haloArc" cx="50%" cy="50%" r="65%">
+    <stop offset="0%"   stop-color="#ffffff" stop-opacity="1"/>
+    <stop offset="35%"  stop-color="#FFD872" stop-opacity="1"/>
+    <stop offset="70%"  stop-color="#cfae45" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+
+  <!-- ⭐ Filtro de glow nítido (no lava el color) -->
+  <filter id="arcGlow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
         </defs>
         <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
       </svg>
@@ -1161,7 +1196,7 @@ const WINDOW_MS = { 1:700, 2:1200, 3:1600, 4:2000, 5:2400 };       // duración 
 const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas completas necesarias
 const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
 const FRENZY_MS = 5500;                                           // combo máximo
-const DECOY_CHANCE = 0.25;                                        // prob. de decoy
+const DECOY_CHANCE = 0.50;                                        // prob. de decoy
 const USE_TAP_SPAWN = true; 
 /* ==== DESAFÍO ARCOÍRIS (config) ==== */
 const RAINBOW = {
@@ -1479,17 +1514,34 @@ function arcFlash(){
 const windowArcCircle = windowArc ? windowArc.querySelector('circle') : null;
 const LEVEL_COLOR = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'};
 
-function arcShowSegment(deg, color){
+function arcShowSegment(deg, level){
   if (!windowArc || !windowArcCircle) return;
-  windowArcCircle.style.stroke = color || '#ffd872';
-  windowArcCircle.setAttribute('stroke-dasharray', `${deg} 360`); // segmento visible + hueco
-  windowArcCircle.setAttribute('stroke-dashoffset', '0');         // empieza sin consumir
+
+  // Colores del gradiente según nivel
+  setHaloArcColors(level);
+
+  // Trazo potente con glow (sin opacidad lavada)
+  windowArcCircle.style.stroke = 'url(#haloArc)';
+  windowArcCircle.setAttribute('stroke-width', '7');      // más cuerpo
+  windowArcCircle.setAttribute('stroke-linecap', 'round');
+  windowArcCircle.removeAttribute('style');               // limpia CSS previos
+  windowArcCircle.setAttribute('filter', 'url(#arcGlow)'); // ⭐ usa filtro SVG
+
+  // Progreso
+  windowArcCircle.setAttribute('stroke-dasharray', `${deg} 360`);
+  windowArcCircle.setAttribute('stroke-dashoffset', '0');
+
+  // mostrar
   windowArc.style.opacity = '1';
 }
 
+
+
 function arcUpdateProgress(level, t){  // level: 1..5, t: 0→1
   if (!windowArcCircle) return;
-  const deg = Math.round((level/6)*360); // X1=60°, X2=120° ... X5=300°
+  const deg = Math.round((level/6)*360);
+arcShowSegment(deg, level);
+
   const off = Math.min(deg, deg * t);    // cuánto se consume del segmento
   windowArcCircle.setAttribute('stroke-dashoffset', String(off));
 }
@@ -2198,6 +2250,7 @@ const hot = document.getElementById('hot');
 const comboBadge = document.getElementById('comboBadge');
 const hotCore = document.getElementById('hotCore');
 
+
 // === Hotspot: helpers y ciclo ===
 function rand(min, max){ return Math.random()*(max-min)+min; }
 // Centro y tamaño de la mancha (en % relativo a la moneda)
@@ -2210,34 +2263,47 @@ function drawHot(){
   if (!hot) return;
   const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
 
-  // HALO (solo visual, difuminado)
-  const r = hotGlowR;
-hot.style.background = `radial-gradient(
-  circle at ${hotCX}% ${hotCY}%,
-  ${s.glowA} 0%,
-  ${s.glowA} ${Math.round(r*0.42)}%,
-  ${s.glowB} ${Math.round(r*0.78)}%,
+// HALO (visual) compacto SIN ondas
+const r  = hotGlowR;              // radio halo en %
+const cx = hotCX, cy = hotCY;
+const c1 = s.c1,  c2 = s.c2;
+
+// Gradiente principal: brillo al centro → color → borde → transparente
+const main = `radial-gradient(circle at ${cx}% ${cy}%,
+  rgba(255,255,255,.88) 0%,
+  ${c1} 10%,
+  ${c1} ${Math.round(r*0.35)}%,
+  ${c2} ${Math.round(r*0.55)}%,
   transparent ${r}%
 )`;
-// Difuminado y fusión con el fondo
-hot.style.filter = 'blur(4px) drop-shadow(0 0 12px rgba(255,223,120,.35))';
 
-hot.style.mixBlendMode = 'screen';   // glow que se integra con la luz de la moneda
+hot.style.background = main;
+
+// Nada de máscara ni ondas
+hot.style.webkitMaskImage = 'none';
+hot.style.maskImage = 'none';
+
+// Difuminado leve y sin blend que infla
+hot.style.filter = 'blur(0.8px)';     // más compacto que 1.2px
+hot.style.mixBlendMode = 'normal';
+
+
+ // 🔴 Núcleo real para capturar taps de la ventana (usa % del tamaño de la moneda)
 if (hotCore){
-  hotCore.style.opacity = '0';      // visualmente invisible
-  hotCore.style.background = 'transparent'; // sin relleno
-  hotCore.style.boxShadow = 'none'; // sin borde duro
+  hotCore.style.left = hotCX + '%';
+  hotCore.style.top  = hotCY + '%';
+  hotCore.style.width  = (hotCoreR * 2) + '%';
+  hotCore.style.height = (hotCoreR * 2) + '%';
+  hotCore.style.transform = 'translate(-50%,-50%)';
+  hotCore.style.borderRadius = '50%';
+
+  // invisible pero presente (el rect se usa en createWindow/isInWindowRect)
+  hotCore.style.opacity = '0';
+  hotCore.style.background = 'transparent';
+  hotCore.style.boxShadow = 'none';
+  hotCore.style.pointerEvents = 'none';
 }
 
-
-  // NÚCLEO (hitbox real)
-  if (hotCore){
-    hotCore.style.left   = hotCX + '%';
-    hotCore.style.top    = hotCY + '%';
-    hotCore.style.width  = (hotCoreR*2) + '%';
-    hotCore.style.height = (hotCoreR*2) + '%';
-    hotCore.style.background = s.core;
-  }
 }
 
 
@@ -2286,19 +2352,30 @@ function hideHot(){
 
 // Apariencia por tipo: X1..X5 y decoy (JAJA)
 const HOT_SKIN = {
-  x1:{core:'#FFD872', glowA:'rgba(255,216,114,.72)', glowB:'rgba(255,216,114,.34)', coreR:10, glowR:28},
-  x2:{core:'#9CFF70', glowA:'rgba(156,255,112,.72)', glowB:'rgba(156,255,112,.34)', coreR:9,  glowR:26},
-  x3:{core:'#6AE1FF', glowA:'rgba(106,225,255,.72)', glowB:'rgba(106,225,255,.34)', coreR:8,  glowR:24},
-  x4:{core:'#D08BFF', glowA:'rgba(208,139,255,.72)', glowB:'rgba(208,139,255,.34)', coreR:7,  glowR:22},
-  x5:{core:'#FF6A6A', glowA:'rgba(255,106,106,.72)', glowB:'rgba(255,106,106,.34)', coreR:6,  glowR:22},
-  decoy:{core:'#A0A6FF', glowA:'rgba(160,166,255,.72)', glowB:'rgba(160,166,255,.34)', coreR:9, glowR:26},
-  rb:{core:'conic-gradient(#ff0055,#ff9500,#ffee00,#33dd55,#33aaff,#aa66ff,#ff0055)',
-      glowA:'rgba(255,255,255,.70)', glowB:'rgba(255,255,255,.30)', coreR:9, glowR:28}
+  x1:{ c1:'#FFD872', c2:'#8a6b1f', coreR:10, glowR:18 },
+  x2:{ c1:'#9CFF70', c2:'#3f8f33', coreR: 9, glowR:16 },
+  x3:{ c1:'#6AE1FF', c2:'#2b93b8', coreR: 8, glowR:14 },
+  x4:{ c1:'#D08BFF', c2:'#7d3ca3', coreR: 7, glowR:12 },
+  x5:{ c1:'#FF6A6A', c2:'#a83232', coreR: 6, glowR:10 },
+  decoy:{ c1:'#A0A6FF', c2:'#4b4fa0', coreR: 9, glowR:14 },
+  rb:{ c1:'#7aa0ff', c2:'#aa66ff', coreR: 9, glowR:16 }
 };
-
-
-
-
+// Colores del aro por nivel (mismos tonos que las manchas)
+const ARC_SKIN = {
+  1: { c1:'#FFD872', c2:'#8a6b1f' },
+  2: { c1:'#9CFF70', c2:'#3f8f33' },
+  3: { c1:'#6AE1FF', c2:'#2b93b8' },
+  4: { c1:'#D08BFF', c2:'#7d3ca3' },
+  5: { c1:'#FF6A6A', c2:'#a83232' }
+};
+function setHaloArcColors(level){
+  const g = document.querySelector('#windowArc #haloArc');
+  if (!g) return;
+  const stops = g.querySelectorAll('stop');
+  const skin = ARC_SKIN[level] || ARC_SKIN[1];
+  stops[1].setAttribute('stop-color', skin.c1);
+  stops[2].setAttribute('stop-color', skin.c2);
+}
 let hotSkin = 'x1'; // skin actual
 
 
@@ -3600,10 +3677,11 @@ if (refillBtn){
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
 
-<footer style="text-align:center;opacity:.7;font-size:12px;margin:18px 0">
+<footer class="legal-links">
   <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank">Términos</a> ·
   <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank">Privacidad</a>
 </footer>
+
 
 
 
