@@ -107,11 +107,28 @@ body{
           font-size:10px; font-weight:700; padding:0 6px}
 
 /* Hero */
-:root{ --topH: 60px; }
-.hero {
-  min-height:calc(100svh - 60px - env(safe-area-inset-bottom), 0px); display:grid; justify-items: center;
-  align-content: start; place-items:center; gap:12px;
-  padding:6px 14px 0; margin-bottom: 20px; position:relative; z-index:1}
+:root{ --topH: 60px; }  /* altura real de tu topbar tras quitar la windowbar */
+
+/* HERO – apilado arriba sin huecos */
+.hero{
+  min-height: calc(100svh - var(--topH)); /* sin env() aquí */
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+  padding: 6px 14px 8px;  /* padding base */
+  position: relative;
+  z-index: 1;
+}
+
+/* Solo si el navegador soporta env(safe-area-inset-bottom),
+   sumamos ese extra al padding inferior */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .hero{
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
 .pill {
   z-index:3;
   background: #292828; border:1px solid #292828;
