@@ -107,8 +107,10 @@ body{
           font-size:10px; font-weight:700; padding:0 6px}
 
 /* Hero */
+:root{ --topH: 60px; }
 .hero {
-   min-height: calc(100svh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
+  min-height:calc(100svh - 60px - env(safe-area-inset-bottom), 0px); display:grid; justify-items: center;
+  align-content: start; place-items:center; gap:12px;
   padding:6px 14px 0; margin-bottom: 20px; position:relative; z-index:1}
 .pill {
   z-index:3;
@@ -3682,6 +3684,17 @@ if (refillBtn){
   <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank">Privacidad</a>
 </footer>
 
+<script>
+(function(){
+  const tb = document.querySelector('.topbar');
+  function setTopH(){
+    const h = (tb?.offsetHeight || 60);
+    document.documentElement.style.setProperty('--topH', h + 'px');
+  }
+  setTopH();
+  addEventListener('resize', setTopH);
+})();
+</script>
 
 
 
