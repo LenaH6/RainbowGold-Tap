@@ -1,9 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<link rel="preload" as="image" href="img/Coin.png" imagesrcset="img/Coin.png 1x, img/Coin@2x.png 2x">
+<link rel="preload" as="image" href="img/brand-mark-wg-128.png">
 <meta charset="utf-8">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <!-- ✅ CSP etapa 1: compatible con scripts/estilos inline -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
@@ -11,7 +13,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net https://worldgold-api-o87j.vercel.app;
+  connect-src 'self' https://worldgold-api-o87j.vercel.app;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -30,8 +32,10 @@
 ">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
+<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
+<link rel="dns-prefetch" href="https://worldgold-api-o87j.vercel.app">
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
@@ -53,6 +57,14 @@ body{
   /* negro carbón con leve degradado vertical */
   background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
 }
+/* --- UX miniapp: sin scroll ni zoom accidental --- */
+html, body { height: 100%; overscroll-behavior: none; }
+body { touch-action: manipulation; }
+#app, .gameRoot { height: 100%; }
+
+/* Evita rebote y selección accidental */
+html, body { overflow: hidden; }
+* { -webkit-tap-highlight-color: transparent; user-select: none; }
 
 /* Noise overlay (opcional) */
 .noise{
@@ -159,17 +171,23 @@ html, body{
 }
 .pill img{width:22px; height:22px; display:inline-block}
 
-/* Coin area */
+/* FIX: regla duplicada/embebida equivocada */
 .coinWrap{
-  position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
-  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);.coinWrap{
-  align-self: start;   /* en vez de centrado vertical puro */
-  margin-top: -12px;   /* 👈 sube todo el bloque un poquito */
+  position: relative;
+  width: var(--heroSize);
+  height: var(--heroSize);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 100%);
+  box-shadow: 0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25);
+  /* 👇 mueve aquí TUS ajustes de posición del bloque central */
+  align-self: start;     /* lo estabas poniendo en la “regla incrustada” */
+  margin-top: -16px;     /* sube un poquito la moneda/dock/idea */
 }
 
 .action-dock{
-  margin-top: 4px;     /* reduce separación extra */
-}
+  margin-top: 6px;     /* reduce separación extra */
   box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
 }
 .ring{position:absolute; inset:0; border-radius:50%;
@@ -254,7 +272,7 @@ html, body{
 .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
   background:transparent; color:#fff; cursor:pointer; font-size:18px}
 
-/* Demo card */
+/* D card */
 .card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
 
 /* Ajustes pantallas estrechas */
@@ -564,28 +582,6 @@ html, body{
   80%  { transform: translateY(0); opacity: 1; }      /* último instante en centro */
   100% { transform: translateY(-60px); opacity: 0; }  /* se va hacia arriba */
 }
-
-/* === Cards pro unificadas === */
-.cardPro{
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.28);
-}
-.cardPro h3,.cardPro h4{margin:0 0 10px;font:700 16px/1.2 system-ui;color:#ffd872}
-
-/* === Botón pro (usa en acciones) === */
-.btnPro{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:10px 14px;border-radius:10px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.06);
-  color:#fff;font-weight:800;letter-spacing:.2px;
-  transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
-}
-.btnPro:hover{transform:translateY(-1px);background:rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.22)}
-.btnPro:active{transform:translateY(0)}
 .btnPro.success{border-color:rgba(0,230,140,.35);background:rgba(0,230,140,.12);color:#00e68c}
 .btnPro.warn{border-color:rgba(255,120,80,.35);background:rgba(255,120,80,.12);color:#ff9a6b}
 
@@ -621,37 +617,7 @@ html, body{
   border-color:rgba(255,216,114,.45);box-shadow:0 0 0 3px rgba(255,216,114,.18)
 }
 .textareaPro{min-height:90px;resize:vertical}
-/* === Drawers pro: entrada suave y panel elegante === */
 
-.drawer.open { opacity: 1 !important; }
-
-/* Panel interno del drawer (cuerpo) */
-.drawer .drawer-body{
-  background: rgba(20,20,26,.78);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04) inset;
-  backdrop-filter: blur(8px);
-
-  transform: translateY(22px) scale(.985);
-  opacity: 0;
-  transition: transform .28s ease, opacity .24s ease, box-shadow .2s ease;
-  padding: 14px 16px; /* espacio uniforme adentro */
-}
-
-/* Al abrir: sube y aparece suave */
-.drawer.open .drawer-body{
-  transform: translateY(0) scale(1);
-  opacity: 1;
-}
-
-/* Títulos dentro del panel */
-.drawer .drawer-body h3, 
-.drawer .drawer-body h4{
-  margin: 0 0 10px;
-  font: 700 16px/1.2 system-ui;
-  color: #ffd872;
-}
 
 /* Separadores suaves */
 .drawer .drawer-body .section + .section{
@@ -799,26 +765,6 @@ html, body{
 @keyframes cardChildIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0);   }
-}
-/* ===== Drawers optimizados ===== */
-.drawer{
-  transform: translate3d(0,100%,0);
-  transition: transform .28s ease, opacity .28s ease;
-  will-change: transform, opacity;
-  contain: layout paint;
-}
-.drawer.drawer--open{
-  transform: translate3d(0,0,0);
-}
-
-.backdrop{
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .25s ease;
-}
-.backdrop.backdrop--show{
-  opacity: .85;        /* ajusta si quieres más/menos oscuro */
-  pointer-events: auto;
 }
 
 /* Menos mareo para quienes prefieren menos movimiento */
@@ -1131,23 +1077,30 @@ body.has-drawer{
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
-  <h3 data-i18n="boosters_title">Impulsores</h3>
-  <p style="opacity:.85" data-i18n="coming_soon">Proximamente... ✔</p>
+  <div class="drawer-body">
+    <h3 data-i18n="boosters_title">Impulsores</h3>
+    <p style="opacity:.85" data-i18n="coming_soon">Proximamente... ✔</p>
+  </div>
 </aside>
+
 
 
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
-<h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
-<div id="inboxList" class="inbox-list cardPro"></div>
-<button id="markRead" class="btn-icon" data-i18n="mark_read"><i>Marcar como leído</i></button>
+  <div class="drawer-body">
+    <h3>📥 Buzón</h3>
+    <div id="inboxList" class="chatList"></div>
+    <button id="markRead" class="btnPro">Marcar todo como leído</button>
+  </div>
 </aside>
+
 <!-- Drawer IDEAS -->
  <div id="backdropID" class="backdrop"></div>
 <aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
- <h3 data-i18n="ideas_title">Ideas</h3>
+  <div class="drawer-body">
+  <h3 data-i18n="ideas_title">Ideas</h3>
 
 
   <!-- Vista inicial: pagar -->
@@ -1238,6 +1191,7 @@ body.has-drawer{
 <div id="backdropPF" class="backdrop"></div>
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
   <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
+  <div class="drawer-body">
   <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
   <div class="cardPro">
 <label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
@@ -1288,7 +1242,7 @@ function setVerifiedUI(on){
   // Clickjacking guard (defensa extra al CSP)
 try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
 
-// 👇 Flag para mostrar/ocultar el demo
+// 👇 Flag para mostrar/ocultar el D
 const SHOW_DEMO = false;
 window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
@@ -2310,12 +2264,15 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 })();
 
 
-/* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
+/* ===== Estado base (dem) ===== */
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.5, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
-let lastTs=+localStorage.getItem('last_ts')||Date.now();
+let lastTs=+localStorage.getItem('last_ts')||Date.now()
+// --- Guardas anti doble pago (Refill) ---
+let payingRefill = false;
+
 // === Hotspot / Combo ===
 const HOT_SHOW_MS= 1600;    // tiempo visible del hotspot 1.6s
 const HOT_CD_MIN = 2800;    // cooldown mínimo
@@ -2547,7 +2504,7 @@ const pctB = document.getElementById('pctB');
 const pctC = document.getElementById('pctC');
 const pollClose = document.getElementById('pollClose');
 
-// Estado local (solo demo)
+// Estado local (solo D)
 let votes = JSON.parse(localStorage.getItem('wg_votes') || '{"A":0,"B":0,"C":0}');
 function saveVotes(){ localStorage.setItem('wg_votes', JSON.stringify(votes)); }
 
@@ -2622,9 +2579,61 @@ function runNextNotice(){
     runNextNotice();          // mostrar el siguiente de la cola
   }, { once: true });
 }
+</script>
 
+<!-- === Feed público (frontend) === -->
+<script>
+// Endpoints (ajústalos cuando hagamos el backend)
+const FEED = {
+  base: 'https://worldgold-api-o87j.vercel.app',
+  publish: '/api/feed/publish',
+  stream:  '/api/feed/stream'
+};
 
+// Publica una actividad (vote/suggest) en el feed público
+function publishActivity(evt){
+  try{
+    fetch(`${FEED.base}${FEED.publish}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(evt)
+    }).catch(()=>{ /* ignora si no existe el backend aún */ });
+  }catch(_){}
+}
 
+// Se suscribe al feed público (SSE); si llega algo, lo muestra en el topbar
+function setupPublicFeed(){
+  try{
+    const es = new EventSource(`${FEED.base}${FEED.stream}`);
+    es.onmessage = (e)=>{
+      let data = {};
+      try{ data = JSON.parse(e.data||'{}'); }catch(_){}
+      if (data?.html){
+        // Si el backend ya envía el HTML final
+        postActivity(data.html);
+        return;
+      }
+      // Si el backend envía estructura, la transformamos a tu formato actual
+      const cur = (typeof getLang==='function'?getLang():'es');
+      if (data?.type === 'vote'){
+        const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt;
+        const msg = (cur==='en')
+          ? `${data.user} voted <b>${optEmoji}</b> → <b>${data.pct}%</b>`
+          : `<b>${data.user}</b> votó ${optEmoji} → <b>${data.pct}%</b>`;
+        postActivity(msg);
+      } else if (data?.type === 'suggest'){
+        const msg = (cur==='en')
+          ? `${data.user} sent a suggestion!`
+          : `<b>${data.user}</b> envió una sugerencia`;
+        postActivity(msg);
+      }
+    };
+    es.onerror = ()=>{ /* silencioso */ };
+  }catch(_){}
+}
+</script>
+
+<script>
 function handleVote(key){
 
   // bloquear doble clic
@@ -2654,7 +2663,14 @@ function handleVote(key){
 const msgVote = (cur === 'en')
   ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
   : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
-postActivity(msgVote);
+
+  postActivity(msgVote);
+  publishActivity({
+    type: 'vote',
+    user,
+    opt: key,
+    pct: afterPct
+  });
 alert(T.vote_recorded || '✅ Voto registrado');
 
     consumeTicketAndReset();
@@ -2730,8 +2746,13 @@ if (sendSuggestBtn){
   const u = (typeof getUsername==='function'?getUsername():'Usuario');
   const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
   postActivity(msgSug);
-}
+  publishActivity({
+  type: 'suggest',
+  user: u,
+  text: txt
+});
 
+}
     consumeTicketAndReset();
     closeDrawer('ID');
 document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
@@ -2829,9 +2850,6 @@ if (payIdeasBtn){
     }
   };
 }
-
-
-const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
 // ===== Inbox: estado y render =====
 let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
 let unread = +localStorage.getItem('unread') || 0;
@@ -3113,7 +3131,7 @@ function doRefill(){
   wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
   tone(620,0.08,'sine',.08); render();
 }
-refillBtn.onclick=doRefill;
+
 
 
 /* ===== Boosters drawer (placeholder) ===== */
@@ -3193,31 +3211,6 @@ if (ideasBtn) {
 
     if (poll) poll.style.display = 'none';
     if (sugg) sugg.style.display = 'none';};}
-
-
-
-
-
-// === Demo buttons (handlers seguros) ===
-const addWldBtn = document.getElementById('btnAddWLD');
-if (addWldBtn) {
-  addWldBtn.addEventListener('click', () => {
-    wld += 5;                                   // suma 5 WLD
-    localStorage.setItem('wld', String(wld));   // persiste
-    render();                                   // refresca balances/energía
-    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
-  });
-}
-
-const resetBtn = document.getElementById('btnReset');
-if (resetBtn) {
-  resetBtn.addEventListener('click', () => {
-    if (confirm('¿Reiniciar demo?')) {
-      localStorage.clear();
-      location.reload();
-    }
-  });
-}
 
 /* ===== OPF: Orquestador Presupuestado de Frames (≤8ms) + integración ===== */
 const BUDGET_MS = 8;
@@ -3307,7 +3300,6 @@ const I18N = {
     profile_title: 'Perfil',
     mark_read:     'Marcar como leído',
     claim_soon:    'Reclamar (Pronto)',
-    demo_title:    'Herramientas de prueba (demo)',
     save:          'Guardar',
     saved:         'Guardado',
 
@@ -3364,7 +3356,6 @@ en: {
     profile_title: 'Profile',
     mark_read:     'Mark as read',
     claim_soon:    'Claim (Soon)',
-    demo_title:    'Demo tools',
     save:          'Save',
     saved:         'Saved',
 
@@ -3527,6 +3518,7 @@ if (msgs.length === 0) {
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
+  setupPublicFeed(); // 👈 activa feed público
 if (!USE_TAP_SPAWN) {
       scheduleHot(); // modo clásico por tiempo
 } else {
@@ -3536,7 +3528,20 @@ if (!USE_TAP_SPAWN) {
 }
 updateBadge(); // inicia oculto en base
 
-})(); // 👈 MUY IMPORTANTE: cerrar la IIFE
+})(); 
+  // ===== Lazy images (excepto las marcadas data-critical) =====
+  (function(){
+    const imgs = document.querySelectorAll('img:not([data-critical])');
+    imgs.forEach(img => {
+      // Evita tocar las del splash crítico
+      if (img.closest('#splash')) return;
+      try {
+        img.loading  = 'lazy';
+        img.decoding = 'async';
+        // para móviles antiguos sin soporte 'loading', no pasa nada
+      } catch(_) {}
+    });
+  })();
 
 // === Sincroniza clase .open para animación de drawers ===
 (function(){
@@ -3645,7 +3650,6 @@ const AMOUNT    = "0.10";
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
 const state     = document.getElementById("wldState");
-const refillBtn = document.getElementById("refillBtn");
 
 // === Helpers UI ===
 function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
@@ -3732,18 +3736,35 @@ async function startVerify(){
 
 if (btn) btn.addEventListener("click", startVerify);
 
-// === Pago (Refill) ===
+//pago refill//
 async function payRefill(){
-  if (!requireMiniKit()) return;
-  if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+  // 🚫 Evita doble toque si ya hay un pago en curso
+  if (payingRefill) return;
+  payingRefill = true;
 
-
-  if (DEV_MODE){
-    alert("✅ DEV: Pago simulado de 0.10 WLD");
-    return;
+  // 🔒 Desactiva botón durante la transacción
+  if (refillBtn){
+    refillBtn.disabled = true;
+    refillBtn.setAttribute('aria-busy', 'true');
+    refillBtn.style.pointerEvents = 'none';
   }
 
   try{
+    if (!requireMiniKit()) return;
+    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
+   if (DEV_MODE){
+  try { 
+    // que en DEV también haga el refill real
+    doRefill(); 
+  } catch(e){
+    console.warn("doRefill no disponible en DEV:", e);
+  }
+  alert("✅ DEV: Refill simulado (sin pago real)");
+  return;
+}
+
+
     const res = await MiniKit.commandsAsync.pay({
       to: MERCHANT,
       token: TOKEN,
@@ -3752,7 +3773,6 @@ async function payRefill(){
     });
 
     if (res.status === "success"){
-      
       try {
         await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
           method: "POST",
@@ -3760,23 +3780,49 @@ async function payRefill(){
           body: JSON.stringify(res)
         });
       } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
-            // ➜ cargar la energía y descontar el WLD en el cliente
+
       try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
 
       alert("✅ Pago realizado");
     } else {
       alert("Pago cancelado");
     }
+
   } catch (e){
     console.error(e);
     alert("Error en el pago");
+  } finally {
+    // 🔓 Siempre reactivar
+    if (refillBtn){
+      refillBtn.disabled = false;
+      refillBtn.removeAttribute('aria-busy');
+      refillBtn.style.pointerEvents = '';
+    }
+    payingRefill = false;
   }
 }
+
 
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
+<script>
+  // Listeners pasivos para scroll/touch → evita bloqueos
+  ['touchstart','touchmove','touchend','wheel'].forEach(ev=>{
+    window.addEventListener(ev, ()=>{}, {passive:true});
+  });
+
+  // Ráfagas de animación: usa rAF y siempre limpia
+  const rafs = new Set();
+  window.rafAdd = (id)=>rafs.add(id);
+  window.rafClearAll = ()=>{
+    for(const id of rafs) cancelAnimationFrame(id);
+    rafs.clear();
+  };
+  // Cuando abras/cierres drawers o cambies de modo, llama rafClearAll()
+</script>
+
 </body>
 </html>
