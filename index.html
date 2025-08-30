@@ -125,7 +125,7 @@ html, body{
     auto   /* dock de botones */
     auto;  /* barra de energía */
   justify-items: center;
-  row-gap: 8px;
+  row-gap: 14px;
   padding: 8px 14px 10px;
   position: relative;
   z-index: 1;
@@ -225,7 +225,7 @@ html, body{
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
 
 /* Energy bar */
-.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
+.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px; align-self: end}
 .energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
 .energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
 @keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
@@ -1226,8 +1226,8 @@ body.has-drawer{
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 </div>
 <div class="legal-in-profile">
-  <a href="https://worldgold-api-o87j.vercel.app/terminos?v=4" target="_blank" rel="noopener">Términos</a> ·
-  <a href="https://worldgold-api-o87j.vercel.app/privacidad?v=4" target="_blank" rel="noopener">Privacidad</a>
+  <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
+  <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
 </aside>
 
