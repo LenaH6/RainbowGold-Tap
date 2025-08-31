@@ -13,7 +13,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
- connect-src 'self'  https://worldgold-api.vercel.app;
+ connect-src 'self' https://worldgold-api.vercel.app ws: wss:;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -2603,9 +2603,13 @@ function publishActivity(evt){
 
 // Se suscribe al feed público (SSE); si llega algo, lo muestra en el topbar
 function setupPublicFeed(){
+  console.log('[Feed] setupPublicFeed() called');
   try{
     const es = new EventSource(`${FEED.base}${FEED.stream}`);
     es.onmessage = (e)=>{
+      es.onopen = () => console.log('[Feed] SSE open');
+      console.log('[Feed] SSE data:', e.data);
+
       let data = {};
       try{ data = JSON.parse(e.data||'{}'); }catch(_){}
       if (data?.html){
@@ -2629,6 +2633,8 @@ function setupPublicFeed(){
       }
     };
     es.onerror = ()=>{ /* silencioso */ };
+    console.warn('[Feed] SSE error');
+
   }catch(_){}
 }
 </script>
@@ -3518,6 +3524,7 @@ if (msgs.length === 0) {
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
+console.log('[Feed] calling setupPublicFeed() from init');
   setupPublicFeed(); // 👈 activa feed público
 if (!USE_TAP_SPAWN) {
       scheduleHot(); // modo clásico por tiempo
