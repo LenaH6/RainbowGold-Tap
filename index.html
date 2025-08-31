@@ -13,7 +13,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
- connect-src 'self' https://worldgold-api.vercel.app;
+ connect-src 'self'  https://worldgold-api.vercel.app;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -34,8 +34,8 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
-<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
-<link rel="dns-prefetch" href="https://worldgold-api-o87j.vercel.app">
+<link rel="preconnect" href="https://worldgold-api.vercel.app" crossorigin>
+<link rel="dns-prefetch" href="https://worldgold-api.vercel.app">
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
@@ -1220,8 +1220,8 @@ body.has-drawer{
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 </div>
 <div class="legal-in-profile">
-  <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
-  <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
+  <a href="https://worldgold-api.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
+  <a href="https://worldgold-api.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
 </aside>
 
@@ -2832,7 +2832,7 @@ if (payIdeasBtn){
         return;
       }
 
-      await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
+      await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(res)
@@ -3016,7 +3016,7 @@ let tapQueue = 0;
 async function flushTapQueue(){
   if (!tapQueue || !window.SESSION_TOKEN) return;
   try{
-    const resp = await fetch("https://worldgold-api-o87j.vercel.app/api/tapBatch", {
+    const resp = await fetch("https://worldgold-api.vercel.app/api/tapBatch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
@@ -3694,7 +3694,7 @@ async function startVerify(){
     }
 
     // Valida el proof en tu backend
-    const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+    const r = await fetch("https://worldgold-api.vercel.app/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(finalPayload)
@@ -3774,7 +3774,7 @@ async function payRefill(){
 
     if (res.status === "success"){
       try {
-        await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
+        await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(res)
