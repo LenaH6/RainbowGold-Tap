@@ -1174,6 +1174,10 @@ body.has-drawer{
 <div id="ideasSuggestView" class="cardPro" style="display:none">
   <h4 style="margin:6px 0 8px" data-i18n="suggest_title">¿Alguna idea?</h4>
 <p class="hint"><b data-i18n="suggest_hint">Máx. 400 caracteres.</b></p>
+<p style="margin:6px 0;color:#bdbdbd;font-size:12px">
+  <span id="sugCount">0</span>/240
+</p>
+
 <textarea id="suggestText" class="textareaPro" rows="5" maxlength="240"
   data-i18n-placeholder="placeholder_suggest"
   placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
@@ -2620,7 +2624,6 @@ es.onmessage = (ev) => {
   let data = {};
   try { data = JSON.parse(ev.data || '{}'); } catch (_) {}
 
-  // SOLO manejamos los tipos tipificados que usamos en el backend
   if (data?.type === 'vote') {
     const optEmoji = ({ A:'🔴', B:'🔵', C:'🤖' })[data.opt] || data.opt || '?';
     const pctTxt = (data.pct != null) ? ` → ${data.pct}%` : '';
@@ -2633,8 +2636,6 @@ es.onmessage = (ev) => {
     return;
   }
 };
-
-
 
   _feedEs = es;
   // expón por si lo quieres inspeccionar en consola
@@ -2678,7 +2679,10 @@ const msgVote = (cur === 'en')
     opt: key,
     pct: afterPct
   });
-  pushActivity(`${user} votó ${optName} → ${afterPct}%`);
+  // Eco local: muestra el aviso en esta pestaña aunque falle SSE
+const optEmoji = ({ A:'🔴', B:'🔵', C:'🤖' })[key] || key || '?';
+const pctTxt = (typeof afterPct === 'number') ? ` → ${afterPct}%` : '';
+pushActivity(`${username || 'Alguien'} votó ${optEmoji}${pctTxt}`);
 alert(T.vote_recorded || '✅ Voto registrado');
 
     consumeTicketAndReset();
@@ -2731,8 +2735,9 @@ alert(T.need_active_ticket || 'Necesitas un ticket activo');
 
 if (suggestText){
   suggestText.addEventListener('input', () => {
-    const n = (suggestText.value || '').length;
-    sugCount.textContent = String(n);
+const n = (suggestText.value || '').length;
+if (sugCount) sugCount.textContent = String(n);
+
   });
 }
 
@@ -2758,7 +2763,9 @@ if (sendSuggestBtn){
   user: u,
   text: txt
 });
-  pushActivity(`${u} envió una sugerencia`);
+ // Eco local: muestra el aviso en esta pestaña aunque falle SSE
+pushActivity(`${username || 'Alguien'} envió una sugerencia`);
+
 
 }
     consumeTicketAndReset();
