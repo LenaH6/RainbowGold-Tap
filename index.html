@@ -1240,7 +1240,14 @@ function setVerifiedUI(on){
 }
   
   // Clickjacking guard (defensa extra al CSP)
-try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
+try {
+  if (window.top !== window.self) {
+    window.top.location = window.location.href;
+  }
+} catch (e) {
+  // opcional: redirigir de otra forma
+  window.location.href = window.location.href;
+}
 
 // 👇 Flag para mostrar/ocultar el D
 const SHOW_DEMO = false;
@@ -2579,6 +2586,20 @@ function runNextNotice(){
     runNextNotice();          // mostrar el siguiente de la cola
   }, { once: true });
 }
+function pushActivity(text){
+  if(!activityBar) return;
+  const item = document.createElement("div");
+  item.className = "activity-item";
+  item.textContent = text;
+  activityBar.appendChild(item);
+
+  // dispara animación CSS
+  void item.offsetWidth;
+  item.classList.add("run");
+
+  // remover a los 3.5s
+  setTimeout(()=> item.remove(), 3500);
+}
 
 </script>
 
@@ -2623,32 +2644,25 @@ function setupPublicFeed(){
     setTimeout(() => setupPublicFeed(), 1500);
   };
 
-  es.onmessage = (ev) => {
-    let data = {};
-    try{ data = JSON.parse(ev.data || '{}'); }catch(_){}
+es.onmessage = (ev) => {
+  let data = {};
+  try{ data = JSON.parse(ev.data || '{}'); }catch(_){}
 
-    // Si el backend manda HTML listo
-    if (data && typeof data.html === 'string') {
-      postActivity(data.html);   // usa tu helper existente
-      return;
-    }
+  // Si el backend manda HTML listo, seguimos soportándolo
+  if (data && typeof data.html === 'string') {
+    postActivity(data.html);
+    return;
+  }
 
-    // Caso estructura (type vote/suggest)
-    const cur = (typeof getLang==='function' ? getLang() : 'es');
-    if (data?.type === 'vote'){
-      const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt || '?';
-      const pct = (data.pct!=null) ? ` → <b>${data.pct}%</b>` : '';
-      const msg = (cur==='en')
-        ? `${data.user||'Someone'} voted <b>${optEmoji}</b>${pct}`
-        : `<b>${data.user||'Alguien'}</b> votó ${optEmoji}${pct}`;
-      postActivity(msg);
-    } else if (data?.type === 'suggest'){
-      const msg = (cur==='en')
-        ? `${data.user||'Someone'} sent a suggestion!`
-        : `<b>${data.user||'Alguien'}</b> envió una sugerencia`;
-      postActivity(msg);
-    }
-  };
+  // Estructura tipificada
+  if (data?.type === 'vote'){
+    const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt || '?';
+    const pctTxt = (data.pct != null) ? ` → ${data.pct}%` : '';
+    pushActivity(`${data.user || 'Alguien'} votó ${optEmoji}${pctTxt}`);
+  } else if (data?.type === 'suggest'){
+    pushActivity(`${data.user || 'Alguien'} envió una sugerencia`);
+  }
+};
 
   _feedEs = es;
   // expón por si lo quieres inspeccionar en consola
@@ -2686,14 +2700,13 @@ function handleVote(key){
 const msgVote = (cur === 'en')
   ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
   : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
-
-  postActivity(msgVote);
   publishActivity({
     type: 'vote',
     user,
     opt: key,
     pct: afterPct
   });
+  pushActivity(`${user} votó ${optName} → ${afterPct}%`);
 alert(T.vote_recorded || '✅ Voto registrado');
 
     consumeTicketAndReset();
@@ -2768,12 +2781,12 @@ if (sendSuggestBtn){
   alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
   const u = (typeof getUsername==='function'?getUsername():'Usuario');
   const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
-  postActivity(msgSug);
   publishActivity({
   type: 'suggest',
   user: u,
   text: txt
 });
+  pushActivity(`${u} envió una sugerencia`);
 
 }
     consumeTicketAndReset();
@@ -3113,7 +3126,7 @@ coin.addEventListener('click', (e) => {
   // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
   if (now < combo.frenzyUntil) {
     spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
-    addTapAmount(POWER_BASE);    // base sin tocar energía
+    addTapAmount(POWER_BASE);    // bin tocar energía
     applyComboTap(e);            // aquí añade el +5% y actualiza el numerito
     maybeSpawnByTap?.(); render?.();
     updateRefillCue();
