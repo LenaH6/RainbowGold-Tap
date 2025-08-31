@@ -2579,11 +2579,11 @@ function runNextNotice(){
     runNextNotice();          // mostrar el siguiente de la cola
   }, { once: true });
 }
+
 </script>
 
-<!-- === Feed público (frontend) === -->
+<!-- === Feed público (frontend) — FIX === -->
 <script>
-// Endpoints (ajústalos cuando hagamos el backend)
 const FEED = {
   base: 'https://worldgold-api.vercel.app',
   publish: '/api/feed/publish',
@@ -2591,51 +2591,68 @@ const FEED = {
 };
 
 // Publica una actividad (vote/suggest) en el feed público
-function publishActivity(evt){
+async function publishActivity(evt){
   try{
-    fetch(`${FEED.base}${FEED.publish}`,{
+    const res = await fetch(`${FEED.base}${FEED.publish}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(evt)
-    }).catch(()=>{ /* ignora si no existe el backend aún */ });
-  }catch(_){}
+    });
+    if (!res.ok){
+      console.warn('[FEED] publish failed', res.status, await res.text().catch(()=>'')); 
+    }
+  }catch(err){
+    console.warn('[FEED] publish error', err);
+  }
 }
 
-// Se suscribe al feed público (SSE); si llega algo, lo muestra en el topbar
+// Mantén una única conexión SSE viva
+let _feedEs = null;
 function setupPublicFeed(){
-  console.log('[Feed] setupPublicFeed() called');
-  try{
-    const es = new EventSource(`${FEED.base}${FEED.stream}`);
-    es.onmessage = (e)=>{
-      es.onopen = () => console.log('[Feed] SSE open');
-      console.log('[Feed] SSE data:', e.data);
+  try{ if (_feedEs) { _feedEs.close(); _feedEs = null; } }catch(_){}
 
-      let data = {};
-      try{ data = JSON.parse(e.data||'{}'); }catch(_){}
-      if (data?.html){
-        // Si el backend ya envía el HTML final
-        postActivity(data.html);
-        return;
-      }
-      // Si el backend envía estructura, la transformamos a tu formato actual
-      const cur = (typeof getLang==='function'?getLang():'es');
-      if (data?.type === 'vote'){
-        const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt;
-        const msg = (cur==='en')
-          ? `${data.user} voted <b>${optEmoji}</b> → <b>${data.pct}%</b>`
-          : `<b>${data.user}</b> votó ${optEmoji} → <b>${data.pct}%</b>`;
-        postActivity(msg);
-      } else if (data?.type === 'suggest'){
-        const msg = (cur==='en')
-          ? `${data.user} sent a suggestion!`
-          : `<b>${data.user}</b> envió una sugerencia`;
-        postActivity(msg);
-      }
-    };
-    es.onerror = ()=>{ /* silencioso */ };
-    console.warn('[Feed] SSE error');
+  const url = `${FEED.base}${FEED.stream}`;
+  const es  = new EventSource(url, { withCredentials: false });
 
-  }catch(_){}
+  es.onopen = () => console.log('[FEED] sse open');
+  es.onerror = (e) => {
+    console.warn('[FEED] sse error', e);
+    // opcional: reconectar simple si la conexión se cae
+    try{ es.close(); }catch(_){}
+    _feedEs = null;
+    setTimeout(() => setupPublicFeed(), 1500);
+  };
+
+  es.onmessage = (ev) => {
+    let data = {};
+    try{ data = JSON.parse(ev.data || '{}'); }catch(_){}
+
+    // Si el backend manda HTML listo
+    if (data && typeof data.html === 'string') {
+      postActivity(data.html);   // usa tu helper existente
+      return;
+    }
+
+    // Caso estructura (type vote/suggest)
+    const cur = (typeof getLang==='function' ? getLang() : 'es');
+    if (data?.type === 'vote'){
+      const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt || '?';
+      const pct = (data.pct!=null) ? ` → <b>${data.pct}%</b>` : '';
+      const msg = (cur==='en')
+        ? `${data.user||'Someone'} voted <b>${optEmoji}</b>${pct}`
+        : `<b>${data.user||'Alguien'}</b> votó ${optEmoji}${pct}`;
+      postActivity(msg);
+    } else if (data?.type === 'suggest'){
+      const msg = (cur==='en')
+        ? `${data.user||'Someone'} sent a suggestion!`
+        : `<b>${data.user||'Alguien'}</b> envió una sugerencia`;
+      postActivity(msg);
+    }
+  };
+
+  _feedEs = es;
+  // expón por si lo quieres inspeccionar en consola
+  window._feedEs = es;
 }
 </script>
 
