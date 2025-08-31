@@ -2645,23 +2645,22 @@ function setupPublicFeed(){
   };
 es.onmessage = (ev) => {
   let data = {};
-  try{ data = JSON.parse(ev.data || '{}'); }catch(_){}
+  try { data = JSON.parse(ev.data || '{}'); } catch (_) {}
 
-  // Si el backend manda HTML listo, seguimos soportándolo
-  if (data && typeof data.html === 'string') {
-    postActivity(data.html);
+  // SOLO manejamos los tipos tipificados que usamos en el backend
+  if (data?.type === 'vote') {
+    const optEmoji = ({ A:'🔴', B:'🔵', C:'🤖' })[data.opt] || data.opt || '?';
+    const pctTxt = (data.pct != null) ? ` → ${data.pct}%` : '';
+    pushActivity(`${data.user || 'Alguien'} votó ${optEmoji}${pctTxt}`);
     return;
   }
 
-  // Estructura tipificada
-  if (data?.type === 'vote'){
-    const optEmoji = ({A:'🔴',B:'🔵',C:'🤖'})[data.opt] || data.opt || '?';
-    const pctTxt = (data.pct != null) ? ` → ${data.pct}%` : '';
-    pushActivity(`${data.user || 'Alguien'} votó ${optEmoji}${pctTxt}`);
-  } else if (data?.type === 'suggest'){
+  if (data?.type === 'suggest') {
     pushActivity(`${data.user || 'Alguien'} envió una sugerencia`);
+    return;
   }
 };
+
 
 
   _feedEs = es;
