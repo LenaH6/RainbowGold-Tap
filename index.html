@@ -1251,7 +1251,7 @@ try {
 
 // 👇 Flag para mostrar/ocultar el D
 const SHOW_DEMO = false;
-window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
+window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -2559,33 +2559,6 @@ let noticeRunning = false;
   setTimeout(apply, 0);
 })();
 
-function postActivity(html){
-  if (!activityBar) return;
-  noticeQueue.push(html);
-  if (!noticeRunning) runNextNotice();
-}
-
-function runNextNotice(){
-  const html = noticeQueue.shift();
-  if (!html){ noticeRunning = false; return; }
-  noticeRunning = true;
-
-  // un solo item visible a la vez
-  activityBar.innerHTML = '';
-
-  const el = document.createElement('div');
-  el.className = 'activity-item';
-  el.innerHTML = html;
-  activityBar.appendChild(el);
-
-  // arrancar la animación (entra desde abajo → vibra → sube y sale)
-  requestAnimationFrame(() => el.classList.add('run'));
-
-  el.addEventListener('animationend', () => {
-    el.remove();
-    runNextNotice();          // mostrar el siguiente de la cola
-  }, { once: true });
-}
 function pushActivity(text){
   if(!activityBar) return;
   const item = document.createElement("div");
@@ -3842,6 +3815,12 @@ async function payRefill(){
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
+// 👉 expone MiniKit y VerificationLevel al global para handlers no-módulo
+try {
+  if (typeof MiniKit !== 'undefined') window.MiniKit = MiniKit;
+  if (typeof VerificationLevel !== 'undefined') window.VerificationLevel = VerificationLevel;
+} catch (_) {}
+
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
 <script>
