@@ -3299,34 +3299,79 @@ let __nextRU = performance.now();
 function getLang(){ return localStorage.getItem('lang') || 'es'; }
 function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
 
-var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
-function getUsername(){ return localStorage.getItem('username') || 'Player'; }
-async function setUsername(v){
-  const s = (v || '').slice(0,20);
+// =====================================
+// Username (guardar + límite 3 cambios)
+// =====================================
 
-  try {
-    let res = await fetch("https://worldgold-api.vercel.app/api/profile/changeName", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: window.SESSION_TOKEN, newName: s })
-    });
-    let data = await res.json();
+// variable global inicial
+var username = localStorage.getItem("username") || "Player";
 
-    if (data.ok) {
-      username = data.name;  // 👈 actualizar variable global
-      localStorage.setItem('username', data.name); // opcional, solo cache
-      // refrescar UI si tienes un span o input mostrando el nombre
-      if (document.getElementById("usernameInput")) {
-        document.getElementById("usernameInput").value = data.name;
-      }
-      return data.name;
-    } else {
-      alert("❌ " + data.error);
-      return username; // mantener anterior
+// getUsername siempre devuelve la variable global
+function getUsername(){
+  return username;
+}
+
+// máximo 3 cambios
+function canChangeName(){
+  const n = +localStorage.getItem("username_changes") || 0;
+  return n < 3;
+}
+
+// guardar nombre con límite
+async function setUsernameLimited(v){
+  if (!canChangeName()){
+    alert("❌ Ya alcanzaste el máximo de 3 cambios de nombre.");
+    return getUsername();
+  }
+
+  const s = (v || "").slice(0,20);
+
+  // simulamos guardar en backend (o fallback local)
+  username = s;
+  localStorage.setItem("username", s);
+
+  const n = +localStorage.getItem("username_changes") || 0;
+  localStorage.setItem("username_changes", String(n+1));
+
+  return username;
+}
+
+// cargar perfil
+function loadProfileFields(){
+  const usernameInput = document.getElementById('usernameInput');
+  const saveBtn = document.getElementById('saveUsernameBtn');
+  const savedBadge = document.getElementById('savedBadge');
+
+  if (usernameInput){
+    // solo inicializa si está vacío
+    if (!usernameInput.value){
+      usernameInput.value = getUsername();
     }
-  } catch (err) {
-    alert("Error al conectar con el servidor");
-    return username;
+
+    const markDirty = ()=>{
+      const dirty = usernameInput.value !== getUsername();
+      if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
+      if (savedBadge) savedBadge.style.display = 'none';
+    };
+    usernameInput.addEventListener('input', markDirty);
+    usernameInput.addEventListener('focus', markDirty);
+
+    if (saveBtn){
+      saveBtn.onclick = async ()=>{
+        const normalized = await setUsernameLimited(usernameInput.value);
+
+        // actualizar variable global + input
+        username = normalized;  
+        usernameInput.value = normalized;
+
+        saveBtn.style.display = 'none';
+        if (savedBadge){
+          savedBadge.style.display = 'inline';
+          clearTimeout(savedBadge._t);
+          savedBadge._t = setTimeout(()=> savedBadge.style.display='none', 2000);
+        }
+      };
+    }
   }
 }
 
@@ -3451,9 +3496,6 @@ en: {
   }
   
 };
-
-
-/* Aplica i18n a todos los [data-i18n] */
 /* Aplica i18n a todos los [data-i18n] y placeholders */
 function applyLang(){
   const cur = getLang();
@@ -3487,9 +3529,8 @@ function loadProfileFields(){
   const langSelect    = document.getElementById('langSelect');
 
   // Nombre de usuario
-  if (usernameInput){
-    usernameInput.value = getUsername();
-
+ if (usernameInput && !usernameInput.value){
+  usernameInput.value = getUsername();
     const markDirty = ()=>{
       const dirty = usernameInput.value !== getUsername();
       if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
@@ -3498,25 +3539,19 @@ function loadProfileFields(){
     usernameInput.addEventListener('input', markDirty);
     usernameInput.addEventListener('focus', markDirty);
 
-    if (saveBtn){
-      saveBtn.onclick = async ()=>{
-    const normalized = await setUsername(usernameInput.value);
-    usernameInput.value = normalized;
+   if (saveBtn){
+  saveBtn.onclick = async ()=>{
+    const normalized = await setUsernameLimited(usernameInput.value);
+    username = normalized; // 👈 forzamos que la variable global se actualice
+    usernameInput.value = normalized; // 👈 forzamos que el input se quede con lo nuevo
     saveBtn.style.display = 'none';
-  if (savedBadge){
-    savedBadge.style.display = 'inline';
-    clearTimeout(savedBadge._t);
-    savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
-  }
-};
-
+    if (savedBadge){
+      savedBadge.style.display = 'inline';
+      clearTimeout(savedBadge._t);
+      savedBadge._t = setTimeout(()=> savedBadge.style.display='none', 2000);
     }
-    // Auto-guardar al salir del input
-    usernameInput.addEventListener('blur', ()=>{
-      if (usernameInput.value !== getUsername()){
-        if (saveBtn) saveBtn.click();
-      }
-    });
+  };
+}
   }
 
   // Idioma
