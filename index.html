@@ -3025,6 +3025,7 @@ async function flushTapQueue(){
       wlgp   = +data.state.wlgp;
       energy = +data.state.energy;
       render?.();
+        alert("✅ Pago realizado");
     }
   }catch(e){ console.warn("flushTapQueue error", e); }
   tapQueue = 0;
