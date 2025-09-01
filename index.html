@@ -3824,17 +3824,16 @@ async function payRefill(){
   }
 
   // --- DEV MODE ---
-  if (DEV_MODE){
-    alert("✅ DEV: Pago simulado de 0.10 WLD");
-    try { 
-      // Simular confirmación igual que backend
-      state.energy = state.capacity || 100;
-      updateEnergyUI?.();
-    } catch (e) { 
-      console.warn("doRefill() no disponible:", e); 
-    }
-    return;
-  }
+ if (DEV_MODE){
+  alert("✅ DEV: Pago simulado de 0.10 WLD");
+
+  // Simula refill directamente
+  energy = capMax();   // recarga energía al 100%
+  render();            // refresca la barra de energía en pantalla
+
+  return;
+}
+
 
   try {
     // Pago real en World App
