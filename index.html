@@ -2614,15 +2614,26 @@ function runNextNotice(){
 
 
 
-function handleVote(key){
-
+async function handleVote(key){
   // bloquear doble clic
   [pollOptA,pollOptB,pollOptC].forEach(b=> b && (b.disabled = true));
+
   // % antes
   const totalBefore = votes.A + votes.B + votes.C;
   const beforePct = totalBefore ? Math.round(((votes[key]||0) / totalBefore) * 100) : 0;
 
-  // sumar voto
+  // === Guardar en backend ===
+  try {
+    await fetch("https://worldgold-api.vercel.app/api/votes/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, option: key })
+    });
+  } catch (e) {
+    console.error("Error al enviar voto al backend:", e);
+  }
+
+  // === Mantener tu lógica local ===
   votes[key] = (votes[key] || 0) + 1;
   saveVotes();
 
@@ -2640,17 +2651,17 @@ function handleVote(key){
   // mensaje público
   const deltaTxt = (delta === 0) ? '±0%' : (delta>0 ? `+${delta}%` : `${delta}%`);
   const cur = getLang(); const T = I18N[cur] || I18N.es;
-const msgVote = (cur === 'en')
-  ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
-  : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
-postActivity(msgVote);
-alert(T.vote_recorded || '✅ Voto registrado');
+  const msgVote = (cur === 'en')
+    ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
+    : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
+  postActivity(msgVote);
+  alert(T.vote_recorded || '✅ Voto registrado');
 
-    consumeTicketAndReset();
-    closeDrawer('ID');
-document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
-
+  consumeTicketAndReset();
+  closeDrawer('ID');
+  document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
 }
+
 
 
 if (voteBtn){
@@ -2702,31 +2713,41 @@ if (suggestText){
 }
 
 if (sendSuggestBtn){
-  sendSuggestBtn.onclick = () => {
+  sendSuggestBtn.onclick = async () => {
     const txt = safeText(suggestText.value);
     if (!txt || txt.length < 4){
       alert('Escribe al menos 4 caracteres.');
       return;
     }
-    // Guarda privado en localStorage (solo tú lo ves)
+
+    // === Guardar en backend ===
+    try {
+      await fetch("https://worldgold-api.vercel.app/api/suggestions/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: window.SESSION_TOKEN, suggestion: txt })
+      });
+    } catch (e) {
+      console.error("Error al enviar sugerencia al backend:", e);
+    }
+
+    // === Mantener tu UI local ===
     const box = JSON.parse(localStorage.getItem('wg_suggestions') || '[]');
     box.unshift({ txt, ts: Date.now() });
     localStorage.setItem('wg_suggestions', JSON.stringify(box));
 
-    {
-  const cur = getLang(); const T = I18N[cur] || I18N.es;
-  alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
-  const u = (typeof getUsername==='function'?getUsername():'Usuario');
-  const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
-  postActivity(msgSug);
-}
+    const cur = getLang(); const T = I18N[cur] || I18N.es;
+    alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
+    const u = (typeof getUsername==='function'?getUsername():'Usuario');
+    const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
+    postActivity(msgSug);
 
     consumeTicketAndReset();
     closeDrawer('ID');
-document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
-
+    document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
   };
 }
+
 
 if (sugClose){
   sugClose.onclick = () => {
@@ -2800,7 +2821,7 @@ if (payIdeasBtn){
         return;
       }
 
-      await fetch("https://worldgold-api.vercel.app//api/pay/confirm", {
+      await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(res)
@@ -2987,7 +3008,7 @@ let tapQueue = 0;
 async function flushTapQueue(){
   if (!tapQueue || !window.SESSION_TOKEN) return;
   try{
-    const resp = await fetch("https://worldgold-api.vercel.app//api/tapBatch", {
+    const resp = await fetch("https://worldgold-api.vercel.app/api/tapBatch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
@@ -3277,15 +3298,28 @@ function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
 
 var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
 function getUsername(){ return localStorage.getItem('username') || 'Player'; }
-function setUsername(v){
-  const s = (v || '').slice(0,20);
-  localStorage.setItem('username', s);
-  username = s;
-  return s;
+async function changeName(newName) {
+  try {
+    let res = await fetch("https://worldgold-api.vercel.app/api/profile/changeName", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, newName })
+    });
+
+    let data = await res.json();
+    if (data.ok) {
+      alert("✅ Nombre cambiado a: " + data.name + ` (te quedan ${data.remaining} cambios)`);
+      // refresca en UI
+      document.getElementById("usernameDisplay").innerText = data.name;
+    } else {
+      alert("❌ " + data.error);
+    }
+  } catch (err) {
+    alert("Error al cambiar nombre");
+  }
 }
 
 
-/* Diccionario i18n (UNA sola vez) */
 /* Diccionario i18n (UNA sola vez) */
 const I18N = {
   es: {
@@ -3641,7 +3675,7 @@ try {
 const ACTION_ID = "worldgold";                                  // tu Action Identifier
 const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
 const TOKEN     = "WLD";
-const AMOUNT    = "0.10";
+const AMOUNT    = priceRefill();
 
 // === Referencias UI ===
 const btn       = document.getElementById("wldSignIn");
@@ -3692,7 +3726,7 @@ async function startVerify(){
     }
 
     // Valida el proof en tu backend
-    const r = await fetch("https://worldgold-api.vercel.app//api/verify", {
+    const r = await fetch("https://worldgold-api.vercel.app/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(finalPayload)
@@ -3756,7 +3790,7 @@ async function payRefill(){
     if (res.status === "success"){
       
       try {
-        await fetch("https://worldgold-api.vercel.app//api/pay/confirm", {
+        await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(res)
