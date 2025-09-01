@@ -3818,17 +3818,26 @@ if (btn) btn.addEventListener("click", startVerify);
 // === Pago (Refill) ===
 async function payRefill(){
   if (!requireMiniKit()) return;
-  if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+  if (!window.SESSION_TOKEN) { 
+    alert("Verifícate primero."); 
+    return; 
+  }
 
+  // --- DEV MODE ---
+  if (DEV_MODE){
+    alert("✅ DEV: Pago simulado de 0.10 WLD");
+    try { 
+      // Simular confirmación igual que backend
+      state.energy = state.capacity || 100;
+      updateEnergyUI?.();
+    } catch (e) { 
+      console.warn("doRefill() no disponible:", e); 
+    }
+    return;
+  }
 
- if (DEV_MODE){
-  alert("✅ DEV: Pago simulado de 0.10 WLD");
-  try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
-  return;
-}
-
-
-  try{
+  try {
+    // Pago real en World App
     const res = await MiniKit.commandsAsync.pay({
       to: MERCHANT,
       token: TOKEN,
@@ -3836,36 +3845,38 @@ async function payRefill(){
       reference: crypto.randomUUID()
     });
 
-   if (res.status === "success") {
-  try {
-    let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(res)
-    });
-    let data = await r.json();
+    if (res.status === "success") {
+      try {
+        // Confirmar en backend
+        let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(res)
+        });
+        let data = await r.json();
 
-    if (data.ok) {
-      window.SESSION_TOKEN = data.token;   // refresca el token de sesión
-      state = data.state;                  // aplica el nuevo state con energía 100%
-      updateEnergyUI?.();                  // refresca la barra de energía
-      alert("✅ Pago realizado");           // confirmación al usuario
+        if (data.ok) {
+          window.SESSION_TOKEN = data.token;   // refrescar token
+          state = data.state;                  // aplicar nuevo state
+          updateEnergyUI?.();                  // refrescar UI
+          alert("✅ Pago realizado");
+        } else {
+          alert("Error: " + data.error);
+        }
+      } catch (e) {
+        console.error("Error al confirmar pago:", e);
+        alert("Error al confirmar el pago");
+      }
     } else {
-      alert("Error: " + data.error);
+      alert("Pago cancelado");
     }
-  } catch (e) {
-    console.error("Error al confirmar pago:", e);
-    alert("Error al confirmar el pago");
-  }
-} else {
-  alert("Pago cancelado");
-}
 
-  } catch (e){
+  } catch (e) {
     console.error(e);
     alert("Error en el pago");
   }
 }
+
 
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
