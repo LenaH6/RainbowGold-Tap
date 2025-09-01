@@ -1252,9 +1252,10 @@ body.has-drawer{
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 </div>
 <div class="legal-in-profile">
-  <a href="/terminos.html">Términos</a> ·
-  <a href="/privacidad.html">Privacidad</a>
+  <a class="legal-link" href="https://world-gold-app.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
+  <a class="legal-link" href="https://world-gold-app.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
+
 
 </aside>
 
@@ -3792,6 +3793,17 @@ if (refillBtn){
     rafs.clear();
   };
   // Cuando abras/cierres drawers o cambies de modo, llama rafClearAll()
+</script>
+<script>
+  // fuerza navegación dura al hacer clic en legales si no hay target="_blank"
+  document.querySelectorAll('.legal-link').forEach(a => {
+    a.addEventListener('click', (e) => {
+      if (!a.target || a.target !== '_blank') {
+        e.preventDefault();
+        window.location.href = a.href; // navegación full-page
+      }
+    });
+  });
 </script>
 
 </body>
