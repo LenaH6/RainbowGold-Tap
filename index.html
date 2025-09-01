@@ -3836,28 +3836,31 @@ async function payRefill(){
       reference: crypto.randomUUID()
     });
 
-    if (res.status === "success"){
-      
-      
-      let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
+   if (res.status === "success") {
+  try {
+    let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(res)
     });
     let data = await r.json();
 
-    if (data.ok){
-      window.SESSION_TOKEN = data.token;   // refresca token
+    if (data.ok) {
+      window.SESSION_TOKEN = data.token;   // refresca el token de sesión
       state = data.state;                  // aplica el nuevo state con energía 100%
-      updateEnergyUI?.();                  // refresca la barra de energía en pantalla
+      updateEnergyUI?.();                  // refresca la barra de energía
+      alert("✅ Pago realizado");           // confirmación al usuario
     } else {
       alert("Error: " + data.error);
     }
+  } catch (e) {
+    console.error("Error al confirmar pago:", e);
+    alert("Error al confirmar el pago");
+  }
+} else {
+  alert("Pago cancelado");
+}
 
-      alert("✅ Pago realizado");
-    } else {
-      alert("Pago cancelado");
-    }
   } catch (e){
     console.error(e);
     alert("Error en el pago");
