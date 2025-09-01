@@ -1234,6 +1234,9 @@ body.has-drawer{
 
 <div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
   <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
+  <small style="font-style: italic; color: gray;">
+  Máx. 3
+</small>
   <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
 </div>
 
@@ -3298,26 +3301,35 @@ function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
 
 var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
 function getUsername(){ return localStorage.getItem('username') || 'Player'; }
-async function changeName(newName) {
+async function setUsername(v){
+  const s = (v || '').slice(0,20);
+
   try {
     let res = await fetch("https://worldgold-api.vercel.app/api/profile/changeName", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: window.SESSION_TOKEN, newName })
+      body: JSON.stringify({ token: window.SESSION_TOKEN, newName: s })
     });
-
     let data = await res.json();
+
     if (data.ok) {
-      alert("✅ Nombre cambiado a: " + data.name + ` (te quedan ${data.remaining} cambios)`);
-      // refresca en UI
-      document.getElementById("usernameDisplay").innerText = data.name;
+      username = data.name;  // 👈 actualizar variable global
+      localStorage.setItem('username', data.name); // opcional, solo cache
+      // refrescar UI si tienes un span o input mostrando el nombre
+      if (document.getElementById("usernameInput")) {
+        document.getElementById("usernameInput").value = data.name;
+      }
+      return data.name;
     } else {
       alert("❌ " + data.error);
+      return username; // mantener anterior
     }
   } catch (err) {
-    alert("Error al cambiar nombre");
+    alert("Error al conectar con el servidor");
+    return username;
   }
 }
+
 
 
 /* Diccionario i18n (UNA sola vez) */
@@ -3487,10 +3499,10 @@ function loadProfileFields(){
     usernameInput.addEventListener('focus', markDirty);
 
     if (saveBtn){
-      saveBtn.onclick = ()=>{
-  const normalized = setUsername(usernameInput.value);
-  usernameInput.value = normalized;
-  saveBtn.style.display = 'none';
+      saveBtn.onclick = async ()=>{
+    const normalized = await setUsername(usernameInput.value);
+    usernameInput.value = normalized;
+    saveBtn.style.display = 'none';
   if (savedBadge){
     savedBadge.style.display = 'inline';
     clearTimeout(savedBadge._t);
@@ -3655,7 +3667,7 @@ const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
 // 👇 Solo para DEV: desbloquear juego sin verificar cada vez
 if (DEV_MODE) {
   window.VERIFIED = true;
-  window.SESSION_TOKEN = 'dev-' + (crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+ window.SESSION_TOKEN = "dev_test_token";
   setVerifiedUI?.(true);
   try { unlock?.(); } catch (_) {}
 }
