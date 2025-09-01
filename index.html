@@ -3741,12 +3741,7 @@ function hasMiniKit(){
   return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
 }
 function requireMiniKit(){
-  if (DEV_MODE){
-  alert("✅ DEV: Pago simulado de 0.10 WLD");
-  try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
-  return;
-}
-// en DEV no exigimos MiniKit
+  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
   const ok = hasMiniKit();
   if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
   return ok;
@@ -3826,10 +3821,12 @@ async function payRefill(){
   if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
 
 
-  if (DEV_MODE){
-    alert("✅ DEV: Pago simulado de 0.10 WLD");
-    return;
-  }
+ if (DEV_MODE){
+  alert("✅ DEV: Pago simulado de 0.10 WLD");
+  try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
+  return;
+}
+
 
   try{
     const res = await MiniKit.commandsAsync.pay({
