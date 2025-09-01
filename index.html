@@ -5,7 +5,7 @@
 <link rel="preload" as="image" href="img/brand-mark-wg-128.png">
 <meta charset="utf-8">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <!-- ✅ CSP etapa 1: compatible con scripts/estilos inline -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
@@ -13,7 +13,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
- connect-src 'self' https://worldgold-api.vercel.app ws: wss:;
+  connect-src 'self' https://cdn.jsdelivr.net https://worldgold-api-o87j.vercel.app;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -32,10 +32,8 @@
 ">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
 
-<link rel="preconnect" href="https://worldgold-api.vercel.app" crossorigin>
-<link rel="dns-prefetch" href="https://worldgold-api.vercel.app">
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
@@ -57,14 +55,6 @@ body{
   /* negro carbón con leve degradado vertical */
   background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
 }
-/* --- UX miniapp: sin scroll ni zoom accidental --- */
-html, body { height: 100%; overscroll-behavior: none; }
-body { touch-action: manipulation; }
-#app, .gameRoot { height: 100%; }
-
-/* Evita rebote y selección accidental */
-html, body { overflow: hidden; }
-* { -webkit-tap-highlight-color: transparent; user-select: none; }
 
 /* Noise overlay (opcional) */
 .noise{
@@ -272,7 +262,7 @@ html, body{
 .drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
   background:transparent; color:#fff; cursor:pointer; font-size:18px}
 
-/* D card */
+/* Demo card */
 .card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
 
 /* Ajustes pantallas estrechas */
@@ -582,6 +572,28 @@ html, body{
   80%  { transform: translateY(0); opacity: 1; }      /* último instante en centro */
   100% { transform: translateY(-60px); opacity: 0; }  /* se va hacia arriba */
 }
+
+/* === Cards pro unificadas === */
+.cardPro{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.cardPro h3,.cardPro h4{margin:0 0 10px;font:700 16px/1.2 system-ui;color:#ffd872}
+
+/* === Botón pro (usa en acciones) === */
+.btnPro{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 14px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#fff;font-weight:800;letter-spacing:.2px;
+  transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+}
+.btnPro:hover{transform:translateY(-1px);background:rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.btnPro:active{transform:translateY(0)}
 .btnPro.success{border-color:rgba(0,230,140,.35);background:rgba(0,230,140,.12);color:#00e68c}
 .btnPro.warn{border-color:rgba(255,120,80,.35);background:rgba(255,120,80,.12);color:#ff9a6b}
 
@@ -765,6 +777,26 @@ html, body{
 @keyframes cardChildIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0);   }
+}
+/* ===== Drawers optimizados ===== */
+.drawer{
+  transform: translate3d(0,100%,0);
+  transition: transform .28s ease, opacity .28s ease;
+  will-change: transform, opacity;
+  contain: layout paint;
+}
+.drawer.drawer--open{
+  transform: translate3d(0,0,0);
+}
+
+.backdrop{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.backdrop.backdrop--show{
+  opacity: .85;        /* ajusta si quieres más/menos oscuro */
+  pointer-events: auto;
 }
 
 /* Menos mareo para quienes prefieren menos movimiento */
@@ -1174,10 +1206,6 @@ body.has-drawer{
 <div id="ideasSuggestView" class="cardPro" style="display:none">
   <h4 style="margin:6px 0 8px" data-i18n="suggest_title">¿Alguna idea?</h4>
 <p class="hint"><b data-i18n="suggest_hint">Máx. 400 caracteres.</b></p>
-<p style="margin:6px 0;color:#bdbdbd;font-size:12px">
-  <span id="sugCount">0</span>/240
-</p>
-
 <textarea id="suggestText" class="textareaPro" rows="5" maxlength="240"
   data-i18n-placeholder="placeholder_suggest"
   placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
@@ -1224,8 +1252,8 @@ body.has-drawer{
 <button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
 </div>
 <div class="legal-in-profile">
-  <a href="https://worldgold-api.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
-  <a href="https://worldgold-api.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
+  <a href="https://worldgold-api-o87j.vercel.app/terminos" target="_blank" rel="noopener">Términos</a> ·
+  <a href="https://worldgold-api-o87j.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
 </aside>
 
@@ -1244,18 +1272,11 @@ function setVerifiedUI(on){
 }
   
   // Clickjacking guard (defensa extra al CSP)
-try {
-  if (window.top !== window.self) {
-    window.top.location = window.location.href;
-  }
-} catch (e) {
-  // opcional: redirigir de otra forma
-  window.location.href = window.location.href;
-}
+try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
 
-// 👇 Flag para mostrar/ocultar el D
+// 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
-window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
+window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -2275,15 +2296,12 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 })();
 
 
-/* ===== Estado base (dem) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.5, POWER_BASE=0.1000;
+/* ===== Estado base (demo) ===== */
+const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
-let lastTs=+localStorage.getItem('last_ts')||Date.now()
-// --- Guardas anti doble pago (Refill) ---
-let payingRefill = false;
-
+let lastTs=+localStorage.getItem('last_ts')||Date.now();
 // === Hotspot / Combo ===
 const HOT_SHOW_MS= 1600;    // tiempo visible del hotspot 1.6s
 const HOT_CD_MIN = 2800;    // cooldown mínimo
@@ -2515,7 +2533,7 @@ const pctB = document.getElementById('pctB');
 const pctC = document.getElementById('pctC');
 const pollClose = document.getElementById('pollClose');
 
-// Estado local (solo D)
+// Estado local (solo demo)
 let votes = JSON.parse(localStorage.getItem('wg_votes') || '{"A":0,"B":0,"C":0}');
 function saveVotes(){ localStorage.setItem('wg_votes', JSON.stringify(votes)); }
 
@@ -2563,87 +2581,36 @@ let noticeRunning = false;
   setTimeout(apply, 0);
 })();
 
-function pushActivity(text){
-  if(!activityBar) return;
-  const item = document.createElement("div");
-  item.className = "activity-item";
-  item.textContent = text;
-  activityBar.appendChild(item);
-
-  // dispara animación CSS
-  void item.offsetWidth;
-  item.classList.add("run");
-
-  // remover a los 3.5s
-  setTimeout(()=> item.remove(), 3500);
+function postActivity(html){
+  if (!activityBar) return;
+  noticeQueue.push(html);
+  if (!noticeRunning) runNextNotice();
 }
 
-</script>
+function runNextNotice(){
+  const html = noticeQueue.shift();
+  if (!html){ noticeRunning = false; return; }
+  noticeRunning = true;
 
-<!-- === Feed público (frontend) — FIX === -->
-<script>
-const FEED = {
-  base: 'https://worldgold-api.vercel.app',
-  publish: '/api/feed/publish',
-  stream:  '/api/feed/stream'
-};
+  // un solo item visible a la vez
+  activityBar.innerHTML = '';
 
-// Publica una actividad (vote/suggest) en el feed público
-async function publishActivity(evt){
-  try{
-    const res = await fetch(`${FEED.base}${FEED.publish}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(evt)
-    });
-    if (!res.ok){
-      console.warn('[FEED] publish failed', res.status, await res.text().catch(()=>'')); 
-    }
-  }catch(err){
-    console.warn('[FEED] publish error', err);
-  }
+  const el = document.createElement('div');
+  el.className = 'activity-item';
+  el.innerHTML = html;
+  activityBar.appendChild(el);
+
+  // arrancar la animación (entra desde abajo → vibra → sube y sale)
+  requestAnimationFrame(() => el.classList.add('run'));
+
+  el.addEventListener('animationend', () => {
+    el.remove();
+    runNextNotice();          // mostrar el siguiente de la cola
+  }, { once: true });
 }
 
-// Mantén una única conexión SSE viva
-let _feedEs = null;
-function setupPublicFeed(){
-  try{ if (_feedEs) { _feedEs.close(); _feedEs = null; } }catch(_){}
 
-  const url = `${FEED.base}${FEED.stream}`;
-  const es  = new EventSource(url, { withCredentials: false });
 
-  es.onopen = () => console.log('[FEED] sse open');
-  es.onerror = (e) => {
-    console.warn('[FEED] sse error', e);
-    // opcional: reconectar simple si la conexión se cae
-    try{ es.close(); }catch(_){}
-    _feedEs = null;
-    setTimeout(() => setupPublicFeed(), 1500);
-  };
-es.onmessage = (ev) => {
-  let data = {};
-  try { data = JSON.parse(ev.data || '{}'); } catch (_) {}
-
-  if (data?.type === 'vote') {
-    const optEmoji = ({ A:'🔴', B:'🔵', C:'🤖' })[data.opt] || data.opt || '?';
-    const pctTxt = (data.pct != null) ? ` → ${data.pct}%` : '';
-    pushActivity(`${data.user || 'Alguien'} votó ${optEmoji}${pctTxt}`);
-    return;
-  }
-
-  if (data?.type === 'suggest') {
-    pushActivity(`${data.user || 'Alguien'} envió una sugerencia`);
-    return;
-  }
-};
-
-  _feedEs = es;
-  // expón por si lo quieres inspeccionar en consola
-  window._feedEs = es;
-}
-</script>
-
-<script>
 function handleVote(key){
 
   // bloquear doble clic
@@ -2673,16 +2640,7 @@ function handleVote(key){
 const msgVote = (cur === 'en')
   ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
   : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
-  publishActivity({
-    type: 'vote',
-    user,
-    opt: key,
-    pct: afterPct
-  });
-  // Eco local: muestra el aviso en esta pestaña aunque falle SSE
-const optEmoji = ({ A:'🔴', B:'🔵', C:'🤖' })[key] || key || '?';
-const pctTxt = (typeof afterPct === 'number') ? ` → ${afterPct}%` : '';
-pushActivity(`${username || 'Alguien'} votó ${optEmoji}${pctTxt}`);
+postActivity(msgVote);
 alert(T.vote_recorded || '✅ Voto registrado');
 
     consumeTicketAndReset();
@@ -2735,9 +2693,8 @@ alert(T.need_active_ticket || 'Necesitas un ticket activo');
 
 if (suggestText){
   suggestText.addEventListener('input', () => {
-const n = (suggestText.value || '').length;
-if (sugCount) sugCount.textContent = String(n);
-
+    const n = (suggestText.value || '').length;
+    sugCount.textContent = String(n);
   });
 }
 
@@ -2758,16 +2715,9 @@ if (sendSuggestBtn){
   alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
   const u = (typeof getUsername==='function'?getUsername():'Usuario');
   const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
-  publishActivity({
-  type: 'suggest',
-  user: u,
-  text: txt
-});
- // Eco local: muestra el aviso en esta pestaña aunque falle SSE
-pushActivity(`${username || 'Alguien'} envió una sugerencia`);
-
-
+  postActivity(msgSug);
 }
+
     consumeTicketAndReset();
     closeDrawer('ID');
 document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
@@ -2847,7 +2797,7 @@ if (payIdeasBtn){
         return;
       }
 
-      await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
+      await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(res)
@@ -2865,6 +2815,9 @@ if (payIdeasBtn){
     }
   };
 }
+
+
+const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
 // ===== Inbox: estado y render =====
 let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
 let unread = +localStorage.getItem('unread') || 0;
@@ -3031,7 +2984,7 @@ let tapQueue = 0;
 async function flushTapQueue(){
   if (!tapQueue || !window.SESSION_TOKEN) return;
   try{
-    const resp = await fetch("https://worldgold-api.vercel.app/api/tapBatch", {
+    const resp = await fetch("https://worldgold-api-o87j.vercel.app/api/tapBatch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
@@ -3105,7 +3058,7 @@ coin.addEventListener('click', (e) => {
   // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
   if (now < combo.frenzyUntil) {
     spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
-    addTapAmount(POWER_BASE);    // bin tocar energía
+    addTapAmount(POWER_BASE);    // base sin tocar energía
     applyComboTap(e);            // aquí añade el +5% y actualiza el numerito
     maybeSpawnByTap?.(); render?.();
     updateRefillCue();
@@ -3146,7 +3099,7 @@ function doRefill(){
   wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
   tone(620,0.08,'sine',.08); render();
 }
-
+refillBtn.onclick=doRefill;
 
 
 /* ===== Boosters drawer (placeholder) ===== */
@@ -3226,6 +3179,31 @@ if (ideasBtn) {
 
     if (poll) poll.style.display = 'none';
     if (sugg) sugg.style.display = 'none';};}
+
+
+
+
+
+// === Demo buttons (handlers seguros) ===
+const addWldBtn = document.getElementById('btnAddWLD');
+if (addWldBtn) {
+  addWldBtn.addEventListener('click', () => {
+    wld += 5;                                   // suma 5 WLD
+    localStorage.setItem('wld', String(wld));   // persiste
+    render();                                   // refresca balances/energía
+    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
+  });
+}
+
+const resetBtn = document.getElementById('btnReset');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    if (confirm('¿Reiniciar demo?')) {
+      localStorage.clear();
+      location.reload();
+    }
+  });
+}
 
 /* ===== OPF: Orquestador Presupuestado de Frames (≤8ms) + integración ===== */
 const BUDGET_MS = 8;
@@ -3315,6 +3293,7 @@ const I18N = {
     profile_title: 'Perfil',
     mark_read:     'Marcar como leído',
     claim_soon:    'Reclamar (Pronto)',
+    demo_title:    'Herramientas de prueba (demo)',
     save:          'Guardar',
     saved:         'Guardado',
 
@@ -3371,6 +3350,7 @@ en: {
     profile_title: 'Profile',
     mark_read:     'Mark as read',
     claim_soon:    'Claim (Soon)',
+    demo_title:    'Demo tools',
     save:          'Save',
     saved:         'Saved',
 
@@ -3533,8 +3513,6 @@ if (msgs.length === 0) {
 
 // Primer pintado del Inbox (ahora sí, I18N ya existe)
 renderInbox();
-console.log('[Feed] calling setupPublicFeed() from init');
-  setupPublicFeed(); // 👈 activa feed público
 if (!USE_TAP_SPAWN) {
       scheduleHot(); // modo clásico por tiempo
 } else {
@@ -3666,6 +3644,7 @@ const AMOUNT    = "0.10";
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
 const state     = document.getElementById("wldState");
+const refillBtn = document.getElementById("refillBtn");
 
 // === Helpers UI ===
 function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
@@ -3710,7 +3689,7 @@ async function startVerify(){
     }
 
     // Valida el proof en tu backend
-    const r = await fetch("https://worldgold-api.vercel.app/api/verify", {
+    const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(finalPayload)
@@ -3752,35 +3731,18 @@ async function startVerify(){
 
 if (btn) btn.addEventListener("click", startVerify);
 
-//pago refill//
+// === Pago (Refill) ===
 async function payRefill(){
-  // 🚫 Evita doble toque si ya hay un pago en curso
-  if (payingRefill) return;
-  payingRefill = true;
+  if (!requireMiniKit()) return;
+  if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
 
-  // 🔒 Desactiva botón durante la transacción
-  if (refillBtn){
-    refillBtn.disabled = true;
-    refillBtn.setAttribute('aria-busy', 'true');
-    refillBtn.style.pointerEvents = 'none';
+
+  if (DEV_MODE){
+    alert("✅ DEV: Pago simulado de 0.10 WLD");
+    return;
   }
 
   try{
-    if (!requireMiniKit()) return;
-    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
-
-   if (DEV_MODE){
-  try { 
-    // que en DEV también haga el refill real
-    doRefill(); 
-  } catch(e){
-    console.warn("doRefill no disponible en DEV:", e);
-  }
-  alert("✅ DEV: Refill simulado (sin pago real)");
-  return;
-}
-
-
     const res = await MiniKit.commandsAsync.pay({
       to: MERCHANT,
       token: TOKEN,
@@ -3789,45 +3751,30 @@ async function payRefill(){
     });
 
     if (res.status === "success"){
+      
       try {
-        await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
+        await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(res)
         });
       } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
-
+            // ➜ cargar la energía y descontar el WLD en el cliente
       try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
 
       alert("✅ Pago realizado");
     } else {
       alert("Pago cancelado");
     }
-
   } catch (e){
     console.error(e);
     alert("Error en el pago");
-  } finally {
-    // 🔓 Siempre reactivar
-    if (refillBtn){
-      refillBtn.disabled = false;
-      refillBtn.removeAttribute('aria-busy');
-      refillBtn.style.pointerEvents = '';
-    }
-    payingRefill = false;
   }
 }
-
 
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
-// 👉 expone MiniKit y VerificationLevel al global para handlers no-módulo
-try {
-  if (typeof MiniKit !== 'undefined') window.MiniKit = MiniKit;
-  if (typeof VerificationLevel !== 'undefined') window.VerificationLevel = VerificationLevel;
-} catch (_) {}
-
 // ===== Fin bloque MiniKit (DEV) =====
 </script>
 <script>
