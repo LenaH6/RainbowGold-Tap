@@ -31,8 +31,13 @@
   usb=()
 ">
 
+<!-- CDN jsDelivr -->
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://worldgold-api.vercel.app/" crossorigin>
+
+<!-- Backend WorldGold API -->
+<link rel="dns-prefetch" href="https://worldgold-api.vercel.app">
+<link rel="preconnect" href="https://worldgold-api.vercel.app" crossorigin>
 
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
@@ -439,20 +444,7 @@ html, body{
   50%  { opacity: 1; }  /* se muestra */
   100% { opacity: 1; }
 }
-#devBanner {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(255, 0, 0, 0.8);
-  color: #fff;
-  font-size: 13px;
-  font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 8px;
-  z-index: 9999;
-  box-shadow: 0 0 8px rgba(0,0,0,0.4);
-  font-family: system-ui, sans-serif;
-}
+
 .coin.flash {
   box-shadow: 
     0 0 18px rgba(255, 223, 120, 0.7),
@@ -1282,7 +1274,7 @@ try { if (window.top !== window.self) window.top.location = window.location.href
 
 // 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
-window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
+window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -3698,7 +3690,7 @@ document.addEventListener('visibilitychange', () => {
 
 <script type="module">
 // ===== MiniKit World App — Bloque mínimo con DEV =====
-const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
+const DEV_MODE = false;  // <<<<<< ACTIVADO (simula verify/pay)
 // 👇 Solo para DEV: desbloquear juego sin verificar cada vez
 if (DEV_MODE) {
   window.VERIFIED = true;
