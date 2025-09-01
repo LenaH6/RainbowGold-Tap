@@ -3838,15 +3838,21 @@ async function payRefill(){
 
     if (res.status === "success"){
       
-      try {
-        await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(res)
-        });
-      } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
-            // ➜ cargar la energía y descontar el WLD en el cliente
-      try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
+      
+      let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(res)
+    });
+    let data = await r.json();
+
+    if (data.ok){
+      window.SESSION_TOKEN = data.token;   // refresca token
+      state = data.state;                  // aplica el nuevo state con energía 100%
+      updateEnergyUI?.();                  // refresca la barra de energía en pantalla
+    } else {
+      alert("Error: " + data.error);
+    }
 
       alert("✅ Pago realizado");
     } else {
