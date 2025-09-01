@@ -2300,7 +2300,7 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 
 
 /* ===== Estado base (demo) ===== */
-const BASE_CAP=100, BASE_REGEN_PER_SEC=0.5, POWER_BASE=0.1000;
+const BASE_CAP=100, BASE_REGEN_PER_SEC=0.6, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
 let wlgp= +localStorage.getItem('wlgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
