@@ -3025,7 +3025,6 @@ async function flushTapQueue(){
       wlgp   = +data.state.wlgp;
       energy = +data.state.energy;
       render?.();
-        alert("✅ Pago realizado");
     }
   }catch(e){ console.warn("flushTapQueue error", e); }
   tapQueue = 0;
@@ -3857,11 +3856,17 @@ async function payRefill(){
         let data = await r.json();
 
         if (data.ok) {
-          window.SESSION_TOKEN = data.token;   // refrescar token
-          state = data.state;                  // aplicar nuevo state
-          updateEnergyUI?.();                  // refrescar UI
+          window.SESSION_TOKEN = data.token;
+
+          // sincronizar con las variables que render() usa
+          wld    = +data.state.wld;
+          wlgp   = +data.state.wlgp;
+          energy = +data.state.energy;
+
+          render();   // 👈 refresca UI igual que flushTapQueue
           alert("✅ Pago realizado");
-        } else {
+        }
+        else {
           alert("Error: " + data.error);
         }
       } catch (e) {
