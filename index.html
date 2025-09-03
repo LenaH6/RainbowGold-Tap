@@ -35,11 +35,11 @@
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-<!-- Backend WorldGold API -->
+<!-- Backend RainbowGold API -->
 <link rel="dns-prefetch" href="https://worldgold-api.vercel.app">
 <link rel="preconnect" href="https://worldgold-api.vercel.app" crossorigin>
 
-<title>WorldGold — App</title>
+<title>RainbowGold Tap</title>
 <meta name="theme-color" content="#1b103a">
 
 <style>
@@ -127,7 +127,7 @@ html, body{
   min-height: calc(100svh - var(--topH));
   display: grid;
   grid-template-rows: 
-    auto   /* pill WLGp (arriba) */
+    auto   /* pill RBGp (arriba) */
     1fr    /* zona elástica para CENTRAR la moneda */
     auto   /* dock de botones */
     auto;  /* barra de energía */
@@ -898,7 +898,7 @@ body.has-drawer{
     padding: 32px 14px calc(90px + env(safe-area-inset-bottom,0px));
   }
 
-  /* Brandmark/WLGp pill un poco más abajo */
+  /* Brandmark/RBGp pill un poco más abajo */
   .pill{
     margin-top: 30px;
   }
@@ -921,9 +921,9 @@ body.has-drawer{
 </head>
 <body>
   <!-- === SPLASH / CARGA INICIAL === -->
-<div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
+<div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src="img/logo-splash.png" alt="WorldGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
@@ -981,10 +981,10 @@ body.has-drawer{
 
 <!-- HERO -->
 <section class="hero">
-  <!-- Pastilla de WLGp: SOLO esto adentro -->
+  <!-- Pastilla de RBGp: SOLO esto adentro -->
   <div class="pill">
     <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
-    WLGp: <b id="balWLGp" aria-live="polite">0.000</b>
+    RBGp: <b id="balRBGp" aria-live="polite">0.000</b>
   </div>
 
   <!-- Moneda (coin) — YA NO va dentro de .pill -->
@@ -1239,8 +1239,8 @@ body.has-drawer{
 </select>
 
 <div style="margin:16px 0;">
-  <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
-  <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
+  <p><span data-i18n="profile_rbgp_label">RBGp:</span> <b id="profRBGp">0.000</b></p>
+  <p style="opacity:.7;"><span data-i18n="profile_rbg_label">RBG Balance:</span> <b id="profRBG">--</b> 🔒</p>
   <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
 </div>
 
@@ -1274,7 +1274,7 @@ try { if (window.top !== window.self) window.top.location = window.location.href
 
 // 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
-window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
+window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -2107,12 +2107,12 @@ function maybeSpawnByTap(){
   }
 }
 
-// — Sumar WLGp de forma segura si el proyecto no define addTapAmount —
+// — Sumar RBGp de forma segura si el proyecto no define addTapAmount —
 if (typeof addTapAmount !== 'function'){
   window.addTapAmount = function(amount){
     if (!amount) return;
-    wlgp += amount;
-    localStorage.setItem('wlgp', String(wlgp));
+    rbgp += amount;
+    localStorage.setItem('rbgp', String(rbgp));
     // si tu render ya se llama al final del click, no hace falta aquí
   };
 }
@@ -2297,7 +2297,7 @@ window.playSnd = async function(name, {volume=1, loop=false} = {}){
 /* ===== Estado base (demo) ===== */
 const BASE_CAP=100, BASE_REGEN_PER_SEC=0.6, POWER_BASE=0.1000;
 let wld = +localStorage.getItem('wld') || 0;
-let wlgp= +localStorage.getItem('wlgp')|| 0;
+let rbgp= +localStorage.getItem('rbgp')|| 0;
 let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
 let lastTs=+localStorage.getItem('last_ts')||Date.now();
 // === Hotspot / Combo ===
@@ -2329,7 +2329,7 @@ function lazyRegen(){
 
 
 /* ===== Refs ===== */
-const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
+const balWLD=$('#balWLD'), balRBGp=$('#balRBGp');
 const coin=$('#coin'), gain=$('#gain');
 // Hotspot + Combo (refs)
 const hot = document.getElementById('hot');
@@ -2985,7 +2985,7 @@ function stepFX(dt){
 
 /* ===== UI render ===== */
 function render(){
-  balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
+  balWLD.textContent=wld.toFixed(2); balRBGp.textContent=rbgp.toFixed(3);
   const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
   energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
 
@@ -3014,7 +3014,7 @@ async function flushTapQueue(){
       window.SESSION_TOKEN = data.token;
       // fuente autoritativa:
       wld    = +data.state.wld;
-      wlgp   = +data.state.wlgp;
+      rbp   = +data.state.rbgp;
       energy = +data.state.energy;
       render?.();
     }
@@ -3024,7 +3024,7 @@ async function flushTapQueue(){
 // cada ~4s
 setInterval(flushTapQueue, 4000);
 
-function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
+function addTap(){ if(energy<1) return false; energy-=1; rbgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('rbgp',String(rbgp)); return true; }
 // Anti-autotap: rate limit
 let lastTapTime = 0;
 let tapCount = 0;
@@ -3049,7 +3049,7 @@ coin.addEventListener('click', (e) => {
   const cx = e.clientX, 
   cy = e.clientY; // coords de pantalla (no se recorta)
 
-    // 🔒 Durante el DESAFÍO: no gastas energía, no ganas WLGp, solo cuenta el reto
+    // 🔒 Durante el DESAFÍO: no gastas energía, no ganas RBGp, solo cuenta el reto
   if (challenge.active) {
     handleChallengeTap(e);
     // no mostramos +ganancia y no tocamos energía
@@ -3389,14 +3389,14 @@ const I18N = {
     language_label:        'Idioma',
     option_es:             'Español',
     option_en:             'Inglés',
-    profile_wlgp_label:    'WLGp:',
-    profile_wlg_label:     'WLG Balance:',
+    profile_rbgp_label:    'RBGp:',
+    profile_rbg_label:     'RBG Balance:',
     profile_wld_label:     'WLD Balance:',
 
       // 👇 Seeds del Inbox (si usas addMessageKey)
     seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. 💌',
     seed_get_wallet:  'Prepara tu billetera para ganar a lo GRANDE . 💸',
-    seed_farming_time:'¡Hora de farmear $WLG! Alístate para la sorpresa y toma la delantera. 🎮',
+    seed_farming_time:'¡Hora de farmear $RBG! Alístate para la sorpresa y toma la delantera. 🎮',
   // --- Ideas / Boosters / Varios ---
     ideas_title: 'Ideas',
     ideas_pay_intro: '¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!',
@@ -3446,14 +3446,14 @@ en: {
     language_label:        'Language',
     option_es:             'Spanish',
     option_en:             'English',
-    profile_wlgp_label:    'WLGp:',
-    profile_wlg_label:     'WLG Balance:',
+    profile_rbgp_label:    'RBGp:',
+    profile_rbg_label:     'RBG Balance:',
     profile_wld_label:     'WLD Balance:',
 
     // 👇 Inbox seeds
     seed_stay_tuned:  'Stay tuned — big updates soon. 💌',
     seed_get_wallet:  'Get your wallet ready to earn BIG. 💸',
-    seed_farming_time:'Farming time for $WLG! Get ready for surprise and take the lead. 🎮',
+    seed_farming_time:'Farming time for $RBG! Get ready for surprise and take the lead. 🎮',
     // --- Ideas / Boosters / Misc ---
     ideas_title: 'Ideas',
     ideas_pay_intro: 'Be part of the devs and race with the community. PARTICIPATE!',
@@ -3562,9 +3562,9 @@ function loadProfileFields(){
 /* Muestra balances dentro del Perfil */
 function renderProfile(){
   const pWLD  = document.getElementById('profWLD');
-  const pWLGp = document.getElementById('profWLGp');
+  const pRBGp = document.getElementById('profRBGp');
   if (pWLD)  pWLD.textContent  = wld.toFixed(2);
-  if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
+  if (pRBGp) pRBGp.textContent = rbgp.toFixed(3);
 }
 
 
@@ -3579,7 +3579,7 @@ function renderProfile(){
 
   render();               // primer pintado
   loadProfileFields();    // engancha Perfil (username/idioma)
-  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
+  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/RBGp en Perfil
   // Mensajes iniciales con CLAVE (se traducen)
 if (msgs.length === 0) {
   addMessageKey('seed_stay_tuned', 'system');
@@ -3690,7 +3690,7 @@ document.addEventListener('visibilitychange', () => {
 
 <script type="module">
 // ===== MiniKit World App — Bloque mínimo con DEV =====
-const DEV_MODE = false;  // <<<<<< ACTIVADO (simula verify/pay)
+const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
 // 👇 Solo para DEV: desbloquear juego sin verificar cada vez
 if (DEV_MODE) {
   window.VERIFIED = true;
@@ -3711,7 +3711,7 @@ try {
 }
 
 // === Configuración ===
-const ACTION_ID = "worldgold";                                  // tu Action Identifier
+const ACTION_ID = "rainbowgold";                                  // tu Action Identifier
 const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
 const TOKEN     = "WLD";
 const AMOUNT    = priceRefill();
@@ -3851,7 +3851,7 @@ async function payRefill(){
 
           // sincronizar con las variables que render() usa
           wld    = +data.state.wld;
-          wlgp   = +data.state.wlgp;
+          rbgp   = +data.state.rbgp;
           energy = +data.state.energy;
 
           render();   // 👈 refresca UI igual que flushTapQueue
