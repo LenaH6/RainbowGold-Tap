@@ -1089,7 +1089,7 @@ body.has-drawer{
 
   <div class="energyWrap">
     <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
-    <div class="energyLbl">🌈 <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
+    <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
   </div>
 </section>
 
@@ -1274,7 +1274,7 @@ try { if (window.top !== window.self) window.top.location = window.location.href
 
 // 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
-window.WG_DEV_MODE = true; // DEV: simular pago de Ideas
+window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
@@ -3690,7 +3690,7 @@ document.addEventListener('visibilitychange', () => {
 
 <script type="module">
 // ===== MiniKit World App — Bloque mínimo con DEV =====
-const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
+const DEV_MODE = false;  // <<<<<< ACTIVADO (simula verify/pay)
 // 👇 Solo para DEV: desbloquear juego sin verificar cada vez
 if (DEV_MODE) {
   window.VERIFIED = true;
