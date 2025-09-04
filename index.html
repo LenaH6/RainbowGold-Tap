@@ -380,15 +380,18 @@ html, body{
   pointer-events: none;                                /* libera la UI al ocultar */
 }
 
-.splash_logo {
-  width: 60vw;   /* 60% del ancho de la pantalla */
-  height: auto;  /* que mantenga proporción */
-  background: none; /* quitar el recuadro de fondo */
-  border: none;
-  box-shadow: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.splash__logo {
+    width: clamp(200px, 60vw, 400px);
+  height: clamp(200px, 60vw, 400px);
+  border-radius: 28px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  display: grid; place-items: center;
+  padding: 10px;                      /* menos padding para que la imagen crezca más */
+  box-shadow:
+    0 16px 40px rgba(0,0,0,.55),
+    0 0 28px rgba(255, 220, 120, .18);
+  animation: zoom-in 1s ease forwards;
 }
 
 
@@ -400,11 +403,12 @@ html, body{
 
 
 
-.splash_logo img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
+.splash__logo img {
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 223, 120, .35));
+  animation: breathe 3s ease-in-out infinite;
 }
+
 /* Animaciones suaves */
 @keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
 @keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
