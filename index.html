@@ -380,18 +380,15 @@ html, body{
   pointer-events: none;                                /* libera la UI al ocultar */
 }
 
-.splash__logo {
-  width: clamp(140px, 36vw, 220px);   /* más grande que antes */
-  height: clamp(140px, 36vw, 220px);
-  border-radius: 28px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
-  display: grid; place-items: center;
-  padding: 10px;                      /* menos padding para que la imagen crezca más */
-  box-shadow:
-    0 16px 40px rgba(0,0,0,.55),
-    0 0 28px rgba(255, 220, 120, .18);
-  animation: zoom-in 1s ease forwards;
+.splash_logo {
+  width: 60vw;   /* 60% del ancho de la pantalla */
+  height: auto;  /* que mantenga proporción */
+  background: none; /* quitar el recuadro de fondo */
+  border: none;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 
@@ -403,12 +400,11 @@ html, body{
 
 
 
-.splash__logo img {
-  width: 100%; height: 100%; object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(255, 223, 120, .35));
-  animation: breathe 3s ease-in-out infinite;
+.splash_logo img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
-
 /* Animaciones suaves */
 @keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
 @keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
@@ -2508,15 +2504,18 @@ const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 // === Ideas: refs y lógica ===
-const ideasBtn         = document.querySelector('#ideasBtn');
-const drawerID         = document.querySelector('#drawerID');
-const backdropID       = document.querySelector('#backdropID');
-const payIdeasBtn      = document.querySelector('#payIdeasBtn');
-const ideasPayView     = document.querySelector('#ideasPayView');
-const ideasOptionsView = document.querySelector('#ideasOptionsView');
-const voteBtn          = document.querySelector('#voteBtn');
-const suggestBtn       = document.querySelector('#suggestBtn');
+// === Ideas: refs y lógica ===
+const ideasBtn         = document.getElementById("ideasBtn");
+const drawerID         = document.getElementById("drawerID");
+const backdropID       = document.getElementById("backdropID");
+const payIdeasBtn      = document.getElementById("payIdeasBtn");
+const ideasPayView     = document.getElementById("ideasPayView");
+const ideasOptionsView = document.getElementById("ideasOptionsView");
+const voteBtn          = document.getElementById("voteBtn");
+const suggestBtn       = document.getElementById("suggestBtn");
+
 let ideasTicketActive = false;
+
 // === Encuesta: refs y estado ===
 const ideasPollView = document.getElementById('ideasPollView');
 const pollOptA = document.getElementById('pollOptA');
@@ -3689,156 +3688,131 @@ document.addEventListener('visibilitychange', () => {
 </script>
 
 <script type="module">
-// ===== MiniKit World App — Bloque mínimo con DEV =====
-const DEV_MODE = false;  // <<<<<< ACTIVADO (simula verify/pay)
-// 👇 Solo para DEV: desbloquear juego sin verificar cada vez
-if (DEV_MODE) {
-  window.VERIFIED = true;
- window.SESSION_TOKEN = "dev_test_token";
-  setVerifiedUI?.(true);
-  try { unlock?.(); } catch (_) {}
-}
+  // ===== MiniKit World App Config =====
+  const DEV_MODE = false; // <<<<<< PRODUCCIÓN (en revisión, dejar siempre en false)
 
-let MiniKit, VerificationLevel;
-
-try {
-  // Aunque estemos en DEV, intentamos cargar; si falla no importa.
-  const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
-  MiniKit = m.MiniKit;
-  VerificationLevel = m.VerificationLevel;
-} catch (e) {
-  console.warn("MiniKit no cargó (ok si estás en DEV):", e);
-}
-
-// === Configuración ===
-const ACTION_ID = "rainbowgold";                                  // tu Action Identifier
-const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
-const TOKEN     = "WLD";
-const AMOUNT    = priceRefill();
-
-// === Referencias UI ===
-const btn       = document.getElementById("wldSignIn");
-const splash    = document.getElementById("splash");
-const state     = document.getElementById("wldState");
-const refillBtn = document.getElementById("refillBtn");
-
-// === Helpers UI ===
-function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
-function unlock(){
-  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
-  if (splash){ splash.classList.add("splash-hide"); setTimeout(() => splash.remove(), 450); }
-  try { playSnd('join', { volume: 0.9 }); } catch(_) {}
-}
-function hasMiniKit(){
-  return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
-}
-function requireMiniKit(){
-  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
-  const ok = hasMiniKit();
-  if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
-  return ok;
-}
-
-// === Verificación ===
-async function startVerify(){
-  if (!requireMiniKit()) return;
-  if (btn) btn.disabled = true;
-
-  if (DEV_MODE){
-    msg("DEV: Verificación simulada ✔");
-    // Simula trabajo y desbloquea la app
-    setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
-    return;
+  if (DEV_MODE) {
+    window.VERIFIED = true;
+    window.SESSION_TOKEN = "dev_test_token";
+    setVerifiedUI?.(true);
+    try { unlock?.(); } catch (_) {}
   }
 
-  msg("Abriendo verificación…");
-  try{
-    const { status, finalPayload } = await MiniKit.commandsAsync.verify({
-      action: ACTION_ID,
-      verification_level: VerificationLevel.Device
-    });
+  let MiniKit, VerificationLevel;
+  try {
+    const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+    MiniKit = m.MiniKit;
+    VerificationLevel = m.VerificationLevel;
+  } catch (e) {
+    console.warn("MiniKit no cargó (ok si estás en DEV):", e);
+  }
 
-    if (status !== "success"){
-      if (btn) btn.disabled = false;
-      msg("Verificación cancelada.");
+  // === Configuración ===
+  const ACTION_ID_LOGIN  = "rainbowgold_login"; // login con World ID
+  const ACTION_ID_REFILL = "rainbowgold";       // refill
+  const ACTION_ID_IDEAS  = "ideas";             // votos/sugerencias
+
+  const MERCHANT = "0x91bf252c335f2540871dd02ef1476ae193a5bc8a"; // tu wallet
+  const TOKEN    = "WLD";
+  const AMOUNT   = priceRefill(); // dinámico
+
+  // === Referencias UI ===
+  const btn       = document.getElementById("wldSignIn"); // botón de login
+  const splash    = document.getElementById("splash");
+  const state     = document.getElementById("wldState");
+  const refillBtn = document.getElementById("refillBtn"); // botón de refill
+
+  // === Helpers UI ===
+  function msg(t) {
+    if (state) { state.textContent = t; state.style.opacity = "1"; }
+  }
+  function unlock() {
+    document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
+    if (splash) { splash.classList.add("splash-hide"); setTimeout(() => splash.remove(), 450); }
+    try { playSnd("join", { volume: 0.9 }); } catch(_) {}
+  }
+  function hasMiniKit() {
+    return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+  }
+  function requireMiniKit() {
+    if (DEV_MODE) return true;
+    const ok = hasMiniKit();
+    if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
+    return ok;
+  }
+
+  // === Login con World ID ===
+  async function startVerify() {
+    if (!requireMiniKit()) return;
+    if (btn) btn.disabled = true;
+
+    if (DEV_MODE) {
+      msg("DEV: Verificación simulada ✓");
+      setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
       return;
     }
 
-    // Valida el proof en tu backend
-    const r = await fetch("https://rainbowgold-api.vercel.app/api/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(finalPayload)
-    });
+    msg("Abriendo verificación…");
+    try {
+      const { status, finalPayload } = await MiniKit.commandsAsync.verify({
+        action: ACTION_ID_LOGIN,
+        verification_level: VerificationLevel.Device
+      });
 
-        const vr = await r.json();
-              if (vr?.ok){
-        window.VERIFIED = true;
-        setVerifiedUI?.(true);
-      } else {
-        window.VERIFIED = false;
-        setVerifiedUI?.(false);
-        alert("Verificación inválida. Inténtalo de nuevo.");
+      if (status !== "success") {
+        if (btn) btn.disabled = false;
+        msg("Verificación cancelada.");
         return;
       }
 
-    if (!vr?.ok || !vr?.token){
+      // Valida el proof en tu backend
+      const r = await fetch("https://rainbowgold-api.vercel.app/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalPayload)
+      });
+      const vr = await r.json();
+
+      if (!vr.ok || !vr.token) {
+        if (btn) btn.disabled = false;
+        msg("Verificación inválida en servidor.");
+        return;
+      }
+
+      window.VERIFIED = true;
+      setVerifiedUI?.(true);
+      window.SESSION_TOKEN = vr.token; // guardar token en memoria
+      msg("¡Listo!");
+      unlock();
+    } catch (err) {
+      console.error(err);
       if (btn) btn.disabled = false;
-      msg("Verificación inválida en servidor.");
+      msg("Error al verificar.");
+    }
+  }
+  if (btn) btn.addEventListener("click", startVerify);
+
+  // === Pago Refill ===
+  async function payRefill() {
+    if (!requireMiniKit()) return;
+    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
+    if (DEV_MODE) {
+      alert("✓ DEV: Pago simulado de 0.10 WLD");
+      energy = capMax(); render();
       return;
     }
-    window.SESSION_TOKEN = vr.token; // 👈 guardamos token firmada en memoria (no localStorage)
 
-    if (!r.ok){
-      if (btn) btn.disabled = false;
-      msg("Verificación inválida en servidor.");
-      return;
-    }
+    try {
+      const res = await MiniKit.commandsAsync.pay({
+        to: MERCHANT,
+        token: TOKEN,
+        amount: AMOUNT,
+        reference: crypto.randomUUID(),
+        action: ACTION_ID_REFILL
+      });
 
-    msg("¡Listo!");
-    unlock();
-
-  } catch (err){
-    console.error(err);
-    if (btn) btn.disabled = false;
-    msg("Error al verificar.");
-  }
-}
-
-if (btn) btn.addEventListener("click", startVerify);
-
-// === Pago (Refill) ===
-async function payRefill(){
-  if (!requireMiniKit()) return;
-  if (!window.SESSION_TOKEN) { 
-    alert("Verifícate primero."); 
-    return; 
-  }
-
-  // --- DEV MODE ---
- if (DEV_MODE){
-  alert("✅ DEV: Pago simulado de 0.10 WLD");
-
-  // Simula refill directamente
-  energy = capMax();   // recarga energía al 100%
-  render();            // refresca la barra de energía en pantalla
-
-  return;
-}
-
-
-  try {
-    // Pago real en World App
-    const res = await MiniKit.commandsAsync.pay({
-      to: MERCHANT,
-      token: TOKEN,
-      amount: AMOUNT,
-      reference: crypto.randomUUID()
-    });
-
-    if (res.status === "success") {
-      try {
-        // Confirmar en backend
+      if (res.status === "success") {
         let r = await fetch("https://rainbowgold-api.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3848,38 +3822,67 @@ async function payRefill(){
 
         if (data.ok) {
           window.SESSION_TOKEN = data.token;
-
-          // sincronizar con las variables que render() usa
-          wld    = +data.state.wld;
-          rbgp   = +data.state.rbgp;
+          wld   = +data.state.wld;
+          rbgp  = +data.state.rbgp;
           energy = +data.state.energy;
-
-          render();   // 👈 refresca UI igual que flushTapQueue
-          alert("✅ Pago realizado");
-        }
-        else {
+          render();
+          alert("✓ Pago realizado");
+        } else {
           alert("Error: " + data.error);
         }
-      } catch (e) {
-        console.error("Error al confirmar pago:", e);
-        alert("Error al confirmar el pago");
+      } else {
+        alert("Pago cancelado");
       }
-    } else {
-      alert("Pago cancelado");
+    } catch (e) {
+      console.error("Error en el pago:", e);
+      alert("Error en el pago");
     }
-
-  } catch (e) {
-    console.error(e);
-    alert("Error en el pago");
   }
-}
+  if (refillBtn) refillBtn.onclick = ev => { ev.preventDefault(); payRefill(); };
 
+  // === Pago Ideas (1 WLD) ===
+  if (payIdeasBtn) payIdeasBtn.onclick = async ev => {
+    ev.preventDefault();
+    if (!requireMiniKit()) return;
 
-if (refillBtn){
-  refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
-}
-// ===== Fin bloque MiniKit (DEV) =====
+    try {
+      const res = await MiniKit.commandsAsync.pay({
+        to: MERCHANT,
+        token: "WLD",
+        amount: "1",
+        reference: crypto.randomUUID(),
+        action: ACTION_ID_IDEAS
+      });
+
+      if (res.status === "success") {
+        let r = await fetch("https://rainbowgold-api.vercel.app/api/pay/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(res)
+        });
+        let data = await r.json();
+
+        if (data.ok) {
+          window.SESSION_TOKEN = data.token;
+          wld   = +data.state.wld;
+          rbgp  = +data.state.rbgp;
+          energy = +data.state.energy;
+          render();
+          alert("✓ Pago de idea realizado");
+        } else {
+          alert("Error: " + data.error);
+        }
+      } else {
+        alert("Pago cancelado");
+      }
+    } catch (e) {
+      console.error("Error en el pago de idea:", e);
+      alert("Error en el pago de idea");
+    }
+  };
 </script>
+
+
 <script>
   // Listeners pasivos para scroll/touch → evita bloqueos
   ['touchstart','touchmove','touchend','wheel'].forEach(ev=>{
