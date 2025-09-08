@@ -3762,61 +3762,77 @@ document.addEventListener('visibilitychange', () => {
 
 
   // === Login con World ID ===
-  async function startVerify() {
-    if (!requireMiniKit()) return;
-    if (btn) btn.disabled = true;
+// === Login con World ID (robusto + debug) ===
+async function startVerify() {
+  if (!requireMiniKit()) return;
+  const sdk = MiniKit || window.worldcoin || window.MiniKit;
 
-    if (DEV_MODE) {
-      msg("DEV: Verificación simulada ✓");
-      setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
+  // DEBUG: muestra qué SDK ves
+  msg(`SDK: ${sdk === (window.worldcoin || window.MiniKit) ? "UMD" : "ESM"}`);
+  msg(`hasMiniKit(): ${hasMiniKit()}`);
+  msg(`verify? ${typeof sdk?.commandsAsync?.verify}`);
+
+  // Guardas por si el SDK no expone verify
+  if (!sdk?.commandsAsync?.verify) {
+    alert("World App no expone verify() en este entorno. Cierra y vuelve a abrir desde el QR del Portal.");
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  msg("Abriendo verificación…");
+
+  // time-out de seguridad (10s)
+  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout_verify")), 10000));
+
+  try {
+    // IMPORTANTE: Device (coincide con tu acción actual)
+    const verifyPromise = sdk.commandsAsync.verify({
+      action: ACTION_ID_LOGIN,                 // "rainbowgold_login"
+      verification_level: VerificationLevel.Device
+    });
+
+    const { status, finalPayload } = await Promise.race([verifyPromise, timeout]);
+
+    // DEBUG visible
+    msg(`status: ${status}`);
+    if (finalPayload) {
+      msg(`nivel: ${finalPayload.verification_level}`);
+      msg(`user hash: ${(finalPayload.nullifier_hash || "").slice(0,10)}…`);
+    }
+
+    if (status !== "success") {
+      if (btn) btn.disabled = false;
+      msg("Verificación cancelada.");
       return;
     }
 
-    msg("Abriendo verificación…");
-    try {
-      const { status, finalPayload } = await MiniKit.commandsAsync.verify({
-        action: ACTION_ID_LOGIN,
-        verification_level: VerificationLevel.Device
-      });
-// 👇 AÑADE ESTO (debug visible en pantalla)
-msg( `Nivel recibido: ${finalPayload.verification_level}`);
-msg( `Payload: ${JSON.stringify({
-  action: finalPayload.action,
-  verification_level: finalPayload.verification_level,
-  nullifier_hash: (finalPayload.nullifier_hash || "").slice(0, 10) + "…",
-  hasProof: !!finalPayload.proof
-  })}`);
-      if (status !== "success") {
-        if (btn) btn.disabled = false;
-        msg("Verificación cancelada.");
-        return;
-      }
+    // Enviar al backend (formato finalPayload tal cual)
+    const r = await fetch("https://rainbowgold-api.vercel.app/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalPayload)
+    });
+    const vr = await r.json();
 
-      // Valida el proof en tu backend
-      const r = await fetch("https://rainbowgold-api.vercel.app/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalPayload)
-      });
-      const vr = await r.json();
-
-      if (!vr.ok || !vr.token) {
-        if (btn) btn.disabled = false;
-        msg("Verificación inválida en servidor.");
-        return;
-      }
-
-      window.VERIFIED = true;
-      setVerifiedUI?.(true);
-      window.SESSION_TOKEN = vr.token; // guardar token en memoria
-      msg("¡Listo!");
-      unlock();
-    } catch (err) {
-      console.error(err);
+    if (!vr.ok || !vr.token) {
       if (btn) btn.disabled = false;
-      msg("Error al verificar.");
+      msg("Verificación inválida en servidor.");
+      console.log("verify response:", vr);
+      return;
     }
+
+    window.VERIFIED = true;
+    setVerifiedUI?.(true);           // habilita botones (tu función):contentReference[oaicite:1]{index=1}
+    window.SESSION_TOKEN = vr.token; // guarda sesión
+    msg("¡Listo!");
+    unlock();                        // cierra splash (tu función):contentReference[oaicite:2]{index=2}
+  } catch (err) {
+    if (btn) btn.disabled = false;
+    console.error(err);
+    msg(err?.message === "timeout_verify" ? "No respondió el SDK (timeout)." : "Error al verificar.");
   }
+}
+
   if (btn) btn.addEventListener("click", startVerify);
 
   // === Pago Refill ===
