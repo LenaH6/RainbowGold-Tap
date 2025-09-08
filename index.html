@@ -3762,51 +3762,72 @@ document.addEventListener('visibilitychange', () => {
 
 
   // === Login con World ID ===
-// === Login con World ID (robusto + debug) ===
+// === Login con World ID (sin timeout, con diagnóstico) ===
 async function startVerify() {
   if (!requireMiniKit()) return;
-  const sdk = MiniKit || window.worldcoin || window.MiniKit;
 
-  // DEBUG: muestra qué SDK ves
+  const sdk = MiniKit || window.worldcoin || window.MiniKit;
+  const wa = window.WorldApp || {}; // metadatos del webview
+
+  // ---- DIAGNÓSTICO EN PANTALLA ----
+  const supported = (wa.supported_commands || []).map(c => c.name);
   msg(`SDK: ${sdk === (window.worldcoin || window.MiniKit) ? "UMD" : "ESM"}`);
   msg(`hasMiniKit(): ${hasMiniKit()}`);
-  msg(`verify? ${typeof sdk?.commandsAsync?.verify}`);
+  msg(`World App version: ${wa.world_app_version ?? "?"}`);
+  msg(`Soporta comandos: ${supported.join(", ") || "(vacío)"}`);
 
-  // Guardas por si el SDK no expone verify
-  if (!sdk?.commandsAsync?.verify) {
-    alert("World App no expone verify() en este entorno. Cierra y vuelve a abrir desde el QR del Portal.");
+  // ¿existe verify y su API async?
+  const hasVerifyAsync = !!sdk?.commandsAsync?.verify;
+  const hasVerify = !!sdk?.commands?.verify || hasVerifyAsync;
+  msg(`verify disponible: ${hasVerify ? "sí" : "no"} (async=${hasVerifyAsync})`);
+
+  if (!hasVerify) {
+    alert("Este World App no reporta el comando verify. Actualiza la app o vuelve a abrir desde el QR del Portal.");
     return;
   }
 
   if (btn) btn.disabled = true;
   msg("Abriendo verificación…");
 
-  // time-out de seguridad (10s)
-  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout_verify")), 10000));
-
   try {
-    // IMPORTANTE: Device (coincide con tu acción actual)
-    const verifyPromise = sdk.commandsAsync.verify({
-      action: ACTION_ID_LOGIN,                 // "rainbowgold_login"
+    // Forzamos Device (igual que en el Portal)
+    const verifyInput = {
+      action: ACTION_ID_LOGIN,                  // "rainbowgold_login"
       verification_level: VerificationLevel.Device
-    });
+    };
 
-    const { status, finalPayload } = await Promise.race([verifyPromise, timeout]);
-
-    // DEBUG visible
-    msg(`status: ${status}`);
-    if (finalPayload) {
-      msg(`nivel: ${finalPayload.verification_level}`);
-      msg(`user hash: ${(finalPayload.nullifier_hash || "").slice(0,10)}…`);
+    // Usa la variante async si está; si no, la normal basada en eventos
+    let finalPayload;
+    if (hasVerifyAsync) {
+      const res = await sdk.commandsAsync.verify(verifyInput);
+      // algunas builds exponen { finalPayload } y otras ya devuelven el payload directo
+      finalPayload = res?.finalPayload ?? res;
+    } else {
+      // Fallback por eventos (poco común hoy, pero por si acaso)
+      finalPayload = await new Promise((resolve, reject) => {
+        const off = sdk.commands.verify(verifyInput, (event) => {
+          if (!event) return;
+          if (event.status === "success") {
+            off?.(); resolve(event);
+          } else if (event.status === "error" || event.status === "cancelled") {
+            off?.(); reject(new Error(event?.code || "verify_cancelled"));
+          }
+        });
+        // seguridad: si en 30s no recibimos nada, rechazamos
+        setTimeout(() => { off?.(); reject(new Error("verify_no_event")); }, 30000);
+      });
     }
 
-    if (status !== "success") {
+    // --- DIAGNÓSTICO del payload ---
+    if (!finalPayload || finalPayload.status !== "success") {
       if (btn) btn.disabled = false;
-      msg("Verificación cancelada.");
+      msg(`Verificación no exitosa: ${finalPayload?.status || "sin payload"}`);
       return;
     }
+    msg(`nivel: ${finalPayload.verification_level}`);
+    msg(`user hash: ${(finalPayload.nullifier_hash || "").slice(0,10)}…`);
 
-    // Enviar al backend (formato finalPayload tal cual)
+    // Enviar al backend tal cual recomienda la doc (payload plano)
     const r = await fetch("https://rainbowgold-api.vercel.app/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3822,14 +3843,14 @@ async function startVerify() {
     }
 
     window.VERIFIED = true;
-    setVerifiedUI?.(true);           // habilita botones (tu función):contentReference[oaicite:1]{index=1}
-    window.SESSION_TOKEN = vr.token; // guarda sesión
+    setVerifiedUI?.(true);
+    window.SESSION_TOKEN = vr.token;
     msg("¡Listo!");
-    unlock();                        // cierra splash (tu función):contentReference[oaicite:2]{index=2}
+    unlock();
   } catch (err) {
     if (btn) btn.disabled = false;
     console.error(err);
-    msg(err?.message === "timeout_verify" ? "No respondió el SDK (timeout)." : "Error al verificar.");
+    msg(`Error verify: ${err?.message || err}`);
   }
 }
 
