@@ -2508,11 +2508,9 @@ const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
 const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
 const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
 // === Ideas: refs y lógica ===
-// === Ideas: refs y lógica ===
 const ideasBtn         = document.getElementById("ideasBtn");
 const drawerID         = document.getElementById("drawerID");
 const backdropID       = document.getElementById("backdropID");
-const payIdeasBtn      = document.getElementById("payIdeasBtn");
 const ideasPayView     = document.getElementById("ideasPayView");
 const ideasOptionsView = document.getElementById("ideasOptionsView");
 const voteBtn          = document.getElementById("voteBtn");
@@ -2822,7 +2820,8 @@ if (payIdeasBtn){
       await fetch("https://rainbowgold-api.vercel.app/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(res)
+        body: JSON.stringify({ ...res, token: window.SESSION_TOKEN, action: "ideas" })
+
       });
 
       alert("✅ Ticket Ideas comprado con éxito");
@@ -3725,6 +3724,7 @@ document.addEventListener('visibilitychange', () => {
   const splash    = document.getElementById("splash");
   const state     = document.getElementById("wldState");
   const refillBtn = document.getElementById("refillBtn"); // botón de refill
+  const payIdeasBtn = document.getElementById("payIdeasBtn");
 
   // === Helpers UI ===
   function msg(t) {
@@ -3827,7 +3827,8 @@ msg( `Payload: ${JSON.stringify({
         let r = await fetch("https://rainbowgold-api.vercel.app/api/pay/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(res)
+          body: JSON.stringify({ ...res, token: window.SESSION_TOKEN, action: "rainbowgold" })
+
         });
         let data = await r.json();
 
