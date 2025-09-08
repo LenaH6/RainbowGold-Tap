@@ -3760,7 +3760,7 @@ document.addEventListener('visibilitychange', () => {
     try {
       const { status, finalPayload } = await MiniKit.commandsAsync.verify({
         action: ACTION_ID_LOGIN,
-        verification_level: VerificationLevel.Device
+        verification_level: VerificationLevel.Orb
       });
 
       if (status !== "success") {
