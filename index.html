@@ -3762,7 +3762,14 @@ document.addEventListener('visibilitychange', () => {
         action: ACTION_ID_LOGIN,
         verification_level: VerificationLevel.Orb
       });
-
+// 👇 AÑADE ESTO (debug visible en pantalla)
+msg(`Nivel recibido: ${finalPayload.verification_level}`);
+msg(`Payload: ${JSON.stringify({
+  action: finalPayload.action,
+  verification_level: finalPayload.verification_level,
+  nullifier_hash: (finalPayload.nullifier_hash || "").slice(0, 10) + "…",
+  hasProof: !!finalPayload.proof
+  })}`);
       if (status !== "success") {
         if (btn) btn.disabled = false;
         msg("Verificación cancelada.");
