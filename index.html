@@ -3700,14 +3700,22 @@ document.addEventListener('visibilitychange', () => {
     setVerifiedUI?.(true);
     try { unlock?.(); } catch (_) {}
   }
-
+ // ===== Carga dual del SDK (ESM + UMD) =====
   let MiniKit, VerificationLevel;
+
   try {
+    // 1) intenta ESM (como ya tenías)
     const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
-    MiniKit = m.MiniKit;
-    VerificationLevel = m.VerificationLevel;
+    MiniKit = m?.MiniKit;
+    VerificationLevel = m?.VerificationLevel;
   } catch (e) {
-    console.warn("MiniKit no cargó (ok si estás en DEV):", e);
+    console.warn("MiniKit ESM no cargó (ok si UMD está disponible):", e);
+  }
+
+  // 2) Fallback a UMD global si existe
+  if (!MiniKit && (window.worldcoin || window.MiniKit)) {
+    MiniKit = window.worldcoin || window.MiniKit;
+    VerificationLevel = MiniKit?.VerificationLevel;
   }
 
   // === Configuración ===
@@ -3736,14 +3744,22 @@ document.addEventListener('visibilitychange', () => {
     try { playSnd("join", { volume: 0.9 }); } catch(_) {}
   }
   function hasMiniKit() {
-    return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+    const sdk = MiniKit || window.worldcoin || window.MiniKit;
+    const ok =
+      !!sdk &&
+      ((typeof sdk.isAvailable === "function" && sdk.isAvailable() === true) ||
+       (typeof sdk.isInstalled === "function" && sdk.isInstalled() === true) ||
+       (!!sdk.commandsAsync));
+    return ok;
   }
+
   function requireMiniKit() {
     if (DEV_MODE) return true;
     const ok = hasMiniKit();
     if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
     return ok;
   }
+
 
   // === Login con World ID ===
   async function startVerify() {
@@ -3921,6 +3937,7 @@ msg( `Payload: ${JSON.stringify({
     });
   });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
 
 </body>
 </html>
