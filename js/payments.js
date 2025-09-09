@@ -1687,10 +1687,6 @@ function sizeCanvasToCoin(){
 }
 addEventListener('resize', sizeCanvasToCoin);
 
-/* ===== Partículas con fallback ===== */
-let sparkle = new Image();
-sparkle.src = 'img/sparkle.png';
-
 
 let parts=[];
 function spawn(x,y){

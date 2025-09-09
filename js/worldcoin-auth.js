@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof startVerify === 'function') {
     btn.addEventListener('click', () => startVerify());
   } else {
-    btn.addEventListener('click', () => startVerify();
+    btn.addEventListener('click', () => startVerify());
   }
 });
 
