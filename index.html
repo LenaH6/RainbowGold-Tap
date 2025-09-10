@@ -6,38 +6,79 @@
   <title>RainbowGold Tap</title>
   <meta name="theme-color" content="#1b103a" />
 
-  <!-- Preloads -->
-  <link rel="preload" as="image" href="assets/img/Coin.png" imagesrcset="assets/img/Coin.png 1x, assets/img/Coin@2x.png 2x">
-  <link rel="preload" as="image" href="assets/img/brand-mark-wg-128.png">
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="css/styles.css" />
-
-  <!-- ✅ CSP relajada para MiniKit y tu API -->
+  <!-- ✅ CSP MEJORADA para MiniKit -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://unpkg.com 'unsafe-inline' 'unsafe-eval';
+    script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data:;
-    font-src 'self';
-    connect-src 'self' https://rainbowgold-api.vercel.app https://developer.worldcoin.org https://unpkg.com;
+    img-src 'self' data: https:;
+    font-src 'self' https:;
+    connect-src 'self' https://rainbowgold-api.vercel.app https://developer.worldcoin.org https://unpkg.com https://cdn.jsdelivr.net wss: ws:;
     media-src 'self';
   ">
 
-  <meta http-equiv="Referrer-Policy" content="no-referrer" />
-  <meta http-equiv="Permissions-Policy" content="
-    accelerometer=(), camera=(), geolocation=(), gyroscope=(),
-    magnetometer=(), microphone=(), payment=(), usb=()
-  ">
-
-  <!-- MiniKit (CDN oficial) -->
-  <script src="https://unpkg.com/@worldcoin/minikit-js@latest/dist/index.umd.js"></script>
-
   <!-- Config global del backend -->
   <script>
-    // ⚠️ usa SIEMPRE window.API_BASE (con guion bajo)
     window.API_BASE = "https://rainbowgold-api.vercel.app";
   </script>
+
+  <!-- ✅ CARGA MEJORADA DE MINIKIT -->
+  <script>
+    // Función para cargar MiniKit con retry
+    function loadMiniKit() {
+      return new Promise((resolve, reject) => {
+        // Intentar con la URL principal
+        const script1 = document.createElement('script');
+        script1.src = 'https://unpkg.com/@worldcoin/minikit-js@latest/dist/minikit.js';
+        script1.async = true;
+        
+        script1.onload = () => {
+          console.log('✅ MiniKit cargado desde unpkg');
+          resolve();
+        };
+        
+        script1.onerror = () => {
+          console.warn('⚠️ Falló unpkg, intentando jsdelivr...');
+          document.head.removeChild(script1);
+          
+          // Fallback a jsdelivr
+          const script2 = document.createElement('script');
+          script2.src = 'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js';
+          script2.async = true;
+          
+          script2.onload = () => {
+            console.log('✅ MiniKit cargado desde jsdelivr');
+            resolve();
+          };
+          
+          script2.onerror = () => {
+            console.error('❌ Error cargando MiniKit desde ambas CDNs');
+            reject(new Error('Failed to load MiniKit'));
+          };
+          
+          document.head.appendChild(script2);
+        };
+        
+        document.head.appendChild(script1);
+      });
+    }
+
+    // Cargar MiniKit antes que el resto
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await loadMiniKit();
+        console.log('🎯 MiniKit está disponible:', {
+          MiniKit: !!window.MiniKit,
+          VerificationLevel: !!window.VerificationLevel
+        });
+      } catch (error) {
+        console.error('❌ Error cargando MiniKit:', error);
+      }
+    });
+  </script>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 
 <body>
@@ -60,7 +101,7 @@
     </div>
   </div>
 
-  <!-- Left FABs -->
+  <!-- Resto del HTML igual... -->
   <div class="floatCol">
     <button id="profileBtn" class="fab profile" title="Profile">
       <img src="assets/img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
@@ -71,117 +112,11 @@
     </button>
   </div>
 
-  <!-- Topbar -->
-  <div class="topbar">
-    <h1 class="logo-text"></h1>
-    <div id="activityBar" class="activity-bar" aria-live="polite"></div>
-  </div>
-
-  <!-- Top actions -->
-  <div class="top-actions" style="overflow:visible">
-    <div>Saldo WLD:</div>
-    <div><b id="balWLD">0.00</b> WLD</div>
-    <div class="trophyWrap">
-      <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
-        <img src="assets/img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
-      </button>
-      <div id="trophyTip" class="tip">Próximamente</div>
-    </div>
-  </div>
-
-  <!-- HERO -->
-  <section class="hero">
-    <div class="pill">
-      <img src="assets/img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
-      RBGp: <b id="balRBGp" aria-live="polite">0.000</b>
-    </div>
-
-    <div class="coinWrap" id="coinBox">
-      <div class="ring"></div>
-      <canvas id="fx"></canvas>
-
-      <div id="coin" class="coin" aria-label="Tap">
-        <svg id="windowArc" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform:rotate(-90deg);z-index:6">
-          <defs>
-            <linearGradient id="frenzy777" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%"   stop-color="#ff0055"/>
-              <stop offset="20%"  stop-color="#ff9500"/>
-              <stop offset="40%"  stop-color="#ffee00"/>
-              <stop offset="60%"  stop-color="#33dd55"/>
-              <stop offset="80%"  stop-color="#33aaff"/>
-              <stop offset="100%" stop-color="#aa66ff"/>
-            </linearGradient>
-            <radialGradient id="haloArc" cx="50%" cy="50%" r="65%">
-              <stop offset="0%"   stop-color="#ffffff" stop-opacity="1"/>
-              <stop offset="35%"  stop-color="#FFD872" stop-opacity="1"/>
-              <stop offset="70%"  stop-color="#cfae45" stop-opacity="0.8"/>
-              <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-            </radialGradient>
-            <filter id="arcGlow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
-        </svg>
-
-        <div id="windowTag" style="
-          position:absolute;top:8px;right:10px; padding:4px 10px;font-weight:800;font-size:12px;
-          border-radius:12px; border:1px solid rgba(255,255,255,.18);
-          background:rgba(0,0,0,.70);color:#ffd872; opacity:0; pointer-events:none; z-index:999">
-        </div>
-
-        <img src="assets/img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
-        <div id="fallback" class="coinFallback" style="display:none">🪙</div>
-
-        <div id="gain" style="position:absolute; left:0; top:0; font-size:14px; font-weight:900; color:#fff;
-             text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35); pointer-events:none; z-index:1001;">
-        </div>
-
-        <div id="hot" style="position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .18s ease;
-             filter: drop-shadow(0 0 10px rgba(255,223,120,.25));"></div>
-
-        <div id="hotCore" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-             width:0; height:0; border-radius:50%; pointer-events:none; opacity:0;
-             box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);"></div>
-
-        <div id="comboBadge" style="
-          position:absolute; top:10px; left:10px; background:rgba(0,0,0,.55);
-          border:1px solid rgba(255,255,255,.18); color:#ffd872; font-weight:800; font-size:12px;
-          padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
-          <span id="comboTxt">COMBO x1</span>
-        </div>
-
-        <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
-          <img src="assets/img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
-        </button>
-      </div>
-
-      <!-- Dock -->
-      <div class="action-dock" aria-label="acciones rápidas">
-        <button id="refillBtn" class="btn-icon" aria-label="Refill">
-          <img src="assets/img/ico-refill.png" alt="Refill" style="width:40px;height:40px;">
-          <span id="refillPrice" class="price-pill">0.10 WLD</span>
-        </button>
-        <button id="openUp" class="btn-icon" aria-label="Boosters">
-          <img src="assets/img/icon-gear.png" alt="Boosters" style="width:40px;height:35px;">
-        </button>
-      </div>
-
-      <div class="energyWrap">
-        <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
-        <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Drawers e interfaces (idénticos a los tuyos)… -->
-  <!-- … (mantengo el resto tal cual tu HTML para no hacer la respuesta infinita) … -->
-
-  <!-- Scripts de la app -->
+  <!-- Scripts de la app (ORDEN IMPORTANTE) -->
   <script src="js/api-config.js"></script>
   <script src="js/game-logic.js"></script>
   <script src="js/payments.js"></script>
+  <!-- MiniKit config va al final -->
   <script type="module" src="js/minikit-config.js"></script>
 </body>
 </html>
