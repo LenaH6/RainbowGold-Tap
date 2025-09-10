@@ -1,5 +1,5 @@
 // ===== MiniKit World App Config =====
-  const DEV_MODE = true; // <<<<<< PRODUCCIÓN (en revisión, dejar siempre en false)
+  const DEV_MODE = false; // <<<<<< PRODUCCIÓN (en revisión, dejar siempre en false)
 
   if (DEV_MODE) {
     window.VERIFIED = true;
@@ -67,11 +67,7 @@
   }
 
 
-  // === Login con World ID ===
-// === Login con World ID (sin timeout, con diagnóstico) ===
-// startVerify moved to worldcoin-auth.js
 
-  // login button handler moved to worldcoin-auth.js
 
   
   // === Login con World ID - DEV fallback ===
