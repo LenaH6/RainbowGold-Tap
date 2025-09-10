@@ -1,21 +1,14 @@
-// ===== MiniKit World App Config - VERSIÓN FINAL =====
+// ===== MiniKit World App Config - SDK NATIVO =====
 const DEV_MODE = false; // PRODUCCIÓN
-
-// ===== Configuración =====
-const ACTION_ID_REFILL = "rainbowgold";
-const ACTION_ID_IDEAS = "ideas";
-const MERCHANT = "0x91bf252c335f2540871dd02ef1476ae193a5bc8a";
-const TOKEN = "WLD";
 
 // ===== Referencias UI =====
 const btn = document.getElementById("wldSignIn");
 const splash = document.getElementById("splash");
 const state = document.getElementById("wldState");
 const refillBtn = document.getElementById("refillBtn");
-const payIdeasBtn = document.getElementById("payIdeasBtn");
 
 // ===== Variables globales =====
-let MiniKit = null;
+let isWorldApp = false;
 let sdkReady = false;
 
 // ===== Helpers UI =====
@@ -24,7 +17,7 @@ function msg(t) {
     state.textContent = t; 
     state.style.opacity = "1"; 
   }
-  console.log("🔔 MiniKit:", t);
+  console.log("🔔", t);
 }
 
 function unlock() {
@@ -36,74 +29,118 @@ function unlock() {
   try { playSnd("join", { volume: 0.9 }); } catch(_) {}
 }
 
-// ===== SDK Management =====
-function detectMiniKit() {
-  // Buscar en diferentes ubicaciones
-  const locations = [
-    window.MiniKit,
-    window.worldcoin,
-    window.WorldCoin,
-    window.minikit
-  ];
+// ===== Detección de World App =====
+function detectWorldApp() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isWorldAppUA = userAgent.includes('worldapp') || 
+                       userAgent.includes('world app') ||
+                       userAgent.includes('worldcoin');
   
-  for (const location of locations) {
-    if (location && typeof location === 'object') {
-      console.log("✅ Found MiniKit at:", location);
-      return location;
-    }
-  }
+  // Verificar también por window properties específicas de World App
+  const hasWorldAppProps = !!(window.worldapp || 
+                             window.WorldApp || 
+                             window.webkit?.messageHandlers?.worldapp ||
+                             window.Android?.worldapp);
   
-  return null;
-}
-
-function waitForSDK(maxAttempts = 50) {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
-    
-    function check() {
-      attempts++;
-      console.log(`🔍 Attempt ${attempts}: Checking for MiniKit...`);
-      
-      // Verificar si el script falló en cargar
-      if (window.MINIKIT_LOAD_ERROR) {
-        reject(new Error("MiniKit failed to load from all sources"));
-        return;
-      }
-      
-      // Buscar MiniKit
-      const detected = detectMiniKit();
-      if (detected) {
-        MiniKit = detected;
-        sdkReady = true;
-        console.log("✅ SDK Ready! Available methods:", Object.keys(MiniKit));
-        resolve(true);
-        return;
-      }
-      
-      // Si llegamos al máximo de intentos
-      if (attempts >= maxAttempts) {
-        reject(new Error("SDK not found after maximum attempts"));
-        return;
-      }
-      
-      // Reintentar en 200ms
-      setTimeout(check, 200);
-    }
-    
-    check();
+  console.log("🌍 World App Detection:", {
+    userAgent: userAgent,
+    isWorldAppUA,
+    hasWorldAppProps,
+    windowProperties: Object.keys(window).filter(k => k.toLowerCase().includes('world'))
   });
+  
+  return isWorldAppUA || hasWorldAppProps;
 }
 
-function requireMiniKit() {
-  if (DEV_MODE) return true;
+// ===== SDK Nativo de World App =====
+function initializeNativeSDK() {
+  console.log("🔍 Buscando SDK nativo...");
   
-  if (!sdkReady || !MiniKit) {
-    msg("❌ MiniKit no disponible");
-    alert("Esta aplicación debe abrirse desde World App usando el escáner QR, no desde un navegador web.");
-    return false;
-  }
+  // Métodos nativos de World App (sin MiniKit externo)
+  const nativeMethods = {
+    // Verificación World ID usando postMessage
+    worldID: async (params) => {
+      return new Promise((resolve, reject) => {
+        const messageId = `worldid_${Date.now()}_${Math.random()}`;
+        
+        const messageHandler = (event) => {
+          if (event.data?.id === messageId) {
+            window.removeEventListener('message', messageHandler);
+            if (event.data.error) {
+              reject(new Error(event.data.error));
+            } else {
+              resolve(event.data.result);
+            }
+          }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        
+        // Timeout después de 30 segundos
+        setTimeout(() => {
+          window.removeEventListener('message', messageHandler);
+          reject(new Error('World ID timeout'));
+        }, 30000);
+        
+        // Enviar mensaje a World App
+        const message = {
+          id: messageId,
+          type: 'worldID',
+          params: params
+        };
+        
+        // Intentar diferentes métodos de comunicación
+        if (window.webkit?.messageHandlers?.worldapp) {
+          window.webkit.messageHandlers.worldapp.postMessage(message);
+        } else if (window.Android?.worldapp) {
+          window.Android.worldapp.postMessage(JSON.stringify(message));
+        } else {
+          window.parent.postMessage(message, '*');
+        }
+      });
+    },
+    
+    // Pago usando postMessage  
+    pay: async (params) => {
+      return new Promise((resolve, reject) => {
+        const messageId = `pay_${Date.now()}_${Math.random()}`;
+        
+        const messageHandler = (event) => {
+          if (event.data?.id === messageId) {
+            window.removeEventListener('message', messageHandler);
+            if (event.data.error) {
+              reject(new Error(event.data.error));
+            } else {
+              resolve(event.data.result);
+            }
+          }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        
+        setTimeout(() => {
+          window.removeEventListener('message', messageHandler);
+          reject(new Error('Payment timeout'));
+        }, 30000);
+        
+        const message = {
+          id: messageId,
+          type: 'pay',
+          params: params
+        };
+        
+        if (window.webkit?.messageHandlers?.worldapp) {
+          window.webkit.messageHandlers.worldapp.postMessage(message);
+        } else if (window.Android?.worldapp) {
+          window.Android.worldapp.postMessage(JSON.stringify(message));
+        } else {
+          window.parent.postMessage(message, '*');
+        }
+      });
+    }
+  };
   
-  return true;
+  return nativeMethods;
 }
 
 // ===== Login con World ID =====
@@ -113,89 +150,49 @@ export async function startVerify() {
     window.SESSION_TOKEN = "dev_test_token";
     try { setVerifiedUI?.(true); } catch(_) {}
     try { unlock?.(); } catch(_) {}
-    msg("DEV MODE: verificación simulada ✓");
+    msg("✅ DEV MODE activado");
     return;
   }
 
   try {
-    msg("Esperando SDK de World App...");
+    msg("Verificando entorno...");
     
-    // Esperar a que el SDK esté listo
-    await waitForSDK();
-    
-    if (!requireMiniKit()) {
+    // Verificar que estamos en World App
+    if (!detectWorldApp()) {
+      msg("❌ Abre desde World App");
+      alert("Esta aplicación debe abrirse desde World App usando el código QR, no desde un navegador web.");
       return;
     }
-
-    msg("Iniciando World ID...");
     
-    // Detectar qué método de World ID usar
-    let worldIDMethod = null;
+    msg("Inicializando World ID...");
     
-    if (MiniKit.commandsAsync?.worldID) {
-      worldIDMethod = 'commandsAsync';
-    } else if (MiniKit.commands?.worldID) {
-      worldIDMethod = 'commands';
-    } else if (MiniKit.worldID) {
-      worldIDMethod = 'direct';
-    } else {
-      throw new Error("No World ID method found in MiniKit");
-    }
+    // Usar SDK nativo
+    const nativeSDK = initializeNativeSDK();
     
-    console.log(`🎯 Using World ID method: ${worldIDMethod}`);
+    const worldIDParams = {
+      action: "rainbowgold-login",
+      app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc",
+      verification_level: "orb"
+    };
     
-    let response;
+    console.log("📤 Enviando World ID request:", worldIDParams);
     
-    switch (worldIDMethod) {
-      case 'commandsAsync':
-        response = await MiniKit.commandsAsync.worldID({
-          action: "rainbowgold-login",
-          app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc",
-          verification_level: "orb"
-        });
-        break;
-        
-      case 'commands':
-        response = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error("World ID timeout")), 30000);
-          
-          MiniKit.commands.worldID({
-            action: "rainbowgold-login",
-            app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc", 
-            verification_level: "orb"
-          }, (result) => {
-            clearTimeout(timeout);
-            resolve(result);
-          });
-        });
-        break;
-        
-      case 'direct':
-        response = await MiniKit.worldID({
-          action: "rainbowgold-login",
-          app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc",
-          verification_level: "orb"
-        });
-        break;
-    }
-
-    console.log("📱 World ID Response:", response);
+    const response = await nativeSDK.worldID(worldIDParams);
     
-    // Extraer payload según el formato de respuesta
-    const payload = response.commandPayload || response.payload || response;
+    console.log("📥 World ID response:", response);
     
-    if (payload.status === "success" || payload.success) {
+    if (response.status === "success" || response.success) {
       msg("Verificando con servidor...");
       
       const verificationData = {
         action: "rainbowgold-login",
-        proof: payload.proof,
-        merkle_root: payload.merkle_root,
-        nullifier_hash: payload.nullifier_hash,
-        verification_level: payload.verification_level || "orb"
+        proof: response.proof,
+        merkle_root: response.merkle_root,
+        nullifier_hash: response.nullifier_hash,
+        verification_level: response.verification_level || "orb"
       };
       
-      console.log("📤 Sending to backend:", verificationData);
+      console.log("📤 Enviando al backend:", verificationData);
       
       const backendResponse = await fetch(`${window.API_BASE}/api/minikit/verify`, {
         method: "POST",
@@ -209,18 +206,8 @@ export async function startVerify() {
       
       if (!backendResponse.ok) {
         const errorText = await backendResponse.text();
-        console.error("❌ Backend error response:", errorText);
+        console.error("❌ Backend error:", errorText);
         msg(`❌ Server error: ${backendResponse.status}`);
-        
-        // Mostrar detalles del error si disponible
-        try {
-          const errorJson = JSON.parse(errorText);
-          if (errorJson.error) {
-            msg(`❌ ${errorJson.error}: ${errorJson.detail || ''}`);
-          }
-        } catch (e) {
-          // Error text is not JSON, that's ok
-        }
         return;
       }
 
@@ -235,7 +222,7 @@ export async function startVerify() {
         unlock();
         msg("✅ ¡Verificado con World ID!");
         
-        // Cargar estado del usuario si existe
+        // Actualizar estado del juego
         if (data.state) {
           try {
             wld = +data.state.wld || 0;
@@ -251,90 +238,53 @@ export async function startVerify() {
         console.error("Verification failed:", data);
       }
     } else {
-      msg("❌ World ID cancelado");
-      console.log("World ID cancelled or failed:", payload);
+      msg("❌ World ID cancelado o falló");
+      console.log("World ID cancelled:", response);
     }
     
   } catch (error) {
-    console.error("❌ Error completo en World ID:", error);
-    msg("❌ Error: " + error.message);
+    console.error("❌ Error en World ID:", error);
     
-    // Mostrar información específica según el tipo de error
-    if (error.message.includes("not found")) {
-      msg("❌ Función World ID no encontrada");
-    } else if (error.message.includes("timeout")) {
+    if (error.message.includes('timeout')) {
       msg("❌ Timeout - intenta de nuevo");
-    } else if (error.message.includes("network")) {
-      msg("❌ Error de conexión");
+    } else if (error.message.includes('cancelled')) {
+      msg("❌ World ID cancelado");
+    } else {
+      msg("❌ " + error.message);
     }
   }
 }
 
-// ===== Event Handlers =====
-if (btn) {
-  btn.onclick = async (ev) => {
-    ev.preventDefault();
-    
-    // Deshabilitar botón
-    btn.disabled = true;
-    btn.style.opacity = "0.6";
-    btn.textContent = "Conectando...";
-    
-    try {
-      await startVerify();
-    } catch (error) {
-      console.error("Login error:", error);
-      msg("❌ Error inesperado");
-    } finally {
-      // Rehabilitar botón
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      btn.textContent = "Entrar con World ID";
-    }
-  };
-}
-
-// ===== Payment Functions =====
+// ===== Pago con SDK Nativo =====
 async function payRefill() {
-  if (!requireMiniKit()) return;
+  if (!detectWorldApp()) {
+    alert("Esta función requiere World App.");
+    return;
+  }
+  
   if (!window.SESSION_TOKEN) { 
     alert("Debes verificarte primero con World ID."); 
     return; 
   }
 
-  if (DEV_MODE) {
-    alert("✓ DEV: Pago simulado de 0.10 WLD");
-    energy = capMax?.() || 100;
-    render?.();
-    return;
-  }
-
   try {
     msg("Procesando pago...");
     
-    const paymentData = {
-      to: MERCHANT,
-      token: TOKEN,
+    const nativeSDK = initializeNativeSDK();
+    
+    const paymentParams = {
+      to: "0x91bf252c335f2540871dd02ef1476ae193a5bc8a",
+      token: "WLD",
       amount: priceRefill?.() || "0.10",
       reference: crypto.randomUUID(),
-      action: ACTION_ID_REFILL
+      action: "rainbowgold"
     };
     
-    let response;
+    console.log("📤 Payment request:", paymentParams);
     
-    if (MiniKit.commandsAsync?.pay) {
-      response = await MiniKit.commandsAsync.pay(paymentData);
-    } else if (MiniKit.commands?.pay) {
-      response = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Payment timeout")), 30000);
-        MiniKit.commands.pay(paymentData, (result) => {
-          clearTimeout(timeout);
-          resolve(result);
-        });
-      });
-    } else {
-      throw new Error("Payment method not available");
-    }
+    const response = await nativeSDK.pay(paymentParams);
+    
+    console.log("📥 Payment response:", response);
 
     if (response.status === "success") {
       msg("Confirmando pago...");
@@ -345,7 +295,7 @@ async function payRefill() {
         body: JSON.stringify({ 
           ...response, 
           token: window.SESSION_TOKEN, 
-          action: ACTION_ID_REFILL
+          action: "rainbowgold"
         })
       });
       
@@ -361,27 +311,48 @@ async function payRefill() {
           energy = +confirmData.state?.energy || 100;
           render?.();
         } catch (e) {
-          console.warn("Could not update game state after payment:", e);
+          console.warn("Could not update game state:", e);
         }
         
         msg("✅ ¡Pago completado!");
         alert("✅ Energía recargada exitosamente");
       } else {
         msg("❌ Error confirmando pago");
-        alert("Error confirmando el pago: " + confirmData.error);
+        alert("Error: " + confirmData.error);
       }
     } else {
       msg("❌ Pago cancelado");
-      alert("Pago cancelado por el usuario");
+      alert("Pago cancelado");
     }
   } catch (error) {
-    console.error("Payment error:", error);
+    console.error("❌ Payment error:", error);
     msg("❌ Error en pago");
-    alert("Error procesando el pago: " + error.message);
+    alert("Error: " + error.message);
   }
 }
 
 // ===== Event Listeners =====
+if (btn) {
+  btn.onclick = async (ev) => {
+    ev.preventDefault();
+    
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+    btn.textContent = "Conectando...";
+    
+    try {
+      await startVerify();
+    } catch (error) {
+      console.error("Login error:", error);
+      msg("❌ Error inesperado");
+    } finally {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.textContent = "Entrar con World ID";
+    }
+  };
+}
+
 if (refillBtn) {
   refillBtn.onclick = (ev) => { 
     ev.preventDefault(); 
@@ -390,44 +361,22 @@ if (refillBtn) {
 }
 
 // ===== Inicialización =====
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log("🚀 Inicializando MiniKit configuration...");
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 Iniciando detección de World App...");
   
-  if (DEV_MODE) {
-    msg("🔧 Modo desarrollador activado");
-    return;
+  isWorldApp = detectWorldApp();
+  
+  if (isWorldApp) {
+    msg("✅ World App detectada");
+    sdkReady = true;
+  } else {
+    msg("❌ Abre desde World App");
+    console.log("❌ No se detectó World App");
   }
   
-  // Mostrar estado de carga
-  msg("Cargando SDK...");
-  
-  try {
-    // Esperar un momento para que los scripts se carguen
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Intentar detectar MiniKit
-    await waitForSDK();
-    msg("✅ SDK listo");
-    
-  } catch (error) {
-    console.error("❌ Error inicializando SDK:", error);
-    msg("❌ " + error.message);
-    
-    // Mostrar botón de retry después de 3 segundos
-    setTimeout(() => {
-      if (!sdkReady) {
-        msg("❌ Abre desde World App");
-      }
-    }, 3000);
-  }
-});
-
-// ===== Debug Info =====
-window.addEventListener('load', () => {
-  console.log("🔍 Window load complete. SDK status:", {
-    sdkReady,
-    miniKitFound: !!MiniKit,
-    loadError: window.MINIKIT_LOAD_ERROR,
-    miniKitLoaded: window.MINIKIT_LOADED
+  console.log("🔍 Environment info:", {
+    userAgent: navigator.userAgent,
+    isWorldApp,
+    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('world')).slice(0, 5)
   });
 });
