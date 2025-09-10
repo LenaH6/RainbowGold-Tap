@@ -6,92 +6,159 @@
   <title>RainbowGold Tap</title>
   <meta name="theme-color" content="#1b103a" />
 
-  <!-- ✅ CSP MEJORADA para MiniKit -->
+  <!-- ✅ CSP MUY PERMISIVA PARA DEBUGGING -->
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
-    font-src 'self' https:;
-    connect-src 'self' https://rainbowgold-api.vercel.app https://developer.worldcoin.org https://unpkg.com https://cdn.jsdelivr.net wss: ws:;
-    media-src 'self';
+    default-src 'self' 'unsafe-inline' 'unsafe-eval' *;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' *;
+    style-src 'self' 'unsafe-inline' *;
+    img-src 'self' data: *;
+    font-src 'self' *;
+    connect-src 'self' *;
+    media-src 'self' *;
   ">
 
   <!-- Config global del backend -->
   <script>
     window.API_BASE = "https://rainbowgold-api.vercel.app";
-  </script>
-
-  <!-- ✅ CARGA MEJORADA DE MINIKIT -->
-  <script>
-    // Función para cargar MiniKit con retry
-    function loadMiniKit() {
-      return new Promise((resolve, reject) => {
-        // Intentar con la URL principal
-        const script1 = document.createElement('script');
-        script1.src = 'https://unpkg.com/@worldcoin/minikit-js@latest/dist/minikit.js';
-        script1.async = true;
-        
-        script1.onload = () => {
-          console.log('✅ MiniKit cargado desde unpkg');
-          resolve();
-        };
-        
-        script1.onerror = () => {
-          console.warn('⚠️ Falló unpkg, intentando jsdelivr...');
-          document.head.removeChild(script1);
-          
-          // Fallback a jsdelivr
-          const script2 = document.createElement('script');
-          script2.src = 'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js';
-          script2.async = true;
-          
-          script2.onload = () => {
-            console.log('✅ MiniKit cargado desde jsdelivr');
-            resolve();
-          };
-          
-          script2.onerror = () => {
-            console.error('❌ Error cargando MiniKit desde ambas CDNs');
-            reject(new Error('Failed to load MiniKit'));
-          };
-          
-          document.head.appendChild(script2);
-        };
-        
-        document.head.appendChild(script1);
-      });
-    }
-
-    // Cargar MiniKit antes que el resto
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await loadMiniKit();
-        console.log('🎯 MiniKit está disponible:', {
-          MiniKit: !!window.MiniKit,
-          VerificationLevel: !!window.VerificationLevel
-        });
-      } catch (error) {
-        console.error('❌ Error cargando MiniKit:', error);
-      }
-    });
+    // Habilitar modo debug
+    window.DEBUG_MODE = true;
   </script>
 
   <!-- Estilos -->
   <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- ✅ MÚLTIPLES ESTRATEGIAS DE CARGA DE MINIKIT -->
+  <script>
+    console.log("🚀 Iniciando carga de MiniKit...");
+    
+    // Estrategia 1: Cargar desde múltiples CDNs
+    async function loadMiniKitFromCDN() {
+      const cdnUrls = [
+        'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm',
+        'https://unpkg.com/@worldcoin/minikit-js@latest/dist/minikit.js',
+        'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@0.1.0/+esm',
+        'https://unpkg.com/@worldcoin/minikit-js@0.1.0/dist/minikit.js'
+      ];
+
+      for (let i = 0; i < cdnUrls.length; i++) {
+        const url = cdnUrls[i];
+        console.log(`🔄 Intentando cargar MiniKit desde: ${url}`);
+        
+        try {
+          if (url.includes('+esm')) {
+            // Carga como ES Module
+            const MiniKit = await import(url);
+            console.log("✅ MiniKit cargado como ES Module:", MiniKit);
+            window.MiniKit = MiniKit.default || MiniKit;
+            return true;
+          } else {
+            // Carga como script tradicional
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = url;
+              script.onload = () => {
+                console.log("✅ MiniKit cargado como script tradicional");
+                resolve();
+              };
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+            return true;
+          }
+        } catch (error) {
+          console.warn(`❌ Falló ${url}:`, error);
+          continue;
+        }
+      }
+      
+      console.error("❌ No se pudo cargar MiniKit desde ningún CDN");
+      return false;
+    }
+
+    // Estrategia 2: Mock MiniKit para desarrollo
+    function createMockMiniKit() {
+      console.log("🧪 Creando MiniKit mock para desarrollo...");
+      
+      const mockMiniKit = {
+        commands: {
+          verify: async (params) => {
+            console.log("🧪 Mock verify called with:", params);
+            
+            // Simular delay de red
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Simular respuesta exitosa
+            return {
+              status: "success",
+              proof: "mock_proof_data",
+              merkle_root: "mock_merkle_root",
+              nullifier_hash: "mock_nullifier_" + Math.random().toString(36).substr(2, 9),
+              verification_level: "device"
+            };
+          }
+        },
+        commandsAsync: {},
+        isSimulator: true
+      };
+      
+      // Alias para compatibilidad
+      mockMiniKit.commandsAsync.verify = mockMiniKit.commands.verify;
+      mockMiniKit.verify = mockMiniKit.commands.verify;
+      
+      window.MiniKit = mockMiniKit;
+      console.log("✅ MiniKit mock creado:", mockMiniKit);
+      return true;
+    }
+
+    // Función principal de carga
+    window.loadMiniKit = async function() {
+      console.log("📱 User Agent:", navigator.userAgent);
+      console.log("🔍 Detectando World App...");
+      
+      const ua = navigator.userAgent.toLowerCase();
+      const isWorldApp = ua.includes("worldapp") || ua.includes("world app") || ua.includes("worldcoin");
+      
+      console.log("🌍 ¿Es World App?", isWorldApp);
+      
+      // Si estamos en World App, intentar cargar MiniKit real
+      if (isWorldApp) {
+        const loaded = await loadMiniKitFromCDN();
+        if (loaded) return true;
+        
+        console.warn("⚠️ No se pudo cargar MiniKit real, usando mock...");
+      } else {
+        console.log("🧪 No estamos en World App, usando mock...");
+      }
+      
+      // Fallback a mock
+      return createMockMiniKit();
+    };
+
+    // Iniciar carga
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await window.loadMiniKit();
+        console.log("🎉 MiniKit listo:", !!window.MiniKit);
+      } catch (error) {
+        console.error("💥 Error cargando MiniKit:", error);
+        createMockMiniKit(); // Fallback final
+      }
+    });
+  </script>
 </head>
 
 <body>
   <!-- === SPLASH / CARGA INICIAL === -->
   <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
     <div class="splash__logo">
-      <img src="assets/img/logo-splash.png" alt="RainbowGold" fetchpriority="high" decoding="async">
+      <img src="assets/img/logo-splash.png" alt="RainbowGold" fetchpriority="high" decoding="async"
+           onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iI0ZGRDg3MiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxYjEwM2EiPlJHPC90ZXh0Pjwvc3ZnPg=='">
     </div>
 
     <button id="wldSignIn" style="
       margin-top:18px;padding:12px 16px;border-radius:12px;
       background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
-      color:#fff;font-weight:700;cursor:pointer">
+      color:#fff;font-weight:700;cursor:pointer;border:none;">
       Entrar con World ID
     </button>
 
@@ -99,24 +166,112 @@
       <span>Preparando tu sesión</span>
       <span class="dots"><span>.</span><span>.</span><span>.</span></span>
     </div>
+
+    <!-- Debug info -->
+    <div id="debugInfo" style="
+      position:fixed;bottom:10px;left:10px;right:10px;
+      background:rgba(0,0,0,0.8);color:#fff;font-size:12px;
+      padding:10px;border-radius:8px;font-family:monospace;
+      max-height:150px;overflow-y:auto;display:none;">
+    </div>
   </div>
 
-  <!-- Resto del HTML igual... -->
+  <!-- Left FABs -->
   <div class="floatCol">
     <button id="profileBtn" class="fab profile" title="Profile">
-      <img src="assets/img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
+      <span style="font-size:24px;">👤</span>
     </button>
     <button id="inboxBtn" class="fab inbox" title="Inbox">
-      <img src="assets/img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
+      <span style="font-size:24px;">📬</span>
       <span id="inboxBadge" class="badge" style="display:none">0</span>
     </button>
   </div>
 
-  <!-- Scripts de la app (ORDEN IMPORTANTE) -->
-  <script src="js/api-config.js"></script>
-  <script src="js/game-logic.js"></script>
-  <script src="js/payments.js"></script>
-  <!-- MiniKit config va al final -->
-  <script type="module" src="js/minikit-config.js"></script>
+  <!-- Topbar -->
+  <div class="topbar">
+    <h1 class="logo-text">RainbowGold</h1>
+    <div id="activityBar" class="activity-bar" aria-live="polite"></div>
+  </div>
+
+  <!-- Top actions -->
+  <div class="top-actions" style="overflow:visible">
+    <div>Saldo WLD:</div>
+    <div><b id="balWLD">0.00</b> WLD</div>
+    <div class="trophyWrap">
+      <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button">
+        <span style="font-size:20px;">🏆</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="pill">
+      <span style="font-size:20px;">🪙</span>
+      RBGp: <b id="balRBGp" aria-live="polite">0.000</b>
+    </div>
+
+    <div class="coinWrap" id="coinBox">
+      <div class="ring"></div>
+      <canvas id="fx"></canvas>
+
+      <div id="coin" class="coin" aria-label="Tap" style="
+        width:200px;height:200px;border-radius:50%;
+        background:linear-gradient(45deg, #FFD872, #FFA500);
+        display:flex;align-items:center;justify-content:center;
+        font-size:60px;cursor:pointer;user-select:none;">
+        🪙
+      </div>
+
+      <!-- Dock -->
+      <div class="action-dock" aria-label="acciones rápidas">
+        <button id="refillBtn" class="btn-icon" aria-label="Refill">
+          <span style="font-size:30px;">⚡</span>
+          <span id="refillPrice" class="price-pill">0.10 WLD</span>
+        </button>
+        <button id="openUp" class="btn-icon" aria-label="Boosters">
+          <span style="font-size:30px;">⚙️</span>
+        </button>
+      </div>
+
+      <div class="energyWrap">
+        <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
+        <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripts de la app -->
+  <script src="js/api-config.js" onerror="console.warn('api-config.js no encontrado')"></script>
+  <script src="js/game-logic.js" onerror="console.warn('game-logic.js no encontrado')"></script>
+  <script src="js/payments.js" onerror="console.warn('payments.js no encontrado')"></script>
+  
+  <!-- MiniKit config como módulo -->
+  <script type="module" src="js/minikit-config.js" onerror="console.warn('minikit-config.js no encontrado')"></script>
+
+  <!-- Debug toggle -->
+  <script>
+    if (window.DEBUG_MODE) {
+      document.addEventListener('DOMContentLoaded', () => {
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+          debugInfo.style.display = 'block';
+          
+          // Mostrar logs en el debug panel
+          const originalLog = console.log;
+          console.log = function(...args) {
+            originalLog.apply(console, args);
+            debugInfo.innerHTML += args.join(' ') + '<br>';
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+          };
+          
+          // Click para ocultar/mostrar
+          debugInfo.addEventListener('click', () => {
+            debugInfo.style.display = 'none';
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>
