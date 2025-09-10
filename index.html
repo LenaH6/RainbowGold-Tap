@@ -7,16 +7,18 @@
 <link rel="stylesheet" href="css/styles.css">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<!-- ✅ CSP etapa 1: compatible con scripts/estilos inline -->
+
+<!-- ✅ CSP RELAJADO para permitir MiniKit -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-api.vercel.app/;
+  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-api.vercel.app https://developer.worldcoin.org;
   media-src 'self';
 ">
+
 <meta http-equiv="Referrer-Policy" content="no-referrer">
 
 <!-- Permissions-Policy: cerramos sensores/cámara/mic/etc. -->
@@ -31,9 +33,12 @@
   usb=()
 ">
 
-<!-- CDN jsDelivr -->
+<!-- Preconnect a múltiples CDNs -->
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://unpkg.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 
 <!-- Backend RainbowGold API -->
 <link rel="dns-prefetch" href="https://rainbowgold-api.vercel.app/">
@@ -42,15 +47,14 @@
 <title>RainbowGold Tap</title>
 <meta name="theme-color" content="#1b103a">
 
-
 </head>
 <body>
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
     <img src="assets/img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
-
   </div>
+  
   <button id="wldSignIn" data-i18n="signin_wld"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
@@ -58,14 +62,10 @@
   Entrar con World ID
 </button>
 
-
-  
  <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
   <span data-i18n="preparing_session">Preparando tu sesión</span>
   <span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
-
-
 
 </div>
 
@@ -87,9 +87,6 @@
   <div id="activityBar" class="activity-bar" aria-live="polite"></div>
 </div>
 
-
-
-
 <!-- Botón trofeo en top-actions -->
 <div class="top-actions" style="overflow:visible">
   <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
@@ -102,7 +99,7 @@
     </button>
     <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
   </div>
-  </div>
+</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -158,7 +155,6 @@
          opacity:0;transition:opacity .14s,transform .18s;
          pointer-events:none;z-index:999"></div>
 
-
       <img src="assets/img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
 
@@ -182,8 +178,6 @@
         pointer-events:none; opacity:0;
         box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);
       "></div>
-      
-
 
 <div id="comboBadge" style="
   position:absolute; top:10px; left:10px;
@@ -192,8 +186,6 @@
   padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
   <span id="comboTxt">COMBO x1</span>
 </div>
-
-
 
     <!-- Botón Ideas anclado a la moneda -->
     <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
@@ -218,10 +210,6 @@
   </div>
 </section>
 
-
-
-
-
 <!-- Drawers (Boosters simple + Inbox placeholder+Perfil) -->
 <div id="backdropUP" class="backdrop"></div>
 <aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
@@ -231,8 +219,6 @@
     <p style="opacity:.85" data-i18n="coming_soon">Proximamente... ✔</p>
   </div>
 </aside>
-
-
 
 <div id="backdropIN" class="backdrop"></div>
 <aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
@@ -251,7 +237,6 @@
   <div class="drawer-body">
   <h3 data-i18n="ideas_title">Ideas</h3>
 
-
   <!-- Vista inicial: pagar -->
   <div id="ideasPayView" class="cardPro"> 
    <p data-i18n="ideas_pay_intro">¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!</p>
@@ -261,7 +246,6 @@
   <span class="price-pill"><b>1 WLD 🎟️</b></span>
 </button>
 </div>
-
 
   <!-- Vista desbloqueada: opciones -->
   <div id="ideasOptionsView" class="cardPro" style="display:none">
@@ -274,13 +258,12 @@
   <p style="font-size:12px;opacity:.6;margin-top:6px">
   <i data-i18n="each_action_consumes">*Cada acción consume 1 ticket</i>
   </p>
-
   </div>
+  
   <!-- Vista: Encuesta -->
 <div id="ideasPollView" class="cardPro" style="display:none">
 <h4 style="margin:6px 0 8px" data-i18n="poll_title">🏁 ¡EMPIEZA LA CARRERA!</h4>
 <p class="hint"><b data-i18n="poll_hint">TÚ ELIGES💊</b></p>
-
 
   <!-- Opciones -->
   <div style="display:grid; gap:8px; margin:10px 0 12px;">
@@ -329,13 +312,10 @@
 
 <button class="btn" id="sendSuggestBtn" data-i18n="send">Enviar</button>
 <button class="btn" id="sugClose" data-i18n="close">Cerrar</button>
-
   </div>
 </div>
 
-
 </aside>
-
 
 <div id="backdropPF" class="backdrop"></div>
 <aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
@@ -376,26 +356,81 @@
   <a class="legal-link" href="/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
 
-
-
 </aside>
 
- 
-
-
-
-
-
-
-
-<!-- Cargar MiniKit PRIMERO -->
-<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
-
-<!-- Después cargar tus scripts -->
+<!-- ===== SCRIPTS CON FALLBACKS ===== -->
 <script>window.APIBASE="rainbowgold-api.vercel.app";</script>
+
+<!-- Cargar MiniKit con múltiples fallbacks -->
+<script>
+(function() {
+  console.log("🚀 Iniciando carga de MiniKit...");
+  
+  // Lista de URLs de fallback
+  const MINIKIT_URLS = [
+    'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/dist/minikit.js',
+    'https://unpkg.com/@worldcoin/minikit-js@1.5.0/dist/minikit.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/minikit-js/1.5.0/minikit.js'
+  ];
+  
+  let currentUrl = 0;
+  
+  function loadMiniKit(url) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      
+      script.onload = () => {
+        console.log(`✅ MiniKit cargado desde: ${url}`);
+        // Verificar si realmente se cargó
+        if (window.MiniKit || window.worldcoin) {
+          resolve(true);
+        } else {
+          reject(new Error('MiniKit object not found after load'));
+        }
+      };
+      
+      script.onerror = () => {
+        console.warn(`❌ Falló carga desde: ${url}`);
+        reject(new Error(`Failed to load from ${url}`));
+      };
+      
+      document.head.appendChild(script);
+      
+      // Timeout después de 5 segundos
+      setTimeout(() => {
+        reject(new Error(`Timeout loading from ${url}`));
+      }, 5000);
+    });
+  }
+  
+  async function tryLoadMiniKit() {
+    for (let i = 0; i < MINIKIT_URLS.length; i++) {
+      try {
+        console.log(`🔄 Intentando cargar MiniKit desde: ${MINIKIT_URLS[i]}`);
+        await loadMiniKit(MINIKIT_URLS[i]);
+        window.MINIKIT_LOADED = true;
+        return;
+      } catch (error) {
+        console.warn(`❌ Error cargando desde ${MINIKIT_URLS[i]}:`, error.message);
+        if (i === MINIKIT_URLS.length - 1) {
+          console.error("❌ No se pudo cargar MiniKit from any source");
+          window.MINIKIT_LOAD_ERROR = true;
+        }
+      }
+    }
+  }
+  
+  tryLoadMiniKit();
+})();
+</script>
+
+<!-- Tus scripts originales -->
 <script src="js/api-config.js"></script>
 <script src="js/game-logic.js"></script>
 <script src="js/payments.js"></script>
 <script type="module" src="js/minikit-config.js"></script>
+
 </body>
 </html>
