@@ -26,7 +26,6 @@
   }
 
   // === Configuración ===
-  const ACTION_ID_LOGIN  = "rainbowgold_login"; // login con World ID
   const ACTION_ID_REFILL = "rainbowgold";       // refill
   const ACTION_ID_IDEAS  = "ideas";             // votos/sugerencias
 
