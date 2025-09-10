@@ -1,4 +1,4 @@
-// ===== MiniKit World App Config =====
+// ===== MiniKit World App Config (VERSIÓN CORREGIDA PARA ES6) =====
 const DEV_MODE = false; // true = modo desarrollo sin verificar
 
 // ===== Referencias UI =====
@@ -35,7 +35,41 @@ function detectWorldApp() {
   return isWorldAppUA || hasProps;
 }
 
-// ===== Verificación con MiniKit (oficial) =====
+// ===== FUNCIÓN PARA ESPERAR MINIKIT =====
+function waitForMiniKit(maxAttempts = 100) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    
+    const checkMiniKit = () => {
+      attempts++;
+      console.log(`🔍 Intento ${attempts}: Buscando MiniKit...`);
+      
+      if (window.MiniKit) {
+        console.log("✅ MiniKit encontrado:", window.MiniKit);
+        console.log("📋 Métodos disponibles:", Object.keys(window.MiniKit));
+        
+        // Verificar estructura del objeto MiniKit
+        const commands = window.MiniKit.commands || window.MiniKit.commandsAsync;
+        console.log("🔧 Commands disponibles:", commands ? Object.keys(commands) : "No encontrados");
+        
+        resolve(window.MiniKit);
+        return;
+      }
+      
+      if (attempts >= maxAttempts) {
+        console.error("❌ MiniKit no se cargó después de", maxAttempts, "intentos");
+        reject(new Error("MiniKit no se cargó"));
+        return;
+      }
+      
+      setTimeout(checkMiniKit, 100); // Esperar 100ms entre intentos
+    };
+    
+    checkMiniKit();
+  });
+}
+
+// ===== Verificación con MiniKit (CORREGIDA PARA ES6) =====
 export async function startVerify() {
   if (DEV_MODE) {
     window.VERIFIED = true;
@@ -54,30 +88,76 @@ export async function startVerify() {
       return;
     }
 
-    // MiniKit desde CDN
-    const { MiniKit, VerificationLevel } = window;
-    if (!MiniKit) {
-      msg("❌ MiniKit no cargó");
-      throw new Error("MiniKit no está disponible en window");
-    }
-
-    msg("Iniciando verificación World ID...");
-    // Cambia a VerificationLevel.Device si no usas Orb
-    const { finalPayload } = await MiniKit.commandsAsync.verify({
-      action: "rainbowgold-login",
-      verification_level: VerificationLevel.Device
-      // signal opcional
+    msg("Esperando MiniKit...");
+    
+    // ✅ ESPERAR A QUE MINIKIT SE CARGUE
+    const MiniKit = await waitForMiniKit();
+    
+    console.log("🎯 MiniKit cargado correctamente:", {
+      MiniKit: !!MiniKit,
+      commands: !!MiniKit.commands,
+      commandsAsync: !!MiniKit.commandsAsync
     });
 
-    // Si usuario cancela, finalPayload puede venir undefined
+    msg("Iniciando verificación World ID...");
+    
+    // Determinar qué comando usar (puede variar entre versiones)
+    const verifyCommand = MiniKit.commands?.verify || MiniKit.commandsAsync?.verify || MiniKit.verify;
+    
+    if (!verifyCommand) {
+      console.error("❌ Comando verify no encontrado. Métodos disponibles:", Object.keys(MiniKit));
+      throw new Error("MiniKit.verify no está disponible");
+    }
+    
+    console.log("🔧 Usando comando verify:", verifyCommand);
+    
+    // Configurar la verificación
+    const verifyParams = {
+      action: "rainbowgold-login",
+      verification_level: "device" // Usar string en lugar de enum
+    };
+    
+    console.log("📤 Parámetros de verificación:", verifyParams);
+    
+    // Ejecutar verificación
+    let result;
+    if (MiniKit.commandsAsync?.verify) {
+      result = await MiniKit.commandsAsync.verify(verifyParams);
+    } else if (MiniKit.commands?.verify) {
+      result = await MiniKit.commands.verify(verifyParams);
+    } else {
+      result = await MiniKit.verify(verifyParams);
+    }
+
+    console.log("🔍 Resultado completo de verificación:", result);
+
+    // Manejar diferentes formatos de respuesta
+    let finalPayload;
+    if (result?.finalPayload) {
+      finalPayload = result.finalPayload;
+    } else if (result?.status === "success") {
+      finalPayload = result;
+    } else {
+      finalPayload = result;
+    }
+
+    // Verificar si la verificación fue exitosa
     if (!finalPayload || finalPayload.status !== "success") {
       msg("❌ World ID cancelado o falló");
-      console.log("verify result:", finalPayload);
+      console.log("verify result details:", { result, finalPayload });
       return;
     }
 
     msg("Verificando con servidor...");
     const { proof, merkle_root, nullifier_hash, verification_level } = finalPayload;
+
+    console.log("📤 Enviando al servidor:", {
+      action: "rainbowgold-login",
+      proof: proof ? "presente" : "ausente",
+      merkle_root: merkle_root ? "presente" : "ausente",
+      nullifier_hash: nullifier_hash ? nullifier_hash.substring(0, 10) + "..." : "ausente",
+      verification_level: verification_level || "device"
+    });
 
     const res = await fetch(`${window.API_BASE}/api/minikit/verify`, {
       method: "POST",
@@ -87,7 +167,7 @@ export async function startVerify() {
         proof,
         merkle_root,
         nullifier_hash,
-        verification_level
+        verification_level: verification_level || "device"
       })
     });
 
@@ -129,11 +209,31 @@ export async function startVerify() {
     const m = String(error?.message || "");
     if (m.includes("timeout")) msg("❌ Timeout - intenta de nuevo");
     else if (m.includes("cancel")) msg("❌ World ID cancelado");
+    else if (m.includes("MiniKit no se cargó")) msg("❌ Error cargando MiniKit - recarga la página");
+    else if (m.includes("User rejected")) msg("❌ Verificación cancelada por el usuario");
     else msg("❌ " + (m || "Error inesperado"));
   }
 }
 
-// ===== Pago (deja tu flujo actual; ejemplo mínimo) =====
+// ===== Event Listeners =====
+if (btn) {
+  btn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.style.opacity = "0.6";
+    btn.textContent = "Conectando...";
+    try { 
+      await startVerify(); 
+    } finally {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.textContent = original;
+    }
+  });
+}
+
+// ===== Pago =====
 async function payRefill() {
   if (!detectWorldApp()) {
     alert("Esta función requiere abrir en World App.");
@@ -146,10 +246,8 @@ async function payRefill() {
 
   try {
     msg("Procesando pago...");
-    // Aquí puedes integrar MiniKit pago cuando lo expongan; por ahora usa tu backend
     const price = (window.priceRefill?.() || "0.10").toString();
 
-    // Llama a tu endpoint de creación de pago si lo tienes (ejemplo)
     const create = await fetch(`${window.API_BASE}/api/minikit/pay/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -163,9 +261,6 @@ async function payRefill() {
       return;
     }
 
-    // …aquí iría el comando MiniKit de pago cuando corresponda…
-
-    // Confirmación (mantengo tu flujo)
     const confirm = await fetch(`${window.API_BASE}/api/pay/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -196,23 +291,6 @@ async function payRefill() {
   }
 }
 
-// ===== Event Listeners =====
-if (btn) {
-  btn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    btn.disabled = true;
-    const original = btn.textContent;
-    btn.style.opacity = "0.6";
-    btn.textContent = "Conectando...";
-    try { await startVerify(); }
-    finally {
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      btn.textContent = original;
-    }
-  });
-}
-
 if (refillBtn) {
   refillBtn.addEventListener("click", (ev) => {
     ev.preventDefault();
@@ -220,10 +298,26 @@ if (refillBtn) {
   });
 }
 
-// ===== Inicialización =====
-document.addEventListener("DOMContentLoaded", () => {
+// ===== Inicialización mejorada =====
+document.addEventListener("DOMContentLoaded", async () => {
   const isWA = detectWorldApp();
-  if (isWA) msg("✅ World App detectada");
-  else msg("❌ Abre desde World App");
+  if (isWA) {
+    msg("✅ World App detectada");
+    msg("Verificando MiniKit...");
+    
+    // Verificar MiniKit al cargar
+    try {
+      await waitForMiniKit(50); // 50 intentos = 5 segundos
+      msg("✅ MiniKit cargado correctamente");
+    } catch (error) {
+      msg("⚠️ MiniKit no se cargó - recarga la página");
+      console.error("MiniKit load error:", error);
+    }
+  } else {
+    msg("❌ Abre desde World App");
+  }
   console.log("🔍 UA:", navigator.userAgent);
 });
+
+// Exportar para uso global si es necesario
+window.startVerify = startVerify;
