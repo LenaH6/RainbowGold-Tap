@@ -1,5 +1,5 @@
 // ===== MiniKit World App Config =====
-  const DEV_MODE = false; // <<<<<< PRODUCCIÓN (en revisión, dejar siempre en false)
+  const DEV_MODE = true; // <<<<<< PRODUCCIÓN (en revisión, dejar siempre en false)
 
   if (DEV_MODE) {
     window.VERIFIED = true;
