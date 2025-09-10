@@ -1,2 +1,1 @@
-// API base del backend (por defecto, mismo dominio)
-window.API_BASE = window.API_BASE || (window.location.origin.replace(/\/$/, ''));
+window.API_BASE = 'https://rainbowgold-api.vercel.app';
