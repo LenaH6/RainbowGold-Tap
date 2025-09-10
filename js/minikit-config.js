@@ -70,18 +70,96 @@
 
 
   
-  // === Login con World ID - DEV fallback ===
-  export async function startVerify(){
-    // En DEV, simulamos verificación para probar la UI sin backend / World App
+// === Login con World ID - CORREGIDO PARA TU BACKEND ===
+export async function startVerify(){
+  if (DEV_MODE) {
+    // Modo DEV: simulación
     if (typeof window !== 'undefined') {
       window.VERIFIED = true;
       if (!window.SESSION_TOKEN) window.SESSION_TOKEN = "dev_test_token";
       try { setVerifiedUI?.(true); } catch(_) {}
       try { unlock?.(); } catch(_) {}
-      alert("DEV MODE: verificación simulada ✓");
+      msg("DEV MODE: verificación simulada ✓");
     }
+    return;
   }
 
+  // Modo PRODUCCIÓN: WorldID real
+  if (!requireMiniKit()) return;
+
+  try {
+    msg("Iniciando verificación World ID...");
+    
+    const response = await MiniKit.commandsAsync.worldID({
+      action: "rainbowgold-login", // Tu action ID
+      app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc", // Tu app ID
+      verification_level: "orb"
+    });
+
+    if (response.commandPayload.status === "success") {
+      const payload = response.commandPayload;
+      
+      // Enviar al TU backend usando TU formato
+      const backendResponse = await fetch(`${window.API_BASE}/api/minikit/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rainbowgold-login",
+          proof: payload.proof,
+          merkle_root: payload.merkle_root,
+          nullifier_hash: payload.nullifier_hash,
+          verification_level: payload.verification_level
+        })
+      });
+
+      const data = await backendResponse.json();
+      
+      if (data.ok) {
+        window.VERIFIED = true;
+        window.SESSION_TOKEN = data.token;
+        setVerifiedUI?.(true);
+        unlock?.();
+        msg("✅ Verificado con World ID");
+        
+        // Opcional: cargar estado del usuario si lo tienes
+        if (data.state) {
+          wld = +data.state.wld || 0;
+          rbgp = +data.state.rbgp || 0;
+          energy = +data.state.energy || 100;
+          render?.();
+        }
+      } else {
+        msg("❌ Error en verificación: " + (data.error || "Desconocido"));
+      }
+    } else {
+      msg("❌ Verificación cancelada o fallida");
+    }
+  } catch (error) {
+    console.error("Error en World ID:", error);
+    msg("❌ Error de conexión con World ID");
+  }
+}
+// === Handler del botón de login ===
+if (btn) {
+  btn.onclick = async (ev) => {
+    ev.preventDefault();
+    
+    // Deshabilitar botón durante el proceso
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+    
+    try {
+      await startVerify();
+    } catch (error) {
+      console.error("Error en login:", error);
+      msg("❌ Error inesperado");
+    } finally {
+      // Rehabilitar botón
+      btn.disabled = false;
+      btn.style.opacity = "1";
+    }
+  };
+}
   // === Pago Refill ===
   async function payRefill() {
     if (!requireMiniKit()) return;
