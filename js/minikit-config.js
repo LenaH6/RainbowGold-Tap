@@ -65,7 +65,7 @@ export async function startVerify() {
     // Cambia a VerificationLevel.Device si no usas Orb
     const { finalPayload } = await MiniKit.commandsAsync.verify({
       action: "rainbowgold-login",
-      verification_level: VerificationLevel.Orb
+      verification_level: VerificationLevel.Device
       // signal opcional
     });
 
