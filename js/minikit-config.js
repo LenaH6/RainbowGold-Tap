@@ -84,22 +84,22 @@ export async function startVerify(){
     return;
   }
 
-  // Modo PRODUCCIÓN: WorldID real
-  if (!requireMiniKit()) return;
+ if (!requireMiniKit()) return;
 
   try {
     msg("Iniciando verificación World ID...");
     
     const response = await MiniKit.commandsAsync.worldID({
-      action: "rainbowgold-login", // Tu action ID
-      app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc", // Tu app ID
+      action: "rainbowgold-login",
+      app_id: "app_33bb8068826b85d4cd56d2ec2caba7cc",
       verification_level: "orb"
     });
 
     if (response.commandPayload.status === "success") {
       const payload = response.commandPayload;
       
-      // Enviar al TU backend usando TU formato
+      msg("Verificando con servidor...");
+      
       const backendResponse = await fetch(`${window.API_BASE}/api/minikit/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,6 +112,13 @@ export async function startVerify(){
         })
       });
 
+      if (!backendResponse.ok) {
+        const errorText = await backendResponse.text();
+        console.error("Backend error:", errorText);
+        msg(`❌ Error del servidor: ${backendResponse.status}`);
+        return;
+      }
+
       const data = await backendResponse.json();
       
       if (data.ok) {
@@ -120,23 +127,16 @@ export async function startVerify(){
         setVerifiedUI?.(true);
         unlock?.();
         msg("✅ Verificado con World ID");
-        
-        // Opcional: cargar estado del usuario si lo tienes
-        if (data.state) {
-          wld = +data.state.wld || 0;
-          rbgp = +data.state.rbgp || 0;
-          energy = +data.state.energy || 100;
-          render?.();
-        }
       } else {
         msg("❌ Error en verificación: " + (data.error || "Desconocido"));
+        console.error("Verification failed:", data);
       }
     } else {
       msg("❌ Verificación cancelada o fallida");
     }
   } catch (error) {
     console.error("Error en World ID:", error);
-    msg("❌ Error de conexión con World ID");
+    msg("❌ Error de conexión: " + error.message);
   }
 }
 // === Handler del botón de login ===
