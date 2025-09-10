@@ -1,0 +1,6 @@
+Changes applied:
+- Removed old action-based login (worldcoin-auth.js) and its <script> include.
+- Button #wldSignIn now triggers NextAuth Worldcoin OAuth:
+  /api/auth/signin/worldcoin?callbackUrl=/dashboard (opens at top window to escape iframe).
+- Removed ACTION_ID_LOGIN from minikit-config.js; refill/ideas actions untouched.
+- Kept payments and ideas flows intact.
