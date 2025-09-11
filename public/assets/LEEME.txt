@@ -1,0 +1,1 @@
+Copia aquí tus assets (imagenes, sonidos, sprites). Respeta rutas de tu juego.
