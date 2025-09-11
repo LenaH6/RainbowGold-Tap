@@ -9,17 +9,11 @@
   <title>RainbowGold Tap</title>
   <meta name="theme-color" content="#1b103a">
 
-  <!-- CSS de tu juego -->
   <link rel="stylesheet" href="css/styles.css">
 
-  <!-- Preloads útiles -->
-  <link rel="preload" as="image" href="assets/img/Coin.png" imagesrcset="assets/img/Coin.png 1x, assets/img/Coin@2x.png 2x">
-  <link rel="preload" as="image" href="assets/img/brand-mark-wg-128.png">
-
-  <!-- CSP: permite tu API + Worldcoin verify -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data:;
     font-src 'self';
@@ -40,10 +34,9 @@
   ">
 </head>
 <body>
-  <!-- SPLASH -->
   <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
     <div class="splash__logo">
-      <img src="assets/img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+      <img src="assets/img/logo-splash.png" alt="RainbowGold" fetchpriority="high" decoding="async">
     </div>
 
     <button id="wldSignIn"
@@ -53,26 +46,22 @@
       Entrar con World ID
     </button>
 
-    <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
+    <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1">
       Preparando tu sesión<span class="dots"><span>.</span><span>.</span><span>.</span></span>
     </div>
   </div>
 
-  <!-- ==========================================================
-       Config global (ANTES de cargar el script de minikit)
-       ========================================================== -->
+  <!-- Config global -->
   <script>
-    // 🔧 AJUSTA si usas otro dominio/API
     window.API_BASE = "https://rainbowgold-api.vercel.app";
     window.WORLD_ID_APP_ID = "app_33bb8068826b85d4cd56d2ec2caba7cc";
     window.WORLD_ID_ACTION = "rainbowgold-login";
   </script>
 
-  <!-- Tu lógica de juego puede ir aquí si la necesitas -->
+  <!-- Tu lógica de juego si aplica -->
   <!-- <script src="js/game-logic.js"></script> -->
-  <!-- <script src="js/payments.js"></script> -->
 
-  <!-- Script principal (sin mock, puente nativo) -->
+  <!-- Script principal -->
   <script type="module" src="js/minikit-config.js"></script>
 </body>
 </html>

@@ -1,18 +1,21 @@
-// ===== RainbowGold · World ID login (Nativo + MiniKit fallback) =====
+// ===== RainbowGold · World ID login =====
+// • Intenta Nativo (postMessage) primero
+// • Si no, MiniKit.verify con carga diferida
+// • Normaliza varias formas de respuesta (proof/root/nullifier)
 
-// --- Config ---
 const DEV_MODE = false;
-const APP_ID   = window.WORLD_ID_APP_ID || "app_33bb8068826b85d4cd56d2ec2caba7cc";
-const ACTION   = window.WORLD_ID_ACTION || "rainbowgold-login";
-const API_BASE = (window.API_BASE || "").replace(/\/$/, "") || window.location.origin;
 
-// --- UI refs ---
+const APP_ID   = (window.WORLD_ID_APP_ID || "app_33bb8068826b85d4cd56d2ec2caba7cc").trim();
+const ACTION   = (window.WORLD_ID_ACTION || "rainbowgold-login").trim();
+const API_BASE = ((window.API_BASE || "").replace(/\/$/, "")) || window.location.origin;
+
+// === UI refs (opcionales; si faltan no pasa nada)
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
 const stateEl   = document.getElementById("wldState");
 const refillBtn = document.getElementById("refillBtn");
 
-// --- UI helpers ---
+// ---------------- UI helpers ----------------
 function msg(t) {
   if (stateEl) { stateEl.textContent = t; stateEl.style.opacity = "1"; }
   console.log("🔔", t);
@@ -24,7 +27,7 @@ function unlock() {
   } catch {}
 }
 
-// --- Detección de World App ---
+// --------------- Detección World App ---------------
 function detectWorldApp() {
   const ua = (navigator.userAgent || "").toLowerCase();
   const inUA = ua.includes("worldapp") || ua.includes("world app") || ua.includes("worldcoin");
@@ -38,16 +41,16 @@ function detectWorldApp() {
   return inUA || hasProps;
 }
 
-// --- Puente nativo (postMessage) ---
+// --------------- Bridge nativo (postMessage) ---------------
 function nativeCall(type, params) {
   return new Promise((resolve, reject) => {
     const id = `${type}_${Date.now()}_${Math.random()}`;
-
     const onMessage = (ev) => {
       if (ev?.data?.id === id) {
         window.removeEventListener("message", onMessage);
-        if (ev.data.error) reject(new Error(ev.data.error));
-        else resolve(ev.data.result ?? ev.data); // por si viene sin .result
+        const payload = ev.data.result ?? ev.data;
+        if (payload?.error) reject(new Error(payload.error));
+        else resolve(payload);
       }
     };
     window.addEventListener("message", onMessage);
@@ -64,7 +67,6 @@ function nativeCall(type, params) {
       } else if (window.Android?.worldapp) {
         window.Android.worldapp.postMessage(JSON.stringify(message));
       } else {
-        // iframe fallback
         window.parent?.postMessage(message, "*");
       }
     } catch (e) {
@@ -74,17 +76,40 @@ function nativeCall(type, params) {
   });
 }
 
-// --- MiniKit (si está cargado y operativo) ---
-async function tryMiniKitVerify() {
+// --------------- MiniKit helpers ---------------
+function loadMiniKitOnce() {
+  return new Promise((resolve) => {
+    if (window.MiniKit?.commandsAsync?.verify) return resolve(true);
+
+    const urls = [
+      "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.6.0/dist/minikit.js",
+      "https://unpkg.com/@worldcoin/minikit-js@1.6.0/dist/minikit.js"
+    ];
+    let idx = 0;
+
+    function tryNext() {
+      if (window.MiniKit?.commandsAsync?.verify) return resolve(true);
+      if (idx >= urls.length) return resolve(false);
+      const s = document.createElement("script");
+      s.src = urls[idx++]; s.async = true;
+      s.onload  = () => resolve(!!(window.MiniKit?.commandsAsync?.verify));
+      s.onerror = () => tryNext();
+      document.head.appendChild(s);
+    }
+    tryNext();
+  });
+}
+
+async function miniKitVerify() {
   const MK = window.MiniKit;
   if (!MK?.commandsAsync?.verify) return null;
   try {
-    console.log("🧪 Intentando MiniKit.verify()");
+    console.log("🧪 MiniKit.verify()…");
     const res = await MK.commandsAsync.verify({
       action: ACTION,
       app_id: APP_ID,
-      signal: "",                 // opcional
-      verification_level: "orb"   // recomendado
+      signal: "",
+      verification_level: "orb"
     });
     return res;
   } catch (e) {
@@ -93,34 +118,38 @@ async function tryMiniKitVerify() {
   }
 }
 
-// --- Normalizador de respuesta World ID ---
+// --------------- Normalizador de respuestas ---------------
 function normalizeWorldId(res) {
-  // Puede venir en distintas formas: {status, proof,...} o {result:{...}} o anidado
-  let r = res?.result ?? res;
+  // admite {result:{...}}, o {status,proof...}, o estructuras anidadas
+  const r = res?.result ?? res;
   if (!r || typeof r !== "object") return null;
 
-  // Algunas implementaciones devuelven { status: "success", ... }
-  if (r.status === "cancelled") return { cancelled: true };
+  if (r.status === "cancelled" || r.cancelled === true) return { cancelled: true };
   if (r.error) return { error: r.error };
 
-  // A veces proof viene anidado: { proof: { proof: '0x...' } }
-  const proof =
-    typeof r.proof === "string" ? r.proof :
-    typeof r.proof?.proof === "string" ? r.proof.proof :
-    r.proof;
+  // Mapear posibles alias/camelCase
+  const merkle_root =
+    r.merkle_root ?? r.merkleRoot ?? r.root ?? r.verification_response?.merkle_root ?? r.verification_response?.merkleRoot;
 
-  const out = {
-    proof,
-    merkle_root: r.merkle_root || r.merkleRoot,
-    nullifier_hash: r.nullifier_hash || r.nullifierHash,
-    verification_level: r.verification_level || r.level || "orb"
-  };
+  const nullifier_hash =
+    r.nullifier_hash ?? r.nullifierHash ?? r.nullifier ?? r.verification_response?.nullifier_hash ?? r.verification_response?.nullifierHash;
+
+  let proof =
+    (typeof r.proof === "string" ? r.proof : null) ??
+    (typeof r.proof?.proof === "string" ? r.proof.proof : null) ??
+    (typeof r.verification_response?.proof === "string" ? r.verification_response.proof : null) ??
+    (typeof r.verification_response?.proof?.proof === "string" ? r.verification_response.proof.proof : null);
+
+  const verification_level =
+    r.verification_level ?? r.level ?? r.credential_type ?? r.verification_response?.credential_type ?? "orb";
+
+  const out = { proof, merkle_root, nullifier_hash, verification_level };
 
   if (out.proof && out.merkle_root && out.nullifier_hash) return out;
   return null;
 }
 
-// --- LOGIN principal ---
+// --------------- LOGIN principal ---------------
 export async function startVerify() {
   if (DEV_MODE) {
     window.VERIFIED = true;
@@ -141,18 +170,15 @@ export async function startVerify() {
 
     msg("Inicializando World ID…");
 
-    // 1) Intento Nativo
     let raw = null, norm = null, lastError = null;
 
+    // 1) Intento Nativo
     try {
-      raw = await nativeCall("worldID", {
-        action: ACTION,
-        app_id: APP_ID,
-        verification_level: "orb"
-      });
+      raw = await nativeCall("worldID", { action: ACTION, app_id: APP_ID, verification_level: "orb" });
       console.log("📥 Native worldID raw:", raw);
-      if (raw?.status === "cancelled") {
-        return msg("❌ World ID cancelado");
+      if (raw?.status === "cancelled" || raw?.cancelled === true) {
+        msg("❌ World ID cancelado");
+        return;
       }
       norm = normalizeWorldId(raw);
     } catch (e) {
@@ -160,20 +186,21 @@ export async function startVerify() {
       lastError = e;
     }
 
-    // 2) Si nativo no dio datos útiles, probamos MiniKit si existe
+    // 2) Si nativo no sirve, intentamos MiniKit (cargándolo si hace falta)
     if (!norm) {
-      const mk = await tryMiniKitVerify();
-      console.log("📥 MiniKit verify raw:", mk);
-      norm = normalizeWorldId(mk);
+      await loadMiniKitOnce();
+      const mkRaw = await miniKitVerify();
+      console.log("📥 MiniKit verify raw:", mkRaw);
+      norm = normalizeWorldId(mkRaw);
     }
 
     if (!norm) {
-      console.log("🧾 Respuestas crudas para debug:", { rawNative: raw, lastError });
+      console.log("🧾 Respuestas crudas para debug:", { rawNative: raw, lastError, hasMiniKit: !!window.MiniKit });
       msg("❌ World ID cancelado o inválido");
       return;
     }
 
-    // 3) Verificación en tu backend
+    // 3) Verificación en backend
     msg("Validando con backend…");
 
     const payload = {
@@ -181,7 +208,7 @@ export async function startVerify() {
       proof: norm.proof,
       merkle_root: norm.merkle_root,
       nullifier_hash: norm.nullifier_hash,
-      verification_level: norm.verification_level
+      verification_level: norm.verification_level || "orb",
     };
 
     console.log("📤 Payload /api/minikit/verify:", payload);
@@ -199,11 +226,10 @@ export async function startVerify() {
 
     if (!res.ok || !data?.ok) {
       msg(`❌ Backend ${res.status}: ${data?.error || text || "invalid_proof"}`);
-      alert(`Error de verificación: ${data?.error || text || "invalid_proof"}`);
+      alert(`Error verificación: ${data?.error || text || "invalid_proof"}`);
       return;
     }
 
-    // 4) OK → sesión
     window.VERIFIED = true;
     window.SESSION_TOKEN = data.token;
 
@@ -226,18 +252,16 @@ export async function startVerify() {
   }
 }
 
-// --- Pago opcional (mismo puente nativo) ---
+// --------------- Pago opcional ---------------
 async function payRefill() {
   if (!detectWorldApp()) { alert("Abre esta función desde World App."); return; }
   if (!window.SESSION_TOKEN) { alert("Primero verifica tu World ID."); return; }
-
   try {
     msg("Procesando pago…");
-
     const amount = (typeof window.priceRefill === "function" ? window.priceRefill() : "0.10") || "0.10";
     const payRaw = await nativeCall("pay", {
-      to:   "0x91bf252c335f2540871dd02ef1476ae193a5bc8a",
-      token:"WLD",
+      to: "0x91bf252c335f2540871dd02ef1476ae193a5bc8a",
+      token: "WLD",
       amount,
       reference: crypto.randomUUID(),
       action: "rainbowgold"
@@ -255,8 +279,8 @@ async function payRefill() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...payRaw, token: window.SESSION_TOKEN, action: "rainbowgold" })
     });
-
     const data = await r.json().catch(() => ({}));
+
     if (data.ok) {
       window.SESSION_TOKEN = data.token || window.SESSION_TOKEN;
       try {
@@ -278,7 +302,7 @@ async function payRefill() {
   }
 }
 
-// --- Listeners ---
+// --------------- Listeners ---------------
 document.addEventListener("DOMContentLoaded", () => {
   if (detectWorldApp()) msg("✅ World App detectada"); else msg("❌ Abre desde World App");
 
