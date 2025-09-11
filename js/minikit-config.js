@@ -1,4 +1,4 @@
-// ===== MiniKit World App Config (VERSIÓN ROBUSTA CON MÚLTIPLES FALLBACKS) =====
+// ===== MiniKit World App Config - REAL WORLD ID VERIFICATION =====
 
 // ===== Referencias UI =====
 const btn = document.getElementById("wldSignIn");
@@ -49,14 +49,14 @@ function detectWorldApp() {
 }
 
 // ===== FUNCIÓN ROBUSTA PARA ESPERAR MINIKIT =====
-function waitForMiniKit(maxAttempts = 100) {
+function waitForMiniKit(maxAttempts = 50) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
     
     const checkMiniKit = () => {
       attempts++;
       
-      if (attempts % 10 === 0) { // Log cada 10 intentos
+      if (attempts % 10 === 0) {
         debugLog(`🔍 Intento ${attempts}: Buscando MiniKit...`);
       }
       
@@ -75,14 +75,12 @@ function waitForMiniKit(maxAttempts = 100) {
         if (hasCommands) {
           resolve(minikit);
           return;
-        } else {
-          debugLog("⚠️ MiniKit encontrado pero sin comandos válidos");
         }
       }
       
       if (attempts >= maxAttempts) {
-        debugLog("❌ MiniKit no se cargó después de " + maxAttempts + " intentos");
-        reject(new Error("MiniKit no se cargó"));
+        debugLog("❌ MiniKit no disponible después de " + maxAttempts + " intentos");
+        reject(new Error("MiniKit no disponible"));
         return;
       }
       
@@ -93,231 +91,210 @@ function waitForMiniKit(maxAttempts = 100) {
   });
 }
 
-// ===== SIMULADOR DE MINIKIT PARA TESTING =====
-function createMockVerification() {
-  return {
-    status: "success",
-    proof: `mock_proof_${Date.now()}`,
-    merkle_root: `mock_merkle_${Date.now()}`,
-    nullifier_hash: `nullifier_${Math.random().toString(36).substr(2, 16)}`,
-    verification_level: "device"
-  };
-}
-
-// ===== Verificación con MiniKit =====
+// ===== Verificación con MiniKit REAL =====
 export async function startVerify() {
   try {
-    msg("🔍 Iniciando verificación...");
+    msg("🔍 Iniciando verificación con World ID...");
     debugLog("🚀 startVerify() llamado");
 
     const isWorldApp = detectWorldApp();
     debugLog(`🌍 ¿Es World App? ${isWorldApp}`);
 
+    // SOLO usar mock si específicamente NO estamos en World App
     if (!isWorldApp) {
-      // En desarrollo, simular verificación exitosa
-      debugLog("🧪 Modo desarrollo - simulando verificación");
-      msg("🧪 Simulando verificación (modo desarrollo)");
+      debugLog("🧪 NO es World App - usando simulación para desarrollo");
+      msg("🧪 Modo desarrollo - simulando World ID");
       
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const mockData = createMockVerification();
-      debugLog("📦 Mock data creado: " + JSON.stringify(mockData));
+      const mockData = {
+        status: "success",
+        proof: `mock_proof_${Date.now()}`,
+        merkle_root: `mock_merkle_${Date.now()}`,
+        nullifier_hash: `nullifier_${Math.random().toString(36).substr(2, 16)}`,
+        verification_level: "device"
+      };
       
-      // Enviar al backend
       return await sendVerificationToBackend(mockData, true);
     }
 
-    msg("⏳ Esperando MiniKit...");
+    // SI ESTAMOS EN WORLD APP, usar MiniKit REAL
+    msg("🌍 World App detectada - usando World ID real");
+    msg("⏳ Cargando MiniKit...");
     
     let MiniKit;
     try {
       MiniKit = await waitForMiniKit(50); // 5 segundos máximo
-      debugLog("✅ MiniKit obtenido correctamente");
+      debugLog("✅ MiniKit cargado correctamente");
     } catch (error) {
-      debugLog("❌ Error esperando MiniKit: " + error.message);
-      
-      // Fallback: simular verificación incluso en World App
-      msg("⚠️ MiniKit no disponible, simulando...");
-      const mockData = createMockVerification();
-      return await sendVerificationToBackend(mockData, true);
+      debugLog("❌ Error cargando MiniKit: " + error.message);
+      msg("❌ No se pudo cargar MiniKit - intenta recargar la app");
+      throw new Error("MiniKit no disponible en World App");
     }
 
-    msg("🔐 Ejecutando verificación World ID...");
+    msg("🔐 Abriendo verificación World ID...");
+    debugLog("🎬 Iniciando cinemática de World ID");
     
-    // Determinar qué método de verificación usar
-    let verifyFunction = null;
-    if (MiniKit.commandsAsync?.verify) {
-      verifyFunction = MiniKit.commandsAsync.verify.bind(MiniKit.commandsAsync);
-      debugLog("🔧 Usando MiniKit.commandsAsync.verify");
-    } else if (MiniKit.commands?.verify) {
-      verifyFunction = MiniKit.commands.verify.bind(MiniKit.commands);
-      debugLog("🔧 Usando MiniKit.commands.verify");
-    } else if (MiniKit.verify) {
-      verifyFunction = MiniKit.verify.bind(MiniKit);
-      debugLog("🔧 Usando MiniKit.verify");
-    } else {
-      debugLog("❌ No se encontró función de verificación válida");
-      throw new Error("No se encontró función de verificación en MiniKit");
-    }
-
+    // Configuración de verificación REAL
     const verifyParams = {
-      action: "rainbowgold-login",
-      verification_level: "device"
+      action: "rainbowgold-login", // Debe coincidir con tu configuración en World ID
+      signal: "", // Opcional: datos adicionales
+      verification_level: "orb" // "orb" para verificación completa, "device" para básica
     };
     
-    debugLog("📤 Parámetros de verificación: " + JSON.stringify(verifyParams));
+    debugLog("📤 Parámetros: " + JSON.stringify(verifyParams));
+
+    // Usar el método correcto de MiniKit
+    let verifyFunction;
+    if (MiniKit.commandsAsync?.verify) {
+      verifyFunction = MiniKit.commandsAsync.verify;
+      debugLog("🔧 Usando commandsAsync.verify");
+    } else if (MiniKit.commands?.verify) {
+      verifyFunction = MiniKit.commands.verify;
+      debugLog("🔧 Usando commands.verify");  
+    } else if (typeof MiniKit.verify === 'function') {
+      verifyFunction = MiniKit.verify;
+      debugLog("🔧 Usando verify directo");
+    } else {
+      debugLog("❌ No se encontró función de verificación válida");
+      debugLog("🔧 Métodos disponibles: " + Object.keys(MiniKit));
+      throw new Error("MiniKit no tiene método de verificación");
+    }
 
     try {
+      debugLog("🎬 Ejecutando verificación World ID...");
+      
+      // AQUÍ SE MOSTRARÁ LA CINEMÁTICA DE WORLD ID
       const result = await verifyFunction(verifyParams);
-      debugLog("📥 Resultado de verificación: " + JSON.stringify(result));
+      
+      debugLog("📥 Resultado completo: " + JSON.stringify(result));
       
       // Manejar diferentes formatos de respuesta
-      let finalPayload = result;
-      if (result?.finalPayload) {
-        finalPayload = result.finalPayload;
+      let payload = result;
+      if (result.finalPayload) {
+        payload = result.finalPayload;
+        debugLog("📦 Usando finalPayload");
       }
       
-      if (!finalPayload || finalPayload.status !== "success") {
-        debugLog("❌ Verificación no exitosa: " + JSON.stringify(finalPayload));
-        msg("❌ Verificación cancelada o falló");
+      if (!payload || payload.status !== "success") {
+        debugLog("❌ Verificación no exitosa: " + JSON.stringify(payload));
+        if (payload?.status === "error") {
+          msg("❌ Error: " + payload.message);
+        } else {
+          msg("❌ Verificación cancelada");
+        }
         return;
       }
       
-      return await sendVerificationToBackend(finalPayload, false);
+      debugLog("✅ Verificación World ID exitosa!");
+      msg("✅ World ID verificado correctamente");
+      
+      return await sendVerificationToBackend(payload, false);
       
     } catch (verifyError) {
-      debugLog("❌ Error en verificación: " + verifyError.message);
+      debugLog("💥 Error en verificación World ID: " + verifyError.message);
       
-      // Fallback final: simular verificación exitosa
-      msg("⚠️ Error en verificación, simulando...");
-      const mockData = createMockVerification();
-      return await sendVerificationToBackend(mockData, true);
+      if (verifyError.message.includes("cancelled")) {
+        msg("❌ Verificación cancelada por el usuario");
+      } else if (verifyError.message.includes("timeout")) {
+        msg("❌ Timeout - intenta de nuevo");  
+      } else {
+        msg("❌ Error en World ID: " + verifyError.message);
+      }
+      
+      throw verifyError; // No hacer fallback en World App
     }
 
   } catch (error) {
     debugLog("💥 Error general en startVerify: " + error.message);
-    console.error("❌ Error en verify:", error);
+    console.error("❌ Error en verificación:", error);
     
-    const m = String(error?.message || "");
-    if (m.includes("timeout")) msg("❌ Timeout - intenta de nuevo");
-    else if (m.includes("cancel")) msg("❌ World ID cancelado");
-    else msg("❌ " + (m || "Error inesperado"));
+    const m = String(error?.message || "Error inesperado");
+    msg("❌ " + m);
+    
+    // En World App, mostrar error real - no simular
+    if (detectWorldApp()) {
+      throw error;
+    }
   }
 }
 
 // ===== Enviar verificación al backend =====
 async function sendVerificationToBackend(payload, isMock = false) {
   try {
-    msg(isMock ? "📤 Enviando verificación simulada..." : "📤 Enviando verificación al servidor...");
+    msg(isMock ? "📤 Enviando simulación..." : "📤 Validando World ID...");
     
+    // Estructura correcta para el backend
     const requestData = {
       action: "rainbowgold-login",
-      proof: payload.proof,
-      merkle_root: payload.merkle_root,
-      nullifier_hash: payload.nullifier_hash,
-      verification_level: payload.verification_level || "device"
+      signal: payload.signal || "",
+      payload: {
+        proof: payload.proof,
+        merkle_root: payload.merkle_root,
+        nullifier_hash: payload.nullifier_hash,
+        verification_level: payload.verification_level || "device"
+      }
     };
     
-    debugLog("📤 Datos enviados al backend: " + JSON.stringify(requestData));
+    debugLog("📤 Enviando al backend: " + JSON.stringify(requestData));
 
-    // Intentar conectar con el backend
-    try {
-      const res = await fetch(`${window.API_BASE}/api/minikit/verify`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(requestData)
-      });
+    const res = await fetch(`${window.API_BASE}/api/verify`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(requestData)
+    });
 
-      debugLog(`📥 Respuesta del servidor: ${res.status} ${res.statusText}`);
+    debugLog(`📥 Backend respuesta: ${res.status} ${res.statusText}`);
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        debugLog("❌ Error del backend: " + text);
-        throw new Error(`Server error: ${res.status}`);
-      }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      debugLog("❌ Error del backend: " + text);
+      throw new Error(`Backend error: ${res.status} - ${text}`);
+    }
 
-      const data = await res.json();
-      debugLog("✅ Respuesta del backend: " + JSON.stringify(data));
+    const data = await res.json();
+    debugLog("✅ Backend response: " + JSON.stringify(data));
 
-      if (data.ok) {
-        window.VERIFIED = true;
-        window.SESSION_TOKEN = data.token;
-        
-        try { 
-          setVerifiedUI?.(true); 
-        } catch (_) {
-          debugLog("⚠️ setVerifiedUI no disponible");
-        }
-        
-        unlock();
-        msg(isMock ? "✅ ¡Verificación simulada exitosa!" : "✅ ¡Verificado con World ID!");
-
-        // Estado de juego opcional desde backend
-        if (data.state) {
-          try {
-            window.wld   = +data.state.wld   || 0;
-            window.rbgp  = +data.state.rbgp  || 0;
-            window.energy= +data.state.energy|| 100;
-            render?.();
-            debugLog("🎮 Estado del juego actualizado");
-          } catch (e) {
-            debugLog("⚠️ No se pudo aplicar estado del juego: " + e.message);
-          }
-        }
-        return true;
-      } else {
-        debugLog("❌ Backend rechazó verificación: " + data.error);
-        throw new Error("Backend rejected verification: " + data.error);
-      }
-
-    } catch (networkError) {
-      debugLog("💥 Error de red con backend: " + networkError.message);
-      
-      // FALLBACK: Simular respuesta exitosa del backend
-      msg("⚠️ Backend no disponible, continuando sin servidor...");
-      debugLog("🧪 Simulando respuesta exitosa del backend");
-      
-      // Simular token JWT (para desarrollo)
-      const mockToken = btoa(JSON.stringify({
-        sub: payload.nullifier_hash,
-        lvl: "device",
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 días
-      }));
-      
+    if (data.ok && data.verified) {
       window.VERIFIED = true;
-      window.SESSION_TOKEN = `mock.${mockToken}.signature`;
+      window.SESSION_TOKEN = data.token;
+      window.USER_ID = data.userId;
       
-      // Estado inicial del juego
-      window.wld = 0;
-      window.rbgp = 0;
-      window.energy = 100;
-      
-      try { 
-        setVerifiedUI?.(true); 
-      } catch (_) {
-        debugLog("⚠️ setVerifiedUI no disponible");
-      }
-      
-      try {
-        render?.();
-        debugLog("🎮 Estado inicial del juego aplicado");
-      } catch (e) {
-        debugLog("⚠️ render() no disponible: " + e.message);
-      }
-      
-      unlock();
       msg("✅ ¡Sesión iniciada correctamente!");
       
+      // Aplicar estado del juego
+      if (data.state) {
+        try {
+          window.wld = +data.state.wld || 0;
+          window.rbgp = +data.state.rbgp || 0;
+          window.energy = +data.state.energy || 100;
+          debugLog("🎮 Estado actualizado del backend");
+        } catch (e) {
+          debugLog("⚠️ Error aplicando estado: " + e.message);
+        }
+      }
+      
+      // Actualizar UI
+      try { 
+        setVerifiedUI?.(true);
+        render?.(); 
+      } catch (_) {}
+      
+      unlock();
       return true;
+      
+    } else {
+      debugLog("❌ Backend rechazó verificación: " + data.error);
+      msg("❌ Verificación rechazada: " + data.error);
+      return false;
     }
 
   } catch (error) {
-    debugLog("💥 Error general en sendVerificationToBackend: " + error.message);
-    msg("❌ Error de verificación: " + error.message);
+    debugLog("💥 Error backend: " + error.message);
+    msg("❌ Error de conexión: " + error.message);
     return false;
   }
 }
@@ -329,10 +306,12 @@ if (btn) {
     btn.disabled = true;
     const original = btn.textContent;
     btn.style.opacity = "0.6";
-    btn.textContent = "Conectando...";
+    btn.textContent = "Verificando...";
     
     try { 
       await startVerify(); 
+    } catch (error) {
+      debugLog("💥 Error en click: " + error.message);
     } finally {
       btn.disabled = false;
       btn.style.opacity = "1";
@@ -343,61 +322,67 @@ if (btn) {
 
 // ===== Inicialización =====
 document.addEventListener("DOMContentLoaded", async () => {
-  debugLog("📱 Página cargada");
+  debugLog("📱 MiniKit config cargado");
   debugLog("🔍 User Agent: " + navigator.userAgent);
   
   const isWA = detectWorldApp();
   if (isWA) {
-    msg("✅ World App detectada");
+    msg("🌍 World App detectada - World ID real disponible");
   } else {
-    msg("🧪 Modo desarrollo activado");
+    msg("🧪 Navegador externo - modo desarrollo");
   }
   
-  // Verificar si MiniKit se cargó
+  // Verificar MiniKit
   setTimeout(() => {
     if (window.MiniKit) {
-      msg("✅ MiniKit listo");
       debugLog("✅ MiniKit disponible globalmente");
+      msg("✅ MiniKit listo para World ID");
+    } else if (isWA) {
+      debugLog("⚠️ World App detectada pero MiniKit no disponible");
+      msg("⚠️ Recarga la app si hay problemas");
     } else {
-      msg("⚠️ MiniKit no disponible (usaremos simulación)");
-      debugLog("⚠️ MiniKit no encontrado en window");
+      debugLog("ℹ️ MiniKit no necesario fuera de World App");
     }
-  }, 2000);
+  }, 1500);
 });
 
-// ===== Pago (simplificado) =====
+// ===== Pago con MiniKit =====
 async function payRefill() {
   if (!window.SESSION_TOKEN) {
-    alert("Primero verifica con World ID.");
+    msg("❌ Primero verifica con World ID");
+    return;
+  }
+
+  if (!detectWorldApp()) {
+    alert("🧪 Pago simulado (solo disponible en World App)");
     return;
   }
 
   try {
-    msg("💳 Procesando pago...");
+    msg("💳 Procesando pago con World ID...");
     
-    const confirm = await fetch(`${window.API_BASE}/api/pay/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        token: window.SESSION_TOKEN, 
-        action: "rainbowgold"
-      })
-    });
-    
-    const confData = await confirm.json();
-
-    if (confData.ok) {
-      window.SESSION_TOKEN = confData.token;
-      msg("✅ ¡Pago completado!");
-      alert("✅ Energía recargada exitosamente");
-    } else {
-      msg("❌ Error en pago");
-      alert("Error: " + (confData.error || "payment failed"));
+    // Implementar pago real con MiniKit aquí
+    const MiniKit = window.MiniKit;
+    if (MiniKit?.commandsAsync?.pay) {
+      // Usar MiniKit para pagos reales
+      const payResult = await MiniKit.commandsAsync.pay({
+        to: "0x...", // Tu dirección de recepción  
+        tokens: [
+          {
+            symbol: "WLD",
+            token_amount: "0.1" // Cantidad a pagar
+          }
+        ]
+      });
+      
+      if (payResult.status === "success") {
+        msg("✅ ¡Pago completado!");
+      }
     }
+    
   } catch (err) {
     debugLog("💥 Payment error: " + err.message);
-    msg("❌ Error en pago");
-    alert("Error: " + (err?.message || "unknown"));
+    msg("❌ Error en pago: " + err.message);
   }
 }
 
