@@ -58,86 +58,64 @@ function detectWorldApp() {
 
 // ---------- Bridge nativo (postMessage) ----------
 function nativeCall(type, params) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const id = `${type}_${Date.now()}_${Math.random()}`;
+    let lastCandidate = null;
 
-    let lastWorldIdLike = null;
-
-    // Un "resultado" válido debe traer algo más que params:
-    const hasResultFields = (d) => {
+    const hasResult = (d) => {
       const r = d?.result ?? d;
       const vr = r?.verification_response || r?.verificationResponse || r?.response || r?.data || r?.payload || {};
       return !!(r?.proof || r?.merkle_root || r?.merkleRoot || r?.nullifier_hash || r?.nullifierHash ||
                 vr?.proof || vr?.merkle_root || vr?.nullifier_hash);
     };
-
-    // mensaje nuestro “eco” = mismo id y solo params
-    const isEchoOfOurRequest = (d) => {
-      if (!d) return false;
-      if (!(d.id === id || d.requestId === id)) return false;
-      return !hasResultFields(d); // si no hay proof/merkle/nullifier es eco
-    };
+    const isEcho = (d) => (d && (d.id === id || d.requestId === id) && !hasResult(d));
 
     const onMessage = (ev) => {
       const d = ev?.data;
       if (!d) return;
-
-      // guardamos el último candidato por si no coincide id
-      const looksWorldId = (x) => {
-        const r = x?.result ?? x;
-        return !!(r?.type === "worldID" || r?.verification_response || r?.proof || r?.merkle_root || r?.nullifier_hash);
-      };
-      if (looksWorldId(d)) lastWorldIdLike = d;
-
-      // Si coincide ID:
+      // Guarda candidatos
+      const r = d?.result ?? d;
+      if (r?.type === "worldID" || r?.verification_response || r?.proof || r?.merkle_root || r?.nullifier_hash) {
+        lastCandidate = d;
+      }
       if (d.id === id || d.requestId === id) {
-        // Si es eco, ignoramos y dejamos que siga el timeout → fallback a MiniKit
-        if (isEchoOfOurRequest(d)) return;
+        if (isEcho(d)) return;            // eco → ignora, dejemos caer a MiniKit
         window.removeEventListener("message", onMessage);
-        const payload = d.result ?? d;
-        if (payload?.error) reject(new Error(payload.error));
-        else resolve(payload);
+        resolve(d.result ?? d);            // devuelve payload (puede tener prueba)
       }
     };
 
     window.addEventListener("message", onMessage);
 
-    // A los 2.5s, si solo hubo eco, devolvemos null para forzar MiniKit rápido
-    const EARLY_FALLBACK_MS = 2500;
+    // Fallback rápido: si en ~2.5s solo hubo eco (o nada), usar MiniKit
     const early = setTimeout(() => {
       window.removeEventListener("message", onMessage);
-      if (lastWorldIdLike && !hasResultFields(lastWorldIdLike)) {
-        // eco → nativo no disponible
-        resolve(null);
-      }
-    }, EARLY_FALLBACK_MS);
+      resolve(null);
+    }, 2500);
 
-    // Corte duro a los 30s
+    // Safety: cortar a los 30s
     const hard = setTimeout(() => {
       window.removeEventListener("message", onMessage);
       resolve(null);
-    }, 30_000);
+    }, 30000);
 
-    const cleanup = () => { clearTimeout(early); clearTimeout(hard); };
-
-    // Enviamos
     const message = { id, type, params };
-    console.log("📤 nativeCall -> worldapp.postMessage", message);
     try {
       if (window.webkit?.messageHandlers?.worldapp) {
         window.webkit.messageHandlers.worldapp.postMessage(message);
       } else if (window.Android?.worldapp) {
         window.Android.worldapp.postMessage(JSON.stringify(message));
       } else {
-        // si no hay worldapp, parent === window → esto generaría eco; dejemos que el early fallback actúe
+        // si no hay bridge, parent==window → generaría eco; early fallback nos salva
         window.parent?.postMessage(message, "*");
       }
-    } catch (e) {
-      cleanup();
+    } catch {
+      clearTimeout(early); clearTimeout(hard);
       resolve(null);
     }
   });
 }
+
 
 
 // ---------- MiniKit helpers ----------
@@ -208,29 +186,26 @@ function normalizeWorldId(res) {
   return (out.proof && out.merkle_root && out.nullifier_hash) ? out : null;
 }
 
-// ---------- Flujo principal ----------
 async function getWorldIdProof() {
-  // Intentos: Nativo (device → orb) → MiniKit (device → orb)
   const levels = ["device", "orb"];
 
   // 1) Nativo
   for (const lvl of levels) {
     const raw = await nativeCall("worldID", { action: ACTION, app_id: APP_ID, verification_level: lvl });
     if (raw) {
-      console.log(`📥 Native worldID (${lvl}) raw`, raw);
       const r = raw?.result ?? raw;
       if (r?.status === "cancelled" || r?.status === "canceled" || r?.cancelled) return { cancelled: true };
       const norm = normalizeWorldId(raw);
-      if (norm) return norm;
-      // Si raw no trae prueba, seguimos con el siguiente intento
+      if (norm) return norm;     // sólo si trajo prueba
+      // Si no hay prueba, sigue a MiniKit (no insistimos con nativo)
+      break;
     } else {
-      // null → puente nativo no disponible (eco/timeout). saltamos a MiniKit
+      // sin bridge → directo a MiniKit
       break;
     }
   }
 
-  // 2) MiniKit
-  await loadMiniKitOnce();
+  // 2) MiniKit (ya cargado desde vendor/minikit.js)
   if (!window.MiniKit?.commandsAsync?.verify) return null;
 
   for (const lvl of levels) {
@@ -238,7 +213,6 @@ async function getWorldIdProof() {
       const mk = await window.MiniKit.commandsAsync.verify({
         action: ACTION, app_id: APP_ID, signal: "", verification_level: lvl
       });
-      console.log(`📥 MiniKit verify (${lvl}) raw`, mk);
       const r = mk?.result ?? mk;
       if (r?.status === "cancelled" || r?.cancelled) return { cancelled: true };
       const norm = normalizeWorldId(mk);
@@ -249,6 +223,7 @@ async function getWorldIdProof() {
   }
   return null;
 }
+
 
 
 export async function startVerify() {
