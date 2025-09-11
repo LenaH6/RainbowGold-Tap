@@ -1,373 +1,261 @@
-// ===== MiniKit World App Config - VERIFICACIÓN WORLD ID REAL =====
+// ===== MiniKit / World App Bridge (SIN MOCK) =====
 
-// ===== Referencias UI =====
-const btn = document.getElementById("wldSignIn");
-const splash = document.getElementById("splash");
-const state = document.getElementById("wldState");
+// === Config ===
+const DEV_MODE = false; // pon true solo para pruebas locales
+const APP_ID   = window.WORLD_ID_APP_ID || "app_33bb8068826b85d4cd56d2ec2caba7cc";
+const ACTION   = window.WORLD_ID_ACTION || "rainbowgold-login";
+const API_BASE = (window.API_BASE || "").replace(/\/$/, "") || window.location.origin;
+
+// === UI refs (si no existen en tu HTML no pasa nada)
+const btn     = document.getElementById("wldSignIn");
+const splash  = document.getElementById("splash");
+const stateEl = document.getElementById("wldState");
 const refillBtn = document.getElementById("refillBtn");
-const debugInfo = document.getElementById("debugInfo");
 
-// ===== Helpers UI =====
+// === Helpers UI
 function msg(t) {
-  if (state) {
-    state.textContent = t;
-    state.style.opacity = "1";
+  if (stateEl) {
+    stateEl.textContent = t;
+    stateEl.style.opacity = "1";
   }
   console.log("🔔", t);
 }
 
-function debugLog(message) {
-  console.log(message);
-  if (window.DEBUG_MODE && debugInfo) {
-    debugInfo.innerHTML += message + '<br>';
-    debugInfo.scrollTop = debugInfo.scrollHeight;
-  }
-}
-
 function unlock() {
-  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => {
-    el.style.pointerEvents = "";
-  });
-  if (splash) {
-    splash.classList.add("splash-hide");
-    setTimeout(() => splash.remove(), 450);
-  }
-  try { playSnd && playSnd("join", { volume: 0.9 }); } catch (_) {}
+  try {
+    document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
+    if (splash) {
+      splash.classList.add("splash-hide");
+      setTimeout(() => splash.remove(), 450);
+    }
+  } catch {}
 }
 
-// ===== Detección estricta de World App =====
+// === Detección de World App real (no UA solamente)
 function detectWorldApp() {
-  const ua = navigator.userAgent.toLowerCase();
-  const isWorldAppUA = ua.includes("worldapp") || ua.includes("world app") || ua.includes("worldcoin");
-  
-  // Detectar propiedades específicas de World App
-  const hasWorldAppProps = !!(
-    window.worldapp || 
-    window.WorldApp || 
+  const ua = (navigator.userAgent || "").toLowerCase();
+  const inUA = ua.includes("worldapp") || ua.includes("world app") || ua.includes("worldcoin");
+  const hasProps = !!(
+    window.worldapp ||
+    window.WorldApp ||
     window.webkit?.messageHandlers?.worldapp ||
-    window.Android?.worldapp ||
-    navigator.userAgent.includes("WorldApp")
+    window.Android?.worldapp
   );
-  
-  debugLog(`🔍 User Agent: ${navigator.userAgent}`);
-  debugLog(`📱 World App in UA: ${isWorldAppUA}`);
-  debugLog(`🔧 World App props: ${hasWorldAppProps}`);
-  
-  return isWorldAppUA || hasWorldAppProps;
+  console.log("🌍 WorldApp detect:", { inUA, hasProps, ua: navigator.userAgent });
+  return inUA || hasProps;
 }
 
-// ===== Esperar MiniKit con timeout estricto =====
-function waitForMiniKit(maxWaitSeconds = 10) {
+// === Puente nativo (postMessage) para World ID y pagos
+function nativeCall(type, params) {
   return new Promise((resolve, reject) => {
-    let attempts = 0;
-    const maxAttempts = maxWaitSeconds * 10; // Check every 100ms
-    
-    const checkMiniKit = () => {
-      attempts++;
-      
-      // Buscar MiniKit en diferentes ubicaciones
-      const minikit = window.MiniKit || window.minikit || window.WorldCoin || window.worldcoin;
-      
-      if (minikit && typeof minikit === 'object') {
-        debugLog("✅ MiniKit encontrado!");
-        debugLog(`📋 MiniKit type: ${typeof minikit}`);
-        debugLog(`🔧 MiniKit keys: ${Object.keys(minikit)}`);
-        
-        // Verificar que tenga funciones de verificación
-        const hasVerify = !!(
-          minikit.verify || 
-          minikit.commands?.verify || 
-          minikit.commandsAsync?.verify
-        );
-        
-        if (hasVerify) {
-          debugLog("✅ MiniKit con funciones de verificación encontrado");
-          resolve(minikit);
-          return;
-        } else {
-          debugLog("⚠️ MiniKit sin funciones de verificación");
-        }
+    const id = `${type}_${Date.now()}_${Math.random()}`;
+
+    const onMessage = (ev) => {
+      // World App devuelve { id, result?, error? }
+      if (ev?.data?.id === id) {
+        window.removeEventListener("message", onMessage);
+        if (ev.data.error) reject(new Error(ev.data.error));
+        else resolve(ev.data.result);
       }
-      
-      if (attempts % 50 === 0) { // Log every 5 seconds
-        debugLog(`🔍 Esperando MiniKit... intento ${attempts}/${maxAttempts}`);
-      }
-      
-      if (attempts >= maxAttempts) {
-        debugLog("❌ MiniKit no disponible después de " + maxWaitSeconds + " segundos");
-        reject(new Error("MiniKit no disponible"));
-        return;
-      }
-      
-      setTimeout(checkMiniKit, 100);
     };
-    
-    checkMiniKit();
+
+    window.addEventListener("message", onMessage);
+
+    // Timeout de seguridad
+    setTimeout(() => {
+      window.removeEventListener("message", onMessage);
+      reject(new Error(`${type} timeout`));
+    }, 30_000);
+
+    const message = { id, type, params };
+
+    // iOS
+    if (window.webkit?.messageHandlers?.worldapp) {
+      try { window.webkit.messageHandlers.worldapp.postMessage(message); }
+      catch (e) { reject(e); }
+      return;
+    }
+
+    // Android
+    if (window.Android?.worldapp) {
+      try { window.Android.worldapp.postMessage(JSON.stringify(message)); }
+      catch (e) { reject(e); }
+      return;
+    }
+
+    // Fallback (iframe)
+    window.parent?.postMessage(message, "*");
   });
 }
 
-// ===== VERIFICACIÓN WORLD ID REAL =====
+// === PUBLIC: iniciar verificación World ID
 export async function startVerify() {
-  try {
-    msg("🔍 Iniciando verificación World ID...");
-    debugLog("🚀 startVerify() llamado");
-
-    const isWorldApp = detectWorldApp();
-    debugLog(`🌍 ¿Es World App? ${isWorldApp}`);
-
-    // SOLO usar desarrollo si NO está en World App
-    if (!isWorldApp) {
-      debugLog("🧪 NO es World App - modo desarrollo");
-      msg("🧪 Modo desarrollo activo");
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Crear datos de desarrollo
-      const mockData = {
-        action: "rainbowgold-login",
-        signal: "",
-        payload: {
-          proof: `dev_proof_${Date.now()}`,
-          merkle_root: `dev_merkle_${Date.now()}`,
-          nullifier_hash: `dev_nullifier_${Math.random().toString(36).substr(2, 16)}`,
-          verification_level: "device"
-        }
-      };
-      
-      return await sendVerificationToBackend(mockData, true);
-    }
-
-    // ESTAMOS EN WORLD APP - USAR VERIFICACIÓN REAL
-    msg("🌍 World App detectada - iniciando World ID real");
-    debugLog("🌍 World App confirmada - procediendo con verificación real");
-    
-    msg("⏳ Cargando MiniKit...");
-    let MiniKit;
-    
-    try {
-      MiniKit = await waitForMiniKit(10);
-      debugLog("✅ MiniKit cargado exitosamente");
-    } catch (error) {
-      debugLog("❌ Error cargando MiniKit: " + error.message);
-      msg("❌ Error: MiniKit no disponible en World App");
-      throw new Error("MiniKit no disponible - verifica que estés en World App actualizada");
-    }
-
-    // LANZAR LA VERIFICACIÓN REAL DE WORLD ID
-    msg("🔐 Lanzando verificación World ID...");
-    debugLog("🎬 LANZANDO INTERFAZ NATIVA DE WORLD ID");
-    
-    // Parámetros EXACTOS para World ID
-    const verifyParams = {
-      action: "rainbowgold-login", // Debe estar registrado en tu World ID app
-      signal: "", // Datos adicionales opcionales
-      verification_level: "orb" // "orb" para verificación completa
-    };
-    
-    debugLog("📤 Parámetros World ID: " + JSON.stringify(verifyParams));
-    debugLog("🎯 Llamando a MiniKit.verify() - DEBERÍA MOSTRAR INTERFAZ");
-
-    // Determinar función de verificación disponible
-    let verifyFunction = null;
-    let methodUsed = "";
-    
-    if (MiniKit.commandsAsync?.verify) {
-      verifyFunction = MiniKit.commandsAsync.verify;
-      methodUsed = "commandsAsync.verify";
-    } else if (MiniKit.commands?.verify) {
-      verifyFunction = MiniKit.commands.verify;
-      methodUsed = "commands.verify";
-    } else if (typeof MiniKit.verify === 'function') {
-      verifyFunction = MiniKit.verify;
-      methodUsed = "verify";
-    } else {
-      debugLog("❌ NO HAY FUNCIÓN DE VERIFICACIÓN DISPONIBLE");
-      debugLog("🔧 Métodos MiniKit disponibles: " + Object.keys(MiniKit));
-      throw new Error("MiniKit no tiene método de verificación");
-    }
-
-    debugLog(`🔧 Usando método: MiniKit.${methodUsed}`);
-    msg("🎬 Abriendo World ID...");
-
-    try {
-      debugLog("🚀 EJECUTANDO VERIFICACIÓN - INTERFAZ DEBERÍA APARECER AHORA");
-      
-      // ESTA LLAMADA DEBERÍA MOSTRAR LA INTERFAZ DE WORLD ID
-      const result = await verifyFunction.call(MiniKit.commandsAsync || MiniKit.commands || MiniKit, verifyParams);
-      
-      debugLog("📥 Resultado de World ID: " + JSON.stringify(result));
-      
-      // Manejar respuesta
-      let finalPayload = result;
-      if (result.finalPayload) {
-        finalPayload = result.finalPayload;
-        debugLog("📦 Usando finalPayload");
-      }
-      
-      // Verificar éxito
-      if (!finalPayload) {
-        debugLog("❌ Sin payload de respuesta");
-        msg("❌ Sin respuesta de World ID");
-        return;
-      }
-      
-      if (finalPayload.status !== "success") {
-        debugLog("❌ World ID no exitoso: " + JSON.stringify(finalPayload));
-        
-        if (finalPayload.status === "error") {
-          msg("❌ Error: " + (finalPayload.message || "Verificación falló"));
-        } else {
-          msg("❌ Verificación cancelada o falló");
-        }
-        return;
-      }
-      
-      debugLog("✅ WORLD ID VERIFICACIÓN EXITOSA!");
-      msg("✅ World ID verificado correctamente");
-      
-      // Crear payload para backend
-      const backendPayload = {
-        action: verifyParams.action,
-        signal: verifyParams.signal,
-        payload: {
-          proof: finalPayload.proof,
-          merkle_root: finalPayload.merkle_root,
-          nullifier_hash: finalPayload.nullifier_hash,
-          verification_level: finalPayload.verification_level || "orb"
-        }
-      };
-      
-      return await sendVerificationToBackend(backendPayload, false);
-      
-    } catch (verifyError) {
-      debugLog("💥 ERROR EN VERIFICACIÓN WORLD ID: " + verifyError.message);
-      debugLog("🔍 Stack trace: " + verifyError.stack);
-      
-      if (verifyError.message.includes("cancelled") || verifyError.message.includes("canceled")) {
-        msg("❌ Verificación cancelada por el usuario");
-      } else if (verifyError.message.includes("timeout")) {
-        msg("❌ Timeout - intenta de nuevo");
-      } else if (verifyError.message.includes("not_verified")) {
-        msg("❌ No verificado - necesitas verificar tu World ID");
-      } else {
-        msg("❌ Error World ID: " + verifyError.message);
-      }
-      
-      // En World App, NO hacer fallback - mostrar error real
-      throw verifyError;
-    }
-
-  } catch (error) {
-    debugLog("💥 ERROR GENERAL: " + error.message);
-    console.error("❌ Error en startVerify:", error);
-    
-    msg("❌ " + error.message);
-    
-    // NO hacer fallback en World App - mostrar error real
-    if (detectWorldApp()) {
-      throw error;
-    }
+  if (DEV_MODE) {
+    window.VERIFIED = true;
+    window.SESSION_TOKEN = "dev_token";
+    unlock();
+    msg("✅ DEV MODE");
+    return;
   }
-}
 
-// ===== Enviar al backend =====
-async function sendVerificationToBackend(payload, isDev = false) {
   try {
-    msg(isDev ? "📤 Enviando datos de desarrollo..." : "📤 Validando con backend...");
-    
-    debugLog("📤 Payload al backend: " + JSON.stringify(payload));
+    msg("Verificando entorno…");
 
-    const res = await fetch(`${window.API_BASE}/api/verify`, {
+    // Debe abrirse desde World App
+    if (!detectWorldApp()) {
+      msg("❌ Abre desde World App");
+      alert("Abre esta miniapp desde World App (escaneando el QR), no desde un navegador.");
+      return;
+    }
+
+    msg("Inicializando World ID…");
+
+    // 1) Pedimos prueba al puente nativo (NO MOCK)
+    const worldIdRes = await nativeCall("worldID", {
+      action: ACTION,
+      app_id: APP_ID,
+      verification_level: "orb"
+    });
+
+    console.log("📥 World ID response:", worldIdRes);
+
+    if (!worldIdRes || (!worldIdRes.proof && !worldIdRes.merkle_root)) {
+      msg("❌ World ID cancelado o inválido");
+      return;
+    }
+
+    // 2) Verificamos con nuestro backend
+    msg("Validando con backend…");
+
+    const payload = {
+      action: ACTION,
+      proof: worldIdRes.proof,
+      merkle_root: worldIdRes.merkle_root,
+      nullifier_hash: worldIdRes.nullifier_hash,
+      verification_level: worldIdRes.verification_level || "orb"
+    };
+
+    console.log("📤 Payload al backend /api/minikit/verify:", payload);
+
+    const res = await fetch(`${API_BASE}/api/minikit/verify`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(payload)
     });
 
-    debugLog(`📥 Backend response: ${res.status} ${res.statusText}`);
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { /* puede venir texto */ }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      debugLog("❌ Backend error: " + text);
-      throw new Error(`Backend error: ${res.status}`);
+    console.log("📥 Backend status:", res.status, "body:", text);
+
+    if (!res.ok || !data?.ok) {
+      msg(`❌ Backend ${res.status}: ${(data?.error || text || "invalid_proof")}`);
+      alert(`Error de verificación: ${data?.error || text || "invalid_proof"}`);
+      return;
     }
 
-    const data = await res.json();
-    debugLog("✅ Backend success: " + JSON.stringify(data));
-
-    if (data.ok && data.verified) {
-      window.VERIFIED = true;
-      window.SESSION_TOKEN = data.token;
-      window.USER_ID = data.userId;
-      
-      // Aplicar estado del juego
+    // 3) Éxito → guardamos token y desbloqueamos
+    window.VERIFIED = true;
+    window.SESSION_TOKEN = data.token;
+    try {
       if (data.state) {
-        try {
-          window.wld = +data.state.wld || 0;
-          window.rbgp = +data.state.rbgp || 0;
-          window.energy = +data.state.energy || 100;
-          debugLog("🎮 Estado aplicado");
-        } catch (e) {
-          debugLog("⚠️ Error aplicando estado: " + e.message);
-        }
+        window.wld   = +data.state.wld   || 0;
+        window.rbgp  = +data.state.rbgp  || 0;
+        window.energy= +data.state.energy|| 100;
+        window.render?.();
       }
-      
-      // UI updates
-      try { 
-        setVerifiedUI?.(true);
-        render?.(); 
-      } catch (_) {}
-      
-      unlock();
-      msg(isDev ? "✅ Modo desarrollo listo" : "✅ ¡Verificado con World ID!");
-      return true;
-      
-    } else {
-      msg("❌ Backend rechazó: " + (data.error || "unknown"));
-      return false;
-    }
-
-  } catch (error) {
-    debugLog("💥 Backend error: " + error.message);
-    msg("❌ Error backend: " + error.message);
-    return false;
+    } catch {}
+    unlock();
+    msg("✅ ¡Verificado con World ID!");
+  } catch (err) {
+    console.error("❌ Error en World ID:", err);
+    if (String(err.message || "").includes("timeout")) msg("❌ Timeout - intenta de nuevo");
+    else msg(`❌ ${err.message || "Error inesperado"}`);
   }
 }
 
-// ===== Event Listeners =====
-if (btn) {
-  btn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    btn.disabled = true;
-    const original = btn.textContent;
-    btn.style.opacity = "0.6";
-    btn.textContent = "Verificando...";
-    
-    try { 
-      await startVerify(); 
-    } catch (error) {
-      debugLog("💥 Click error: " + error.message);
-    } finally {
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      btn.textContent = original;
+// === Pago (opcional) usando el mismo puente nativo
+async function payRefill() {
+  if (!detectWorldApp()) { alert("Abre esta función desde World App."); return; }
+  if (!window.SESSION_TOKEN) { alert("Primero verifica tu World ID."); return; }
+
+  try {
+    msg("Procesando pago…");
+
+    const amount = (typeof window.priceRefill === "function" ? window.priceRefill() : "0.10") || "0.10";
+
+    const payRes = await nativeCall("pay", {
+      to:   "0x91bf252c335f2540871dd02ef1476ae193a5bc8a",
+      token:"WLD",
+      amount,
+      reference: crypto.randomUUID(),
+      action: "rainbowgold"
+    });
+
+    if (!payRes || payRes.status !== "success") {
+      msg("❌ Pago cancelado");
+      alert("Pago cancelado");
+      return;
     }
-  });
+
+    // Confirmación en backend
+    const r = await fetch(`${API_BASE}/api/pay/confirm`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ...payRes,
+        token: window.SESSION_TOKEN,
+        action: "rainbowgold"
+      })
+    });
+
+    const data = await r.json().catch(() => ({}));
+    if (data.ok) {
+      window.SESSION_TOKEN = data.token || window.SESSION_TOKEN;
+      try {
+        window.wld   = +data.state?.wld   || 0;
+        window.rbgp  = +data.state?.rbgp  || 0;
+        window.energy= +data.state?.energy|| 100;
+        window.render?.();
+      } catch {}
+      msg("✅ ¡Pago completado!");
+      alert("✅ Energía recargada");
+    } else {
+      msg("❌ Error confirmando pago");
+      alert("Error: " + (data.error || "unknown"));
+    }
+  } catch (e) {
+    console.error("❌ Payment error:", e);
+    msg("❌ Error en pago");
+    alert("Error: " + (e.message || e));
+  }
 }
 
-// ===== Inicialización =====
-document.addEventListener("DOMContentLoaded", async () => {
-  debugLog("📱 MiniKit config iniciado");
-  
-  const isWA = detectWorldApp();
-  if (isWA) {
-    msg("🌍 World App - World ID real disponible");
-  } else {
-    msg("🧪 Navegador externo - modo desarrollo");
+// === Listeners
+document.addEventListener("DOMContentLoaded", () => {
+  // Estado inicial
+  if (detectWorldApp()) msg("✅ World App detectada");
+  else msg("❌ Abre desde World App");
+
+  if (btn) {
+    btn.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      btn.disabled = true;
+      const prev = btn.textContent;
+      btn.textContent = "Conectando…";
+      try { await startVerify(); }
+      finally {
+        btn.disabled = false;
+        btn.textContent = prev || "Entrar con World ID";
+      }
+    });
+  }
+
+  if (refillBtn) {
+    refillBtn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      payRefill();
+    });
   }
 });
-
-// Export para uso global
-window.startVerify = startVerify;
