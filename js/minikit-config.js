@@ -61,30 +61,38 @@ function nativeCall(type, params) {
   return new Promise((resolve, reject) => {
     const id = `${type}_${Date.now()}_${Math.random()}`;
 
-    // Guardamos el último mensaje “parecido” por si el id no coincide
     let lastWorldIdLike = null;
 
-    const looksLikeResult = (d) => {
+    // Un "resultado" válido debe traer algo más que params:
+    const hasResultFields = (d) => {
+      const r = d?.result ?? d;
+      const vr = r?.verification_response || r?.verificationResponse || r?.response || r?.data || r?.payload || {};
+      return !!(r?.proof || r?.merkle_root || r?.merkleRoot || r?.nullifier_hash || r?.nullifierHash ||
+                vr?.proof || vr?.merkle_root || vr?.nullifier_hash);
+    };
+
+    // mensaje nuestro “eco” = mismo id y solo params
+    const isEchoOfOurRequest = (d) => {
       if (!d) return false;
-      const r = d.result ?? d;
-      return !!(
-        r?.proof || r?.merkle_root || r?.merkleRoot || r?.nullifier_hash || r?.nullifierHash ||
-        r?.verification_response || /worldid/i.test(String(r?.type || ""))
-      );
+      if (!(d.id === id || d.requestId === id)) return false;
+      return !hasResultFields(d); // si no hay proof/merkle/nullifier es eco
     };
 
     const onMessage = (ev) => {
       const d = ev?.data;
       if (!d) return;
 
-      // Log de todo lo que llegue que parezca del flujo
-      if (looksLikeResult(d)) {
-        lastWorldIdLike = d;
-        debug("📩 message (candidate)", d);
-      }
+      // guardamos el último candidato por si no coincide id
+      const looksWorldId = (x) => {
+        const r = x?.result ?? x;
+        return !!(r?.type === "worldID" || r?.verification_response || r?.proof || r?.merkle_root || r?.nullifier_hash);
+      };
+      if (looksWorldId(d)) lastWorldIdLike = d;
 
-      // Coincidencia estricta por id / requestId
+      // Si coincide ID:
       if (d.id === id || d.requestId === id) {
+        // Si es eco, ignoramos y dejamos que siga el timeout → fallback a MiniKit
+        if (isEchoOfOurRequest(d)) return;
         window.removeEventListener("message", onMessage);
         const payload = d.result ?? d;
         if (payload?.error) reject(new Error(payload.error));
@@ -94,34 +102,43 @@ function nativeCall(type, params) {
 
     window.addEventListener("message", onMessage);
 
-    const cleanupReject = (err) => {
+    // A los 2.5s, si solo hubo eco, devolvemos null para forzar MiniKit rápido
+    const EARLY_FALLBACK_MS = 2500;
+    const early = setTimeout(() => {
       window.removeEventListener("message", onMessage);
-      if (lastWorldIdLike) {
-        // Si no llegó el id exacto, devolvemos el último candidato
-        resolve(lastWorldIdLike);
-      } else {
-        reject(err);
+      if (lastWorldIdLike && !hasResultFields(lastWorldIdLike)) {
+        // eco → nativo no disponible
+        resolve(null);
       }
-    };
+    }, EARLY_FALLBACK_MS);
 
-    setTimeout(() => cleanupReject(new Error(`${type} timeout`)), 30_000);
+    // Corte duro a los 30s
+    const hard = setTimeout(() => {
+      window.removeEventListener("message", onMessage);
+      resolve(null);
+    }, 30_000);
 
+    const cleanup = () => { clearTimeout(early); clearTimeout(hard); };
+
+    // Enviamos
     const message = { id, type, params };
-    debug("📤 nativeCall -> worldapp.postMessage", message);
-
+    console.log("📤 nativeCall -> worldapp.postMessage", message);
     try {
       if (window.webkit?.messageHandlers?.worldapp) {
         window.webkit.messageHandlers.worldapp.postMessage(message);
       } else if (window.Android?.worldapp) {
         window.Android.worldapp.postMessage(JSON.stringify(message));
       } else {
+        // si no hay worldapp, parent === window → esto generaría eco; dejemos que el early fallback actúe
         window.parent?.postMessage(message, "*");
       }
     } catch (e) {
-      cleanupReject(e);
+      cleanup();
+      resolve(null);
     }
   });
 }
+
 
 // ---------- MiniKit helpers ----------
 function loadMiniKitOnce() {
@@ -193,38 +210,46 @@ function normalizeWorldId(res) {
 
 // ---------- Flujo principal ----------
 async function getWorldIdProof() {
-  // Orden de intentos: Nativo orb → Nativo device → MiniKit orb → MiniKit device
-  const levels = ["orb", "device"];
+  // Intentos: Nativo (device → orb) → MiniKit (device → orb)
+  const levels = ["device", "orb"];
 
-  // Intento nativo
+  // 1) Nativo
   for (const lvl of levels) {
-    try {
-      debug("🚀 Native worldID request", { action: ACTION, app_id: APP_ID, lvl });
-      const raw = await nativeCall("worldID", { action: ACTION, app_id: APP_ID, verification_level: lvl });
-      debug(`📥 Native worldID (${lvl}) raw`, raw);
-      if (raw?.status === "cancelled" || raw?.status === "canceled" || raw?.cancelled === true) {
-        return { cancelled: true };
-      }
+    const raw = await nativeCall("worldID", { action: ACTION, app_id: APP_ID, verification_level: lvl });
+    if (raw) {
+      console.log(`📥 Native worldID (${lvl}) raw`, raw);
+      const r = raw?.result ?? raw;
+      if (r?.status === "cancelled" || r?.status === "canceled" || r?.cancelled) return { cancelled: true };
       const norm = normalizeWorldId(raw);
       if (norm) return norm;
-    } catch (e) {
-      console.warn("native worldID error:", e);
+      // Si raw no trae prueba, seguimos con el siguiente intento
+    } else {
+      // null → puente nativo no disponible (eco/timeout). saltamos a MiniKit
+      break;
     }
   }
 
-  // Intento MiniKit
+  // 2) MiniKit
   await loadMiniKitOnce();
-  if (window.MiniKit?.commandsAsync?.verify) {
-    for (const lvl of levels) {
-      const mk = await miniKitVerify(lvl);
+  if (!window.MiniKit?.commandsAsync?.verify) return null;
+
+  for (const lvl of levels) {
+    try {
+      const mk = await window.MiniKit.commandsAsync.verify({
+        action: ACTION, app_id: APP_ID, signal: "", verification_level: lvl
+      });
+      console.log(`📥 MiniKit verify (${lvl}) raw`, mk);
+      const r = mk?.result ?? mk;
+      if (r?.status === "cancelled" || r?.cancelled) return { cancelled: true };
       const norm = normalizeWorldId(mk);
       if (norm) return norm;
-      if (mk?.status === "cancelled" || mk?.cancelled) return { cancelled: true };
+    } catch (e) {
+      console.warn("MiniKit.verify error:", e);
     }
   }
-
   return null;
 }
+
 
 export async function startVerify() {
   if (DEV_MODE) {
