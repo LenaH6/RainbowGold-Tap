@@ -3960,7 +3960,7 @@ async function fetchWldBalance(address){
     const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
       method:'POST',
       headers:{ 'content-type':'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload) 
     });
     const j = await r.json();
     if (!j?.result) return null;
@@ -3972,14 +3972,38 @@ async function fetchWldBalance(address){
 
 </script>
 <script>
-// Si ya estamos verificados, espera a que todo cargue y entonces desbloquea el juego
+// Fallback: si ya estamos VERIFICADOS, intenta desbloquear cuando todo cargue
 window.addEventListener('load', () => {
   if (window.VERIFIED) {
-    try { unlock(); } catch (_){}
-    try { if (typeof connectWallet === 'function') connectWallet(); } catch (_){}
+    try { unlock(); } catch(_) {}
+    try { if (typeof connectWallet === 'function') connectWallet(); } catch(_) {}
   }
+
+  // reintentos por si unlock() aún no está definido en el primer tick
+  let tries = 0;
+  const t = setInterval(() => {
+    if (window.VERIFIED && typeof unlock === 'function') {
+      try { unlock(); } catch(_) {}
+      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_) {}
+      clearInterval(t);
+    }
+    if (++tries > 10) clearInterval(t); // ~3s total
+  }, 300);
 });
 </script>
+<div id="dbg" style="position:fixed;bottom:8px;left:8px;z-index:9999;background:rgba(0,0,0,.6);color:#0f0;padding:6px 8px;border-radius:8px;font:12px/1.2 monospace;white-space:pre;"></div>
+<script>
+(async function(){
+  const log = (...a)=>{ const d=document.getElementById('dbg'); if(d){ d.textContent += a.join(' ')+'\n' } };
+  const qs = new URLSearchParams(location.search);
+  log('token?', !!qs.get('token'));
+  try { const r = await fetch('/api/session'); const j = await r.json(); log('session:', JSON.stringify(j)); } catch(e){ log('session err:', e.message) }
+  log('VERIFIED:', !!window.VERIFIED);
+  log('unlock type:', typeof window.unlock);
+  window.addEventListener('load',()=>log('onload VERIFIED:', !!window.VERIFIED, 'unlock:', typeof window.unlock));
+})();
+</script>
+
 
 </body>
 </html>
