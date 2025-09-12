@@ -929,8 +929,6 @@ body.has-drawer{
 </style>
 </head>
 <body>
-
-
 <script>
 (function(){
   try {
@@ -3972,6 +3970,15 @@ async function fetchWldBalance(address){
   }catch{ return null; }
 }
 
+</script>
+<script>
+// Si ya estamos verificados, espera a que todo cargue y entonces desbloquea el juego
+window.addEventListener('load', () => {
+  if (window.VERIFIED) {
+    try { unlock(); } catch (_){}
+    try { if (typeof connectWallet === 'function') connectWallet(); } catch (_){}
+  }
+});
 </script>
 
 </body>
