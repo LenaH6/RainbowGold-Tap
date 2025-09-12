@@ -33,9 +33,8 @@
 ">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://worldgold-api.vercel.app/" crossorigin>
 
-<title>WorldGold — App</title>
+<title>RainbowGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
 <style>
@@ -2710,17 +2709,6 @@ async function handleVote(key){
   const totalBefore = votes.A + votes.B + votes.C;
   const beforePct = totalBefore ? Math.round(((votes[key]||0) / totalBefore) * 100) : 0;
 
-  // === Guardar en backend ===
-  try {
-    await fetch("https://worldgold-api.vercel.app/api/votes/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: window.SESSION_TOKEN, option: key })
-    });
-  } catch (e) {
-    console.error("Error al enviar voto al backend:", e);
-  }
-
   // === Mantener tu lógica local ===
   votes[key] = (votes[key] || 0) + 1;
   saveVotes();
@@ -2807,17 +2795,7 @@ if (sendSuggestBtn){
       alert('Escribe al menos 4 caracteres.');
       return;
     }
-
-    // === Guardar en backend ===
-    try {
-      await fetch("https://worldgold-api.vercel.app/api/suggestions/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: window.SESSION_TOKEN, suggestion: txt })
-      });
-    } catch (e) {
-      console.error("Error al enviar sugerencia al backend:", e);
-    }
+  
 
     // === Mantener tu UI local ===
     const box = JSON.parse(localStorage.getItem('wg_suggestions') || '[]');
@@ -2873,59 +2851,6 @@ function updateTicketTimer(){
   const m = Math.floor(remaining/60000);
   const s = Math.floor((remaining%60000)/1000);
   el.textContent = `${T.ticket_time_left || 'Tiempo restante:'} ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-
-// ==== Pago (DEV simulado o real con World App) ====
-if (payIdeasBtn){
-  payIdeasBtn.onclick = async (ev) => {
-    ev.preventDefault();
-    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
-
-    if (window.WG_DEV_MODE){
-      {
-        const cur = getLang(); const T = I18N[cur] || I18N.es;
-          alert(T.ticket_bought_dev || "✅ Ticket comprado (simulación DEV)");
-       }
-
-      ideasPayView.style.display = 'none';
-      ideasOptionsView.style.display = 'block';
-      ideasTicketActive = true;
-      startTicketTimer(5);
-      return;
-    }
-
-   try{
-      const res = await MiniKit.commandsAsync.pay({
-        to: MERCHANT,
-        token: "WLD",
-        amount: "1",
-        reference: crypto.randomUUID()
-      });
-
-
-     if (res.status !== "success"){
-        alert("❌ Pago cancelado");
-        return;
-      }
-
-      await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(res)
-      });
-
-      alert("✅ Ticket Ideas comprado con éxito");
-      ideasPayView.style.display = 'none';
-      ideasOptionsView.style.display = 'block';
-      ideasTicketActive = true;
-      startTicketTimer(5);
-
-    }catch(e){
-      console.error("Error en pago Ideas:", e);
-      alert("⚠️ Hubo un problema con el pago");
-    }
-  };
 }
 
 
@@ -3087,32 +3012,6 @@ function render(){
   refillBtn.classList.toggle('pulse', low && canPay);
   refillBtn.disabled = energy>=eMax-1e-6;
     if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
-}
-
-
-/* ===== Tap logic ===== */
-// === Cola de taps → servidor ===
-let tapQueue = 0;
-async function flushTapQueue(){
-  if (!tapQueue || !window.SESSION_TOKEN) return;
-  try{
-    const resp = await fetch("https://worldgold-api.vercel.app/api/tapBatch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
-    });
-    const data = await resp.json();
-    if (data?.ok && data?.token && data?.state){
-      // nuevo token firmado
-      window.SESSION_TOKEN = data.token;
-      // fuente autoritativa:
-      wld    = +data.state.wld;
-      wlgp   = +data.state.wlgp;
-      energy = +data.state.energy;
-      render?.();
-    }
-  }catch(e){ console.warn("flushTapQueue error", e); }
-  tapQueue = 0;
 }
 // cada ~4s
 setInterval(flushTapQueue, 4000);
@@ -3803,12 +3702,6 @@ try {
   console.warn("MiniKit no cargó (ok si estás en DEV):", e);
 }
 
-// === Configuración ===
-const ACTION_ID = "worldgold";                                  // tu Action Identifier
-const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
-const TOKEN     = "WLD";
-const AMOUNT    = priceRefill();
-
 // === Referencias UI ===
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
@@ -3839,80 +3732,13 @@ async function startVerify() {
   window.location.href = '/api/auth/login';
 }
 
-if (btn) btn.addEventListener('click', startVerify);
-
-// === Pago (Refill) ===
-async function payRefill(){
-  if (!requireMiniKit()) return;
-  if (!window.SESSION_TOKEN) { 
-    alert("Verifícate primero."); 
-    return; 
-  }
-
-  // --- DEV MODE ---
- if (DEV_MODE){
-  alert("✅ DEV: Pago simulado de 0.10 WLD");
-
-  // Simula refill directamente
-  energy = capMax();   // recarga energía al 100%
-  render();            // refresca la barra de energía en pantalla
-
-  return;
-}
-
-
-  try {
-    // Pago real en World App
-    const res = await MiniKit.commandsAsync.pay({
-      to: MERCHANT,
-      token: TOKEN,
-      amount: AMOUNT,
-      reference: crypto.randomUUID()
-    });
-
-    if (res.status === "success") {
-      try {
-        // Confirmar en backend
-        let r = await fetch("https://worldgold-api.vercel.app/api/pay/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(res)
-        });
-        let data = await r.json();
-
-        if (data.ok) {
-          window.SESSION_TOKEN = data.token;
-
-          // sincronizar con las variables que render() usa
-          wld    = +data.state.wld;
-          wlgp   = +data.state.wlgp;
-          energy = +data.state.energy;
-
-          render();   // 👈 refresca UI igual que flushTapQueue
-          alert("✅ Pago realizado");
-        }
-        else {
-          alert("Error: " + data.error);
-        }
-      } catch (e) {
-        console.error("Error al confirmar pago:", e);
-        alert("Error al confirmar el pago");
-      }
-    } else {
-      alert("Pago cancelado");
-    }
-
-  } catch (e) {
-    console.error(e);
-    alert("Error en el pago");
-  }
-}
+if (btn) btn.addEventListener('click', startVerify);  
 
 
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
-// ===== Fin bloque MiniKit (DEV) =====
+
 </script>
 <script>
   // Listeners pasivos para scroll/touch → evita bloqueos
