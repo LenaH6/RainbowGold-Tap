@@ -14,7 +14,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net https://worldgold-api.vercel.app/ https://worldchain-mainnet.g.alchemy.com/public;
+  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-app.vercel.app/ https://worldchain-mainnet.g.alchemy.com/public;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -930,55 +930,86 @@ body.has-drawer{
 </head>
 <body>
 <script>
-(function(){
+/**
+ * Bootstrap de sesión: si vuelve con ?token, marcamos VERIFICADO
+ * inmediatamente (para que no te relockee), y luego refinamos con la cookie.
+ */
+(function () {
   try {
     const qs = new URLSearchParams(location.search);
     const t = qs.get('token');
 
-    async function unlockFromSession(){
+    // — helpers UI/session —
+    async function applySessionFromCookie() {
       try {
-        const r = await fetch('/api/session');
+        const r = await fetch('/api/session', { credentials: 'include' });
         const j = await r.json();
         if (j?.session) {
-          // fija nombre y esconde la edición
-          const name = j.session.name || 'Jugador';
           const input = document.getElementById('usernameInput');
           const saveRow = document.getElementById('saveRow');
-          if (input){ input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
-          if (saveRow){ saveRow.style.display = 'none'; }
-
+          const name = j.session.name || 'Jugador';
+          if (input) { input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
+          if (saveRow) { saveRow.style.display = 'none'; }
+          // ya estamos verificados; asegura UI
           window.VERIFIED = true;
-          try{ setVerifiedUI?.(true); }catch(_){}
-          try{ unlock?.(); }catch(_){}
-          // conecta billetera (World Chain)
-          try{ if (typeof connectWallet === 'function') connectWallet(); }catch(_){}
+          try { setVerifiedUI?.(true); } catch (_){}
           return true;
         }
-      } catch{}
+      } catch (_){}
       return false;
+    }
+
+    async function ensureUnlocked() {
+      try { setVerifiedUI?.(true); } catch (_){}
+      try { unlock?.(); } catch (_){}
+      try { if (typeof connectWallet === 'function') connectWallet(); } catch (_){}
     }
 
     (async () => {
       if (t) {
-        // flujo con ?token
+        // 1) Marca verificado de inmediato para que NADA te relockee
         window.SESSION_TOKEN = t;
+        window.VERIFIED = true;
+
+        // 2) Quita el query para no repetir
         history.replaceState({}, '', location.origin + location.pathname);
-        await unlockFromSession(); // usa cookie para nombre + wallet
+
+        // 3) Desbloquea ya mismo (UI + wallet)
+        await ensureUnlocked();
+
+        // 4) Refina con la cookie (nombre, etc.). Si falla, seguimos verificados.
+        await applySessionFromCookie();
       } else {
-        // si no vino ?token pero ya hay cookie, igual desbloquea
-        await unlockFromSession();
+        // Sin token (ej. retorno posterior): si hay cookie, desbloquea
+        const ok = await applySessionFromCookie();
+        if (ok) await ensureUnlocked();
       }
     })();
 
-  } catch(_){}
+    // 5) Salvavidas: si por orden de scripts unlock() aún no existe, reintenta
+    window.addEventListener('load', () => {
+      if (window.VERIFIED) {
+        let tries = 0;
+        const h = setInterval(() => {
+          if (typeof unlock === 'function') {
+            ensureUnlocked();
+            clearInterval(h);
+          }
+          if (++tries > 10) clearInterval(h); // ~3s
+        }, 300);
+      }
+    });
+
+  } catch (_){}
 })();
 </script>
 
 
+
   <!-- === SPLASH / CARGA INICIAL === -->
-<div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
+<div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src="img/logo-splash.png" alt="WorldGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
