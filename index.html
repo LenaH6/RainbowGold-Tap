@@ -928,24 +928,6 @@ body.has-drawer{
 </style>
 </head>
 <body>
-
-<script>
-(function(){
-  try {
-    const qs = new URLSearchParams(location.search);
-    const t = qs.get('token');
-    if (t) {
-      window.SESSION_TOKEN = t;
-      window.VERIFIED = true;
-      try{ setVerifiedUI?.(true); }catch(_){}
-      try{ unlock?.(); }catch(_){}
-      const clean = location.origin + location.pathname;
-      history.replaceState({}, '', clean);
-    }
-  } catch(_){}
-})();
-</script>
-
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
   <div class="splash__logo">
@@ -3766,7 +3748,16 @@ function requireMiniKit(){
 }
 
 // === Verificación ===
-async function startVerify(){ window.location.href = '/api/auth/login'; }
+async function startVerify(){
+  if (!requireMiniKit()) return;
+  if (btn) btn.disabled = true;
+
+  if (DEV_MODE){
+    msg("DEV: Verificación simulada ✔");
+    // Simula trabajo y desbloquea la app
+    setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
+    return;
+  }
 
   msg("Abriendo verificación…");
   try{
