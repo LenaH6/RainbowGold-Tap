@@ -930,34 +930,52 @@ body.has-drawer{
 </head>
 <body>
 
-<!-- bootstrap login→wallet + nombre predeterminado -->
+
 <script>
 (function(){
   try {
     const qs = new URLSearchParams(location.search);
     const t = qs.get('token');
-    if (t) {
-      window.SESSION_TOKEN = t;
-      window.VERIFIED = true;
-      try{ setVerifiedUI?.(true); }catch(_){}
-      try{ unlock?.(); }catch(_){}
-      // cargar nombre desde /api/session y fijar en perfil (no editable)
-      fetch('/api/session').then(r=>r.json()).then(s=>{
-        const name = s?.session?.name || 'Jugador';
-        const input = document.getElementById('usernameInput');
-        const saveRow = document.getElementById('saveRow');
-        if (input){ input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
-        if (saveRow){ saveRow.style.display = 'none'; }
-      }).catch(()=>{});
-      // conectar billetera
-      setTimeout(()=>{ if (typeof connectWallet === 'function') connectWallet(); }, 300);
-      // limpiar query
-      const clean = location.origin + location.pathname;
-      history.replaceState({}, '', clean);
+
+    async function unlockFromSession(){
+      try {
+        const r = await fetch('/api/session');
+        const j = await r.json();
+        if (j?.session) {
+          // fija nombre y esconde la edición
+          const name = j.session.name || 'Jugador';
+          const input = document.getElementById('usernameInput');
+          const saveRow = document.getElementById('saveRow');
+          if (input){ input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
+          if (saveRow){ saveRow.style.display = 'none'; }
+
+          window.VERIFIED = true;
+          try{ setVerifiedUI?.(true); }catch(_){}
+          try{ unlock?.(); }catch(_){}
+          // conecta billetera (World Chain)
+          try{ if (typeof connectWallet === 'function') connectWallet(); }catch(_){}
+          return true;
+        }
+      } catch{}
+      return false;
     }
+
+    (async () => {
+      if (t) {
+        // flujo con ?token
+        window.SESSION_TOKEN = t;
+        history.replaceState({}, '', location.origin + location.pathname);
+        await unlockFromSession(); // usa cookie para nombre + wallet
+      } else {
+        // si no vino ?token pero ya hay cookie, igual desbloquea
+        await unlockFromSession();
+      }
+    })();
+
   } catch(_){}
 })();
 </script>
+
 
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
@@ -3896,59 +3914,64 @@ if (refillBtn){
 
 
 <script>
-// Conectar billetera en World App y obtener balance de WLD (Optimism)
-// Requiere NEXT_PUBLIC_WLD_CONTRACT configurado en Vercel si quieres balance real.
-window.connectWallet = async function(){
-  try{
-    if (!window.ethereum){
-      console.warn('No provider'); 
-      document.getElementById('walletBar').style.display = 'none';
-      return;
-    }
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x1e0' }] }).catch(()=>{});
-    const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
-    const addr = (accs && accs[0]) || '';
-    if (!addr) return;
-    window.WALLET_ADDRESS = addr;
-    const short = addr.slice(0,6)+'…'+addr.slice(-4);
-    const bar = document.getElementById('walletBar');
-    const elShort = document.getElementById('walletShort');
-    const elWLD = document.getElementById('walletWLD');
-    if (elShort) elShort.textContent = short;
-    if (bar) bar.style.display = 'inline-flex';
-
-    try{
-      const bal = await fetchWldBalance(addr);
-      if (bal != null && elWLD) elWLD.textContent = bal.toFixed(4);
-    }catch(e){ console.warn('No WLD balance', e); }
-  }catch(e){
-    console.error(e);
+async function connectWallet(){
+  if (!window.ethereum){
+    document.getElementById('walletBar').style.display = 'none';
+    return;
   }
+
+  // Cambia a World Chain (chainId 0x1e0)
+  await window.ethereum.request({
+    method: 'wallet_switchEthereumChain',
+    params: [{ chainId: '0x1e0' }]
+  }).catch(()=>{});
+
+  // Pide la cuenta
+  const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  const addr = accs?.[0] || '';
+  if (!addr) return;
+
+  window.WALLET_ADDRESS = addr;
+  const short = addr.slice(0,6)+'…'+addr.slice(-4);
+  document.getElementById('walletShort').textContent = short;
+  document.getElementById('walletBar').style.display = 'inline-flex';
+
+  // Balance de WLD (World Chain)
+  try{
+    const bal = await fetchWldBalance(addr);
+    if (bal != null) document.getElementById('walletWLD').textContent = bal.toFixed(4);
+  }catch{}
 }
 
 // Llama a un RPC público de Optimism para balanceOf(ERC20).
 async function fetchWldBalance(address){
   try{
-    const C = (window.NEXT_PUBLIC_WLD_CONTRACT) || (document.querySelector('meta[name=wld-contract]')?.content) || '';
-    if (!C) return null; // sin contrato configurado, omitimos
-    // function selector 0x70a08231 + 24 bytes padding + address
+    // contrato WLD (World Chain); si pusiste <meta name="wld-contract" ...> úsalo:
+    const C =
+      document.querySelector('meta[name=wld-contract]')?.content ||
+      '0x2cfc85d8e48f8eab294be644d9e25c3030863003';
+
+    // balanceOf(address) -> 0x70a08231
     const selector = '0x70a08231';
-    const data = selector + '000000000000000000000000' + address.replace(/^0x/,'');
+    const data = selector + '000000000000000000000000' + address.replace(/^0x/, '');
     const payload = {
       jsonrpc:'2.0', id:1, method:'eth_call',
       params:[{ to:C, data }, 'latest']
     };
-    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload) });
+
+    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
+      method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify(payload)
+    });
     const j = await r.json();
-    if (!j || !j.result) return null;
+    if (!j?.result) return null;
     const hex = j.result.replace(/^0x/,'') || '0';
     const big = BigInt('0x'+hex);
-    const dec = Number(big) / 1e18;
-    return dec;
-  }catch(e){
-    console.error(e); return null;
-  }
+    return Number(big) / 1e18;
+  }catch{ return null; }
 }
+
 </script>
 
 </body>
