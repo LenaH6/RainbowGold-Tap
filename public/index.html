@@ -61,11 +61,6 @@
   </div>
 
 <script>
-const RECEIVER = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
-const REFILL_RATE = 0.001; // 0.1%
-const ENERGY_CAPACITY = 100;
-const REFILL_COST_WLD = +(ENERGY_CAPACITY * REFILL_RATE).toFixed(3);
-
 document.getElementById('refillLabel').textContent = REFILL_COST_WLD.toFixed(3) + ' WLD';
 
 function msg(s){ try{ document.getElementById('splashMsg').textContent = s }catch{} }
@@ -151,5 +146,179 @@ document.getElementById('btnRefill')?.addEventListener('click', async()=>{
   });
 })();
 </script>
+<script>
+/* ======= CONFIG ======= */
+const RECEIVER = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a'; // wallet que recibe pagos
+const ENERGY_CAPACITY = 100;             // tu capacidad actual
+const REFILL_RATE = 0.001;               // 0.1%
+const REFILL_COST_WLD = +(ENERGY_CAPACITY * REFILL_RATE).toFixed(3);
+const WLD_CONTRACT = '0x2cfc85d8e48f8eab294be644d9e25c3030863003'; // WLD en World Chain
+const WORLDCHAIN_CHAINID = '0x1e0';      // World Chain
+
+/* ======= UI helper ======= */
+function $(sel){ return document.querySelector(sel); }
+function msg(s){ try{ $('#splashMsg').textContent = s }catch{} }
+
+/* ======= “NO RELock”: si ya está verificado, ignorar lock() ======= */
+(function(){
+  const origLock = window.lock;
+  window.lock = function(...a){
+    if (window.VERIFIED) return; // no permitir volver al splash
+    return typeof origLock === 'function' ? origLock.apply(this, a) : undefined;
+  };
+})();
+
+/* ======= LOGIN (OIDC) ======= */
+function wireLoginButton(){
+  const btn = document.getElementById('btnLogin');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    msg('Abriendo verificación…');
+    location.href = '/api/auth/login';
+  }, { once:true });
+}
+
+/* ======= WALLET & BALANCE ======= */
+async function connectWallet(){
+  try{
+    const bar = $('#walletBar');
+    if (!window.ethereum){ if (bar) bar.style.display='none'; return; }
+
+    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: WORLDCHAIN_CHAINID }] }).catch(()=>{});
+    const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
+    const addr = accs?.[0] || ''; if (!addr) return;
+
+    window.WALLET_ADDRESS = addr;
+    const short = addr.slice(0,6)+'…'+addr.slice(-4);
+    $('#walletShort') && ($('#walletShort').textContent = short);
+    bar && (bar.style.display = 'inline-flex');
+
+    const bal = await fetchWldBalance(addr);
+    if (bal != null){
+      $('#walletWLD') && ($('#walletWLD').textContent = bal.toFixed(4));
+      $('#wldBalance') && ($('#wldBalance').textContent = bal.toFixed(4) + ' WLD');
+    }
+  }catch{}
+}
+
+async function fetchWldBalance(address){
+  try{
+    const selector = '0x70a08231'; // balanceOf(address)
+    const data = selector + '000000000000000000000000' + address.replace(/^0x/,'');
+    const payload = { jsonrpc:'2.0', id:1, method:'eth_call', params:[{ to: WLD_CONTRACT, data }, 'latest'] };
+    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
+      method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload)
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const hex = (j?.result || '0x0').replace(/^0x/,'');
+    const big = BigInt('0x'+hex);
+    return Number(big)/1e18;
+  }catch{ return null; }
+}
+
+/* ======= PAGOS (ERC-20 transfer) ======= */
+function toWei(wld){ return '0x'+(BigInt(Math.round(wld*1e6))*BigInt(10**12)).toString(16) }
+function pad32(hex){ return hex.replace(/^0x/,'').padStart(64,'0') }
+function encTransfer(to, amountWei){ return '0xa9059cbb' + pad32(to) + pad32(amountWei); }
+
+async function payWLD(wldAmount){
+  if (!window.ethereum){ alert('Abre desde World App.'); return; }
+  await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: WORLDCHAIN_CHAINID }] }).catch(()=>{});
+  const [from] = await window.ethereum.request({ method:'eth_requestAccounts' });
+  if (!from){ alert('No se pudo conectar la billetera.'); return; }
+
+  const data = encTransfer(RECEIVER, toWei(wldAmount));
+  const tx = { from, to: WLD_CONTRACT, data, value: '0x0' };
+  const hash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] });
+  return hash;
+}
+
+/* ======= INYECTA barra de wallet y botones si faltan ======= */
+(function ensureUI(){
+  // barra de wallet
+  if (!document.getElementById('walletBar')){
+    const bar = document.createElement('div');
+    bar.id = 'walletBar';
+    bar.style.cssText = 'display:none;align-items:center;gap:10px;background:#15171c;padding:8px 12px;border-radius:12px;position:fixed;right:16px;top:16px;z-index:30;border:1px solid #242834';
+    bar.innerHTML = `
+      <span id="walletShort" style="font-family:ui-monospace,Menlo,monospace;color:#cfd3e1">0x—</span>
+      <span style="background:#0a0b0e;color:#a9afbf;padding:6px 10px;border-radius:999px">WLD: <span id="walletWLD">--</span></span>
+    `;
+    document.body.appendChild(bar);
+  }
+  // panel de pagos
+  if (!document.getElementById('rgPayments')){
+    const card = document.createElement('div');
+    card.id = 'rgPayments';
+    card.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:30;background:#15171c;border:1px solid #242834;border-radius:16px;padding:12px;max-width:320px';
+    card.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px">RainbowGold • Pagos</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btnIdeas" style="cursor:pointer;border:0;border-radius:12px;padding:10px 12px;background:#82ff9b;color:#0b0d10;font-weight:700">Ideas (1 WLD)</button>
+        <button id="btnRefill" style="cursor:pointer;border:0;border-radius:12px;padding:10px 12px;background:#82ff9b;color:#0b0d10;font-weight:700">Refill (${REFILL_COST_WLD.toFixed(3)} WLD)</button>
+      </div>
+      <div id="wldBalance" style="margin-top:6px;font-size:12px;color:#a9afbf">--</div>
+    `;
+    document.body.appendChild(card);
+  }
+})();
+
+/* ======= BOOTSTRAP OIDC ======= */
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const t = qs.get('token');
+
+  async function applySession(){
+    try{
+      const r = await fetch('/api/session', { credentials:'include' });
+      const j = await r.json();
+      if (j?.session){
+        // nombre de World App
+        const name = j.session.name || 'Jugador';
+        const el = document.getElementById('profileName') || (function(){
+          const e = document.createElement('div');
+          e.id = 'profileName';
+          e.style.cssText = 'position:fixed;left:16px;top:16px;background:#0a0b0e;color:#a9afbf;padding:6px 10px;border-radius:999px;z-index:30';
+          document.body.appendChild(e);
+          return e;
+        })();
+        el.textContent = name;
+        window.VERIFIED = true;
+        return true;
+      }
+    }catch{}
+    return false;
+  }
+
+  function hardUnlock(){
+    try{ document.getElementById('splash')?.classList.add('hidden'); }catch{}
+    try{ unlock?.(); }catch{}
+    try{ connectWallet(); }catch{}
+  }
+
+  (async () => {
+    wireLoginButton();
+
+    if (t){
+      window.SESSION_TOKEN = t;
+      window.VERIFIED = true;
+      history.replaceState({}, '', location.origin + location.pathname);
+      hardUnlock();
+      await applySession();
+      return;
+    }
+    const ok = await applySession();
+    if (ok) hardUnlock();
+  })();
+
+  window.addEventListener('load', ()=>{
+    if (window.VERIFIED){ hardUnlock(); }
+    // reintentos por si unlock() aparece tardísimo
+    let tries=0; const h=setInterval(()=>{ if(window.VERIFIED){ hardUnlock(); clearInterval(h);} if(++tries>10) clearInterval(h); },300);
+  });
+})();
+</script>
+
 </body>
 </html>
