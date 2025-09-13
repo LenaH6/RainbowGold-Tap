@@ -938,122 +938,6 @@ body:not(.show-splash) .splash {
 </head>
 <body class="show-splash">
 
-<!-- Bootstrap robusto para desbloquear sin relock -->
-<script>
-(function () {
-  try {
-    const qs = new URLSearchParams(location.search);
-    const t = qs.get('token');
-
-    async function applySessionFromCookie() {
-      try {
-        const r = await fetch('/api/session', { credentials: 'include' });
-        const j = await r.json();
-        if (j?.session && j.session.sub) {
-          const input = document.getElementById('usernameInput');
-          const saveRow = document.getElementById('saveRow');
-          const name = j.session.name || 'Jugador';
-          if (input) { input.value = name; input.readOnly = true; }
-          if (saveRow) { saveRow.style.display = 'none'; }
-
-          const w = j.session.wallet || '';
-          if (w) {
-            window.WALLET_ADDRESS = w;
-            try {
-              const short = w.slice(0,6)+'…'+w.slice(-4);
-              document.getElementById('walletShort').textContent = short;
-              document.getElementById('walletBar').style.display = 'inline-flex';
-            } catch(_){}
-          }
-
-          return j.session;
-        }
-      } catch(_){}
-      return null;
-    }
-
-    async function startGame() {
-      window.VERIFIED = true;
-      setVerifiedUI(true);
-      if (typeof unlock === 'function') unlock();
-      if (typeof connectWallet === 'function') connectWallet();
-      hideSplash();
-    }
-
-    (async () => {
-      if (t) {
-        // Token presente -> viene de World ID
-        window.SESSION_TOKEN = t;
-        history.replaceState({}, '', location.origin + location.pathname);
-        const session = await applySessionFromCookie();
-        if (session) {
-          // Mostrar modal de confirmación
-          showVerificationModal();
-        }
-      } else {
-        // Sin token -> verificar si ya hay sesión
-        const session = await applySessionFromCookie();
-        if (session) {
-          // Ya verificado previamente
-          await startGame();
-        } else {
-          // Mostrar splash con botón de World ID
-          // El splash ya está visible por defecto
-        }
-      }
-    })();
-
-  } catch(_){}
-})();
-</script>
-
-
-
-<script>
-(function(){
-  try {
-    const qs = new URLSearchParams(location.search);
-    const t = qs.get('token');
-
-    async function unlockFromSession(){
-      try {
-        const r = await fetch('/api/session');
-        const j = await r.json();
-        if (j?.session) {
-          // fija nombre y esconde la edición
-          const name = j.session.name || 'Jugador';
-          const input = document.getElementById('usernameInput');
-          const saveRow = document.getElementById('saveRow');
-          if (input){ input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
-          if (saveRow){ saveRow.style.display = 'none'; }
-
-          window.VERIFIED = true;
-          try{ setVerifiedUI?.(true); }catch(_){}
-          try{ unlock?.(); }catch(_){}
-          // conecta billetera (World Chain)
-          try{ if (typeof connectWallet === 'function') connectWallet(); }catch(_){}
-          return true;
-        }
-      } catch{}
-      return false;
-    }
-
-    (async () => {
-      if (t) {
-        // flujo con ?token
-        window.SESSION_TOKEN = t;
-        history.replaceState({}, '', location.origin + location.pathname);
-        await unlockFromSession(); // usa cookie para nombre + wallet
-      } else {
-        // si no vino ?token pero ya hay cookie, igual desbloquea
-        await unlockFromSession();
-      }
-    })();
-
-  } catch(_){}
-})();
-</script>
-
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
     <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
@@ -1481,6 +1365,94 @@ function setVerifiedUI(on){
   
   // Clickjacking guard (defensa extra al CSP)
 try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
+// Control de World ID - NUEVO
+async function checkWorldIDSession() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      window.SESSION_TOKEN = token;
+      history.replaceState({}, '', window.location.pathname);
+      
+      const response = await fetch('/api/session');
+      const data = await response.json();
+      if (data.session && data.session.sub) {
+        showVerificationModal();
+        return;
+      }
+    } else {
+      const response = await fetch('/api/session');
+      const data = await response.json();
+      if (data.session && data.session.sub) {
+        window.VERIFIED = true;
+        setVerifiedUI(true);
+        hideSplash();
+        if (typeof unlock === 'function') unlock();
+        return;
+      }
+    }
+  } catch(error) {
+    console.log('Error verificando sesión World ID:', error);
+  }
+}
+
+// Funciones para modales World ID
+function showWorldIDModal() {
+  document.getElementById('worldIdModal').style.display = 'flex';
+}
+function hideWorldIDModal() {
+  document.getElementById('worldIdModal').style.display = 'none';
+}
+function showVerificationModal() {
+  hideWorldIDModal();
+  document.getElementById('verificationModal').style.display = 'flex';
+}
+function hideVerificationModal() {
+  document.getElementById('verificationModal').style.display = 'none';
+}
+function initiateWorldID() {
+  window.location.href = '/api/auth/worldid';
+}
+async function completeVerification() {
+  try {
+    const response = await fetch('/api/session');
+    const data = await response.json();
+    if (data.session && data.session.sub) {
+      hideVerificationModal();
+      window.VERIFIED = true;
+      setVerifiedUI(true);
+      hideSplash();
+      if (typeof unlock === 'function') unlock();
+    } else {
+      alert('Error al obtener datos de sesión');
+    }
+  } catch (error) {
+    alert('Error en la verificación: ' + error.message);
+  }
+}
+function toggleKeepSession() {
+  const toggle = document.getElementById('keepSessionToggle');
+  const dot = toggle.querySelector('div');
+  const isActive = dot.style.left === '26px';
+  if (isActive) {
+    dot.style.left = '2px';
+  } else {
+    dot.style.left = '26px';
+  }
+}
+function hideSplash() {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('splash--hide');
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 400);
+  }
+}
+
+// Ejecutar al cargar la página
+checkWorldIDSession();
 
 // 👇 Flag para mostrar/ocultar el demo
 const SHOW_DEMO = false;
@@ -4135,25 +4107,7 @@ async function fetchWldBalance(address){
 </script>
 
 
-
 <script>
-// Si ya hay sesión/verificación, no permitas relock por scripts tardíos
-window.addEventListener('load', () => {
-  if (window.VERIFIED) {
-    try { unlock(); } catch(_){}
-    try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
-  }
-  let tries = 0;
-  const t = setInterval(() => {
-    if (window.VERIFIED && typeof unlock === 'function') {
-      try { unlock(); } catch(_){}
-      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
-      clearInterval(t);
-    }
-    if (++tries > 10) clearInterval(t);
-  }, 300);
-});
-
 // Guard extra: si ya estás verificado, ignora cualquier lock() tardío
 (function(){
   const origLock = window.lock;
