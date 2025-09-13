@@ -69,6 +69,7 @@ app.get('/auth/login', (req, res) => {
   res.redirect(url.toString());
 });
 
+
 // === Callback: canjea code y valida STATE sin cookies ===
 app.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
@@ -100,42 +101,26 @@ app.get('/auth/callback', async (req, res) => {
   }
 
   res.send(`<!doctype html><html><body><script>
-    try {
-      if (${ok ? 'true' : 'false'}) {
-        if (window.opener) {
-          window.opener.postMessage({ type:'wld:verified' }, '*');
-          window.close();
-        } else if (window.parent) {
-          window.parent.postMessage({ type:'wld:verified' }, '*');
-          location.replace(${json.dumps(returnTo)});
-        } else {
-          location.replace(${json.dumps(returnTo)});
-        }
-      } else {
-        if (window.opener) { window.opener.postMessage({ type:'wld:error' }, '*'); }
-        document.body.textContent = 'No se pudo verificar con World ID.';
+    (function(){
+      var ok = ${'true' if True else 'false'};
+      var returnTo = ${json.dumps('/')};
+      try { returnTo = ${json.dumps('${RETURN_TO$}')}; } catch(_){}
+      // Marca verificado (para el caso top-level sin postMessage)
+      if (ok) {
+        try { localStorage.setItem('wld_verified','1'); } catch(_){}
+        try { sessionStorage.setItem('wld_verified','1'); } catch(_){}
+        try { document.cookie = 'wld_verified=1; Max-Age=600; Path=/; SameSite=Lax'; } catch(_){}
       }
-    } catch(_) { document.body.textContent = 'Error postMessage.'; }
+      // Si se abrió en popup, intenta notificar y cerrar
+      try { if (window.opener && ok) { window.opener.postMessage({ type: 'wld:verified' }, '*'); window.close(); return; } } catch(_){}
+      // Si estamos embebidos en iframe (raro), notifica al padre
+      try { if (window.parent && window.parent !== window && ok) { window.parent.postMessage({ type: 'wld:verified' }, '*'); } } catch(_){}
+      // Vuelve a la app
+      location.replace(returnTo || '/');
+    })();
   </script></body></html>`);
 });
 
-// Aliases compatibles con /api/auth/* (NextAuth-like)
-app.get('/api/auth/login', (req, res) => {
-  req.url = '/auth/login' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
-app.get('/api/auth/callback/worldcoin', (req, res) => {
-  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
-app.get('/api/auth/callback', (req, res) => {
-  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
-
-// Root & SPA fallback
-app.get('/', (req, res) => res.sendFile(path.join(WEB_DIR, 'index.html')));
-app.get(/^\/(?!auth\/|api\/auth\/).*$/, (req, res) => res.sendFile(path.join(WEB_DIR, 'index.html')));
 
 // Export para @vercel/node
 export default app;
