@@ -1,0 +1,11 @@
+{
+  "name": "rainbowgold-root",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "cd api && npm i",
+    "dev": "node api/server.js",
+    "start": "node api/server.js"
+  }
+}
