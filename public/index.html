@@ -1366,6 +1366,7 @@ function setVerifiedUI(on){
   // Clickjacking guard (defensa extra al CSP)
 try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
 
+
 // Funciones para modales World ID
 function showWorldIDModal() {
   document.getElementById('worldIdModal').style.display = 'flex';
@@ -4167,36 +4168,19 @@ window.unlock = function() {
   console.log('🎮 Juego desbloqueado');
   // Aquí iría tu lógica de unlock del juego
 };
-
-// Control de World ID simple y efectivo
+// Control World ID que SIEMPRE muestra el modal
 (async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   
   if (token) {
     history.replaceState({}, '', window.location.pathname);
-    window.VERIFIED = true;
-    setVerifiedUI(true);
-    document.body.classList.remove('show-splash');
-    const splash = document.getElementById('splash');
-    if (splash) splash.style.display = 'none';
-    
+    // Mostrar modal de verificación
+    setTimeout(() => showVerificationModal(), 100);
   } else {
-    try {
-      const response = await fetch('/api/session');
-      const data = await response.json();
-      if (data.session?.sub) {
-        window.VERIFIED = true;
-        setVerifiedUI(true);
-        document.body.classList.remove('show-splash');
-        const splash = document.getElementById('splash');
-        if (splash) splash.style.display = 'none';
-      }
-    } catch(e) {
-      console.log('Sin sesión previa');
-    }
   }
 })();
+
 
 // Funciones básicas para modales
 function showVerificationModal() {
