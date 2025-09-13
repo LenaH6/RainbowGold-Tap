@@ -4058,21 +4058,33 @@ async function fetchWldBalance(address){
 
 
 <script>
-// Guard: si ya está VERIFICADO, ignorar cualquier lock() posterior del juego
+// Si ya hay sesión/verificación, no permitas relock por scripts tardíos
+window.addEventListener('load', () => {
+  if (window.VERIFIED) {
+    try { unlock(); } catch(_){}
+    try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
+  }
+  let tries = 0;
+  const t = setInterval(() => {
+    if (window.VERIFIED && typeof unlock === 'function') {
+      try { unlock(); } catch(_){}
+      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
+      clearInterval(t);
+    }
+    if (++tries > 10) clearInterval(t);
+  }, 300);
+});
+
+// Guard extra: si ya estás verificado, ignora cualquier lock() tardío
 (function(){
   const origLock = window.lock;
-  window.lock = function(...args){
-    if (window.VERIFIED) { try{ console.debug('lock() ignorado: usuario verificado'); }catch(_){} return; }
-    return typeof origLock === 'function' ? origLock.apply(this, args) : undefined;
-  };
-  // marca bandera cuando se desbloquea
-  const origUnlock = window.unlock;
-  window.unlock = function(...args){
-    window.UNLOCKED = true;
-    return typeof origUnlock === 'function' ? origUnlock.apply(this, args) : undefined;
+  window.lock = function(...a){
+    if (window.VERIFIED) return; // ignora relock
+    return typeof origLock === 'function' ? origLock.apply(this, a) : undefined;
   };
 })();
 </script>
+
 
 </body>
 </html>
