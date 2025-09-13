@@ -32,8 +32,8 @@ function randomStr(n=32){ return crypto.randomBytes(n).toString('hex'); }
 
 // Inicia login → redirige a World ID authorize
 app.get('/auth/login', (req, res) => {
-  const client_id = process.env.WLD_CLIENT_ID;
-  const redirect_uri = process.env.WLD_REDIRECT_URI;
+  const client_id = process.env.WLD_CLIENT_ID || process.env.WORLD_ID_CLIENT_ID;
+  const redirect_uri = process.env.WLD_REDIRECT_URI || process.env.WORLD_ID_REDIRECT_URI;
   const scope = process.env.WLD_SCOPE || 'openid';
   const state = randomStr(12);
   const returnTo = req.query.returnTo || '/';
@@ -68,9 +68,9 @@ app.get('/auth/callback', async (req, res) => {
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
-  body.set('client_id', process.env.WLD_CLIENT_ID || '');
-  body.set('client_secret', process.env.WLD_CLIENT_SECRET || '');
-  body.set('redirect_uri', process.env.WLD_REDIRECT_URI || '');
+  body.set('client_id', process.env.WLD_CLIENT_ID || process.env.WORLD_ID_CLIENT_ID || '');
+  body.set('client_secret', process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || '');
+  body.set('redirect_uri', process.env.WLD_REDIRECT_URI || process.env.WORLD_ID_REDIRECT_URI || '');
 
   let ok = false;
   try {
@@ -108,6 +108,20 @@ app.get('/auth/callback', async (req, res) => {
 // Serve index.html for root and any non-API path (SPA-friendly)
 app.get('/', (req, res) => {
   res.sendFile(path.join(WEB_DIR, 'index.html'));
+});
+
+// === Aliases de compatibilidad (NextAuth-like /api/auth/*) ===
+app.get('/api/auth/login', (req, res) => {
+  req.url = '/auth/login' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+  app._router.handle(req, res);
+});
+app.get('/api/auth/callback/worldcoin', (req, res) => {
+  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+  app._router.handle(req, res);
+});
+app.get('/api/auth/callback', (req, res) => {
+  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+  app._router.handle(req, res);
 });
 app.get(/^\/(?!auth\/).*$/, (req, res) => {
   res.sendFile(path.join(WEB_DIR, 'index.html'));

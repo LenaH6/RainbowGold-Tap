@@ -1362,7 +1362,7 @@ async function handleVote(key){
 
   // === Guardar en backend ===
   try {
-    await fetch("https://rainbowgold-api.vercel.app/api/votes/add", {
+    await fetch("/api/votes/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: window.SESSION_TOKEN, option: key })
@@ -1460,7 +1460,7 @@ if (sendSuggestBtn){
 
     // === Guardar en backend ===
     try {
-      await fetch("https://rainbowgold-api.vercel.app/api/suggestions/add", {
+      await fetch("/api/suggestions/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: window.SESSION_TOKEN, suggestion: txt })
@@ -1559,7 +1559,7 @@ if (payIdeasBtn){
         return;
       }
 
-      await fetch("https://rainbowgold-api.vercel.app/api/pay/confirm", {
+      await fetch("/api/pay/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...res, token: window.SESSION_TOKEN, action: "ideas" })
@@ -1743,7 +1743,7 @@ let tapQueue = 0;
 async function flushTapQueue(){
   if (!tapQueue || !window.SESSION_TOKEN) return;
   try{
-    const resp = await fetch("https://rainbowgold-api.vercel.app/api/tapBatch", {
+    const resp = await fetch("/api/tapBatch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })

@@ -14,7 +14,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src self https://cdn.jsdelivr.net https://rainbowgold-api.vercel.app/ https://id.worldcoin.org/;
+  connect-src 'self' https://cdn.jsdelivr.net https://id.worldcoin.org/;
 
   media-src 'self';
 ">
@@ -38,8 +38,8 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
 <!-- Backend RainbowGold API -->
-<link rel="dns-prefetch" href="https://rainbowgold-api.vercel.app/">
-<link rel="preconnect" href="https://rainbowgold-api.vercel.app/" crossorigin>
+<link rel="dns-prefetch" href="/">
+<link rel="preconnect" href="/" crossorigin>
 
 <title>RainbowGold</title>
 <meta name="theme-color" content="#1b103a">
