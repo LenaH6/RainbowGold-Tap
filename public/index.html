@@ -923,12 +923,20 @@ body.has-drawer{
     z-index: 9;
   }
 }
+body.show-splash .hero,
+body.show-splash .topbar,
+body.show-splash .floatCol {
+  display: none !important;
+}
 
+body:not(.show-splash) .splash {
+  display: none !important;
+}
 
 
 </style>
 </head>
-<body>
+<body class="show-splash">
 
 <!-- Bootstrap robusto para desbloquear sin relock -->
 <script>
@@ -941,11 +949,11 @@ body.has-drawer{
       try {
         const r = await fetch('/api/session', { credentials: 'include' });
         const j = await r.json();
-        if (j?.session) {
+        if (j?.session && j.session.sub) {
           const input = document.getElementById('usernameInput');
           const saveRow = document.getElementById('saveRow');
           const name = j.session.name || 'Jugador';
-          if (input) { input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
+          if (input) { input.value = name; input.readOnly = true; }
           if (saveRow) { saveRow.style.display = 'none'; }
 
           const w = j.session.wallet || '';
@@ -958,15 +966,14 @@ body.has-drawer{
             } catch(_){}
           }
 
-          window.VERIFIED = true;
-          setVerifiedUI(true);
-          return true;
+          return j.session;
         }
       } catch(_){}
-      return false;
+      return null;
     }
 
-    async function ensureUnlocked() {
+    async function startGame() {
+      window.VERIFIED = true;
       setVerifiedUI(true);
       if (typeof unlock === 'function') unlock();
       if (typeof connectWallet === 'function') connectWallet();
@@ -975,33 +982,27 @@ body.has-drawer{
 
     (async () => {
       if (t) {
-        // Viene con token -> mostrar modal de verificación
+        // Token presente -> viene de World ID
         window.SESSION_TOKEN = t;
-        window.VERIFIED = true;
         history.replaceState({}, '', location.origin + location.pathname);
-        await applySessionFromCookie();
-        showVerificationModal();
+        const session = await applySessionFromCookie();
+        if (session) {
+          // Mostrar modal de confirmación
+          showVerificationModal();
+        }
       } else {
-        // Sin token -> verificar sesión existente
-        const hasSession = await applySessionFromCookie();
-        if (hasSession) {
-          await ensureUnlocked();
+        // Sin token -> verificar si ya hay sesión
+        const session = await applySessionFromCookie();
+        if (session) {
+          // Ya verificado previamente
+          await startGame();
+        } else {
+          // Mostrar splash con botón de World ID
+          // El splash ya está visible por defecto
         }
       }
     })();
 
-    window.addEventListener('load', () => {
-      if (window.VERIFIED && typeof unlock === 'function') {
-        let tries = 0;
-        const interval = setInterval(() => {
-          if (typeof unlock === 'function') { 
-            ensureUnlocked(); 
-            clearInterval(interval); 
-          }
-          if (++tries > 10) clearInterval(interval);
-        }, 300);
-      }
-    });
   } catch(_){}
 })();
 </script>
@@ -3933,7 +3934,9 @@ const refillBtn = document.getElementById("refillBtn");
 
 // === Helpers UI ===
 function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
-function unlock(){
+function unlock(){  if (!window.VERIFIED) {
+    return;
+  }
   document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
   if (splash){ splash.classList.add("splash-hide"); setTimeout(() => splash.remove(), 450); }
   try { playSnd('join', { volume: 0.9 }); } catch(_) {}
@@ -4217,6 +4220,7 @@ function toggleKeepSession() {
 // Función para ocultar splash
 function hideSplash() {
   const splash = document.getElementById('splash');
+  document.body.classList.remove('show-splash');
   if (splash) {
     splash.classList.add('splash--hide');
     setTimeout(() => {
