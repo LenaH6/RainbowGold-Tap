@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
+  <meta name="app-base-url" content="https://rainbowgold-app.vercel.app">
 <meta name="wld-contract" content="0x2cfc85d8e48f8eab294be644d9e25c3030863003">
 <link rel="preload" as="image" href="img/Coin.png" imagesrcset="img/Coin.png 1x, img/Coin@2x.png 2x">
 <link rel="preload" as="image" href="img/brand-mark-wg-128.png">
@@ -32,7 +33,7 @@
 ">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://worldgold-api.vercel.app/" crossorigin>
+<link rel="preconnect" href="https://rainbowgold-app.vercel.app" crossorigin>
 
 <title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
@@ -4032,6 +4033,24 @@ async function fetchWldBalance(address){
   }catch{ return null; }
 }
 
+</script>
+
+
+<script>
+// Guard: si ya está VERIFICADO, ignorar cualquier lock() posterior del juego
+(function(){
+  const origLock = window.lock;
+  window.lock = function(...args){
+    if (window.VERIFIED) { try{ console.debug('lock() ignorado: usuario verificado'); }catch(_){} return; }
+    return typeof origLock === 'function' ? origLock.apply(this, args) : undefined;
+  };
+  // marca bandera cuando se desbloquea
+  const origUnlock = window.unlock;
+  window.unlock = function(...args){
+    window.UNLOCKED = true;
+    return typeof origUnlock === 'function' ? origUnlock.apply(this, args) : undefined;
+  };
+})();
 </script>
 
 </body>
