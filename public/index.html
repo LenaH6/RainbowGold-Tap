@@ -3906,7 +3906,9 @@ const refillBtn = document.getElementById("refillBtn");
 
 // === Helpers UI ===
 function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
-function unlock(){  if (!window.VERIFIED) {
+function unlock(){
+  if (!window.VERIFIED) {
+    console.log('🔒 Unlock bloqueado - necesita World ID');
     return;
   }
   document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
@@ -4183,6 +4185,52 @@ function hideSplash() {
   }
 }
 </script>
+<script>
+// Override definitivo para bloquear unlock
+window.VERIFIED = false;
 
+const originalUnlock = window.unlock;
+window.unlock = function() {
+  if (!window.VERIFIED) {
+    console.log('🚫 UNLOCK BLOQUEADO - Necesita verificación World ID');
+    return;
+  }
+  if (originalUnlock) originalUnlock.apply(this, arguments);
+};
+
+// Forzar splash visible
+document.addEventListener('DOMContentLoaded', () => {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.style.display = 'grid';
+    splash.classList.remove('splash--hide');
+  }
+});
+
+// Control World ID definitivo
+async function initWorldID() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  
+  if (token) {
+    history.replaceState({}, '', window.location.pathname);
+    showVerificationModal();
+  } else {
+    try {
+      const response = await fetch('/api/session');
+      const data = await response.json();
+      if (data.session?.sub) {
+        window.VERIFIED = true;
+        hideSplash();
+        unlock();
+      }
+    } catch(e) {
+      console.log('Sin sesión previa');
+    }
+  }
+}
+
+setTimeout(initWorldID, 100);
+</script>
 </body>
 </html>
