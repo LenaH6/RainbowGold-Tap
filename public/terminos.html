@@ -17,6 +17,145 @@
     ul{padding-left:18px}
     code{background:#f3f3f3;padding:1px 6px;border-radius:4px}
   </style>
+<script>
+// === OFFLINE GUARD v3: conserva tu frontend y bloquea backend viejo ===
+(function(){
+  var OFFLINE_MSG = 'Modo sin backend: acción desactivada por ahora.';
+  function isBackendURL(url){
+    if(!url) return false;
+    try {
+      var a = document.createElement('a'); a.href = url;
+      var href = (a.href || url) + '';
+      return /(^\/?api\/)/i.test(url) || /worldgold-api/i.test(href) || /\/api/i.test(href) || /vercel\.app\/api/i.test(href);
+    } catch(_) { return false; }
+  }
+  function okResponse(bodyObj){
+    const body = bodyObj == null ? "" : JSON.stringify(bodyObj);
+    return new Response(body, {status: 200, headers: {"Content-Type":"application/json"}});
+  }
+
+  // 1) Neutralizar red
+  try {
+    const offlineFetch = function(){ return Promise.resolve(okResponse({ offline: true })); };
+    if (typeof window.fetch === 'function') { window._fetchOriginal = window.fetch; window.fetch = offlineFetch; } else { window.fetch = offlineFetch; }
+  } catch(e){}
+  try {
+    const offlineAxios = function(){ return Promise.resolve({ status:200, data:{ offline: true } }); };
+    offlineAxios.get = offlineAxios.post = offlineAxios.put = offlineAxios.delete = offlineAxios;
+    if (window.axios) window._axiosOriginal = window.axios;
+    window.axios = offlineAxios;
+  } catch(e){}
+  try {
+    function OfflineXHR(){ this.readyState=4; this.status=200; this.responseText=JSON.stringify({offline:true}); this.response=this.responseText; this.onreadystatechange=null; }
+    OfflineXHR.prototype.open=function(){}; OfflineXHR.prototype.setRequestHeader=function(){};
+    OfflineXHR.prototype.send=function(){ this.onreadystatechange&&this.onreadystatechange(); this.onload&&this.onload(); };
+    if (window.XMLHttpRequest) window._XMLHttpRequestOriginal = window.XMLHttpRequest;
+    window.XMLHttpRequest = OfflineXHR;
+  } catch(e){}
+  try {
+    const OfflineWS=function(){ setTimeout(()=>{ try{ this.onopen&&this.onopen(); }catch(_){} },0); };
+    OfflineWS.prototype.send=function(){}; OfflineWS.prototype.close=function(){};
+    if (window.WebSocket) window._WebSocketOriginal = window.WebSocket;
+    window.WebSocket = OfflineWS;
+  } catch(e){}
+  try {
+    function OfflineES(){ setTimeout(()=>{ try{ this.onopen&&this.onopen(); }catch(_){} },0); }
+    OfflineES.prototype.close=function(){};
+    if (window.EventSource) window._EventSourceOriginal = window.EventSource;
+    window.EventSource = OfflineES;
+  } catch(e){}
+  try {
+    if (navigator && typeof navigator.sendBeacon === 'function') {
+      navigator._sendBeaconOriginal = navigator.sendBeacon;
+      navigator.sendBeacon = function(){ return true; };
+    }
+  } catch(e){}
+
+  // 2) Reescritura de enlaces y formularios
+  function rewriteLink(a){
+    if (!a || !a.getAttribute) return;
+    var href = a.getAttribute('href');
+    if (href && isBackendURL(href)) {
+      if (!a.dataset.hrefOriginal) a.dataset.hrefOriginal = href;
+      a.setAttribute('href', '#');
+      a.addEventListener('click', function(ev){ ev.preventDefault(); alert(OFFLINE_MSG + '
+(' + a.dataset.hrefOriginal + ')'); }, { once:false });
+      a.title = (a.title || '') + ' [offline]';
+    }
+  }
+  function rewriteForm(f){
+    if (!f || !f.getAttribute) return;
+    var action = f.getAttribute('action');
+    if (action && isBackendURL(action)) {
+      if (!f.dataset.actionOriginal) f.dataset.actionOriginal = action;
+      f.setAttribute('action', 'javascript:void(0)');
+      f.addEventListener('submit', function(ev){ ev.preventDefault(); alert(OFFLINE_MSG + '
+(' + f.dataset.actionOriginal + ')'); }, { once:false });
+    }
+  }
+  function scan(){
+    document.querySelectorAll('a[href]').forEach(rewriteLink);
+    document.querySelectorAll('form[action]').forEach(rewriteForm);
+  }
+  scan();
+  // Observar cambios (captura dinámicos)
+  try{
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        if (m.type === 'childList') {
+          m.addedNodes && m.addedNodes.forEach(function(n){
+            if (n.nodeType !== 1) return;
+            if (n.matches && n.matches('a[href]')) rewriteLink(n);
+            if (n.matches && n.matches('form[action]')) rewriteForm(n);
+            n.querySelectorAll && n.querySelectorAll('a[href], form[action]').forEach(function(x){
+              if (x.tagName === 'A') rewriteLink(x);
+              if (x.tagName === 'FORM') rewriteForm(x);
+            });
+          });
+        } else if (m.type === 'attributes') {
+          if (m.target && m.attributeName === 'href' && m.target.tagName === 'A') rewriteLink(m.target);
+          if (m.target && m.attributeName === 'action' && m.target.tagName === 'FORM') rewriteForm(m.target);
+        }
+      });
+    });
+    mo.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['href','action'] });
+  }catch(_){}
+
+  // 3) Bloqueo de navegaciones programáticas más comunes
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]');
+    if(!a) return;
+    var href = a.getAttribute('href') || '';
+    if (isBackendURL(href)) { e.preventDefault(); alert(OFFLINE_MSG + '
+(' + href + ')'); }
+  }, true);
+  document.addEventListener('submit', function(e){
+    var form = e.target;
+    var action = (form && form.getAttribute && form.getAttribute('action')) || '';
+    if (isBackendURL(action)) { e.preventDefault(); alert(OFFLINE_MSG + '
+(' + action + ')'); }
+  }, true);
+  try {
+    var _open = window.open;
+    window.open = function(url){ if(isBackendURL(url)){ alert(OFFLINE_MSG + '
+(' + url + ')'); return null; } return _open? _open.apply(window, arguments) : null; };
+  } catch(_) {}
+  try {
+    const _assign = window.location.assign.bind(window.location);
+    const _replace = window.location.replace.bind(window.location);
+    window.location.assign = function(url){ if(isBackendURL(url)){ alert(OFFLINE_MSG + '
+(' + url + ')'); return; } _assign(url); };
+    window.location.replace = function(url){ if(isBackendURL(url)){ alert(OFFLINE_MSG + '
+(' + url + ')'); return; } _replace(url); };
+    const _pushState = history.pushState.bind(history);
+    const _replaceState = history.replaceState.bind(history);
+    history.pushState = function(s, t, url){ if(isBackendURL(url)){ alert(OFFLINE_MSG + '
+(' + url + ')'); return; } _pushState(s, t, url); };
+    history.replaceState = function(s, t, url){ if(isBackendURL(url)){ alert(OFFLINE_MSG + '
+(' + url + ')'); return; } _replaceState(s, t, url); };
+  } catch(_){}
+})();
+</script>
 </head>
 <body>
   <h1>Términos y Condiciones</h1>
