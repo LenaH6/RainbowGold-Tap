@@ -15,7 +15,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net #removed-old-worldgold-api'self' https://worldchain-mainnet.g.alchemy.com/public;
+  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-app.vercel.app https://worldchain-mainnet.g.alchemy.com/public;
 ">
 <!-- Referrer mínima (no filtramos URL) -->
 <meta http-equiv="Referrer-Policy" content="no-referrer">
@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://rainbowgold-app.vercel.app" crossorigin>
 
-<title>WorldGold — App</title>
+<title>RainbowGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
 <style>
@@ -1047,9 +1047,9 @@ body.has-drawer{
 
 
   <!-- === SPLASH / CARGA INICIAL === -->
-<div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
+<div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src="img/logo-splash.png" alt="WorldGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
@@ -3980,38 +3980,47 @@ if (refillBtn){
 
 <script>
 async function connectWallet(){
-  if (!window.ethereum){
-    document.getElementById('walletBar').style.display = 'none';
-    return;
-  }
-
-  // Cambia a World Chain (chainId 0x1e0)
-  await window.ethereum.request({
-    method: 'wallet_switchEthereumChain',
-    params: [{ chainId: '0x1e0' }]
-  }).catch(()=>{});
-
-  // Pide la cuenta
-  const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  const addr = accs?.[0] || '';
-  if (!addr) return;
-
-  window.WALLET_ADDRESS = addr;
-  const short = addr.slice(0,6)+'…'+addr.slice(-4);
-  document.getElementById('walletShort').textContent = short;
-  document.getElementById('walletBar').style.display = 'inline-flex';
-
-  // Balance de WLD (World Chain)
   try{
-    const bal = await fetchWldBalance(addr);
-    if (bal != null) document.getElementById('walletWLD').textContent = bal.toFixed(4);
+    // Si no hay provider, ocultamos la barra de wallet
+    const bar = document.getElementById('walletBar');
+    if (!window.ethereum){
+      if (bar) bar.style.display = 'none';
+      return;
+    }
+
+    // 1) Cambiar a World Chain (chainId 0x1e0)
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x1e0' }]
+    }).catch(()=>{}); // si ya está en esa red, no pasa nada
+
+    // 2) Pedir cuenta
+    const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const addr = accs?.[0] || '';
+    if (!addr) return;
+
+    // 3) Pintar dirección corta
+    window.WALLET_ADDRESS = addr;
+    const short = addr.slice(0,6)+'…'+addr.slice(-4);
+    const elShort = document.getElementById('walletShort');
+    if (elShort) elShort.textContent = short;
+    if (bar) bar.style.display = 'inline-flex';
+
+    // 4) Mostrar balance de WLD (en World Chain)
+    try{
+      const bal = await fetchWldBalance(addr);
+      if (bal != null){
+        const elWLD = document.getElementById('walletWLD');
+        if (elWLD) elWLD.textContent = bal.toFixed(4);
+      }
+    }catch{}
   }catch{}
 }
 
-// Llama a un RPC público de Optimism para balanceOf(ERC20).
+// Lee balanceOf (ERC-20) en World Chain
 async function fetchWldBalance(address){
   try{
-    // contrato WLD (World Chain); si pusiste <meta name="wld-contract" ...> úsalo:
+    // Contrato WLD en World Chain (o toma el del <meta>)
     const C =
       document.querySelector('meta[name=wld-contract]')?.content ||
       '0x2cfc85d8e48f8eab294be644d9e25c3030863003';
@@ -4020,20 +4029,32 @@ async function fetchWldBalance(address){
     const selector = '0x70a08231';
     const data = selector + '000000000000000000000000' + address.replace(/^0x/, '');
     const payload = {
-      jsonrpc:'2.0', id:1, method:'eth_call',
-      params:[{ to:C, data }, 'latest']
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_call',
+      params: [{ to: C, data }, 'latest']
     };
 
-    const r = await });
+    // RPC público de World Chain (NO Optimism)
+    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) return null;
+
     const j = await r.json();
     if (!j?.result) return null;
-    const hex = j.result.replace(/^0x/,'') || '0';
-    const big = BigInt('0x'+hex);
-    return Number(big) / 1e18;
-  }catch{ return null; }
-}
 
+    const hex = j.result.replace(/^0x/, '') || '0';
+    const big = BigInt('0x' + hex);
+    return Number(big) / 1e18;
+  }catch{
+    return null;
+  }
+}
 </script>
+
 
 
 <script>
