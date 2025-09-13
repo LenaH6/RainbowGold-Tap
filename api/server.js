@@ -4,14 +4,22 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Sirve el frontend desde /web por el mismo origen (compatible con tu CSP)
-const WEB_DIR = process.env.WEB_DIR || path.resolve(process.cwd(), '../web');
+// Resolve WEB_DIR relative to this file by default
+const WEB_DIR = process.env.WEB_DIR
+  ? path.resolve(__dirname, process.env.WEB_DIR)
+  : path.resolve(__dirname, '../web');
+
+// Static frontend
 app.use(express.static(WEB_DIR));
 
 // === Helpers World ID OIDC ===
@@ -22,7 +30,7 @@ const OIDC = {
 
 function randomStr(n=32){ return crypto.randomBytes(n).toString('hex'); }
 
-// Inicia el login → redirige a World ID authorize
+// Inicia login → redirige a World ID authorize
 app.get('/auth/login', (req, res) => {
   const client_id = process.env.WLD_CLIENT_ID;
   const redirect_uri = process.env.WLD_REDIRECT_URI;
@@ -31,10 +39,9 @@ app.get('/auth/login', (req, res) => {
   const returnTo = req.query.returnTo || '/';
 
   if (!client_id || !redirect_uri) {
-    return res.status(500).send('Faltan WLD_CLIENT_ID o WLD_REDIRECT_URI en .env');
+    return res.status(500).send('Faltan WLD_CLIENT_ID o WLD_REDIRECT_URI en variables de entorno');
   }
 
-  // Guarda state y returnTo en cookie simple (en producción usa un store/redis)
   res.cookie('wld_state', state, { httpOnly: true, sameSite: 'lax', maxAge: 10*60*1000 });
   res.cookie('wld_return', returnTo, { httpOnly: true, sameSite: 'lax', maxAge: 10*60*1000 });
 
@@ -45,7 +52,6 @@ app.get('/auth/login', (req, res) => {
   url.searchParams.set('scope', scope);
   url.searchParams.set('state', state);
 
-  // Nota: en World App, esta URL abre la interfaz nativa de verificación
   res.redirect(url.toString());
 });
 
@@ -59,7 +65,6 @@ app.get('/auth/callback', async (req, res) => {
     return res.status(400).send('State inválido o falta code');
   }
 
-  // Intercambio (usar fetch nativo en Node >=18)
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
@@ -80,10 +85,7 @@ app.get('/auth/callback', async (req, res) => {
     console.error('Token exchange error', e);
   }
 
-  // Pequeña página que avisa a la ventana madre y cierra
-  res.send(`<!doctype html>
-  <html><body>
-  <script>
+  res.send(`<!doctype html><html><body><script>
     try {
       if (${ok ? 'true' : 'false'}) {
         if (window.opener) {
@@ -91,20 +93,25 @@ app.get('/auth/callback', async (req, res) => {
           window.close();
         } else if (window.parent) {
           window.parent.postMessage({ type: 'wld:verified' }, '*');
-          location.replace(${JSON.stringify(returnTo)});
+          location.replace(${json.dumps(returnTo)});
         } else {
-          location.replace(${JSON.stringify(returnTo)});
+          location.replace(${json.dumps(returnTo)});
         }
       } else {
         if (window.opener) { window.opener.postMessage({ type: 'wld:error' }, '*'); }
         document.body.textContent = 'No se pudo verificar con World ID.';
       }
     } catch (_) { document.body.textContent = 'Error postMessage.'; }
-  </script>
-  </body></html>`);
+  </script></body></html>`);
 });
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+// Serve index.html for root and any non-API path (SPA-friendly)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(WEB_DIR, 'index.html'));
+});
+app.get(/^\/(?!auth\/).*$/, (req, res) => {
+  res.sendFile(path.join(WEB_DIR, 'index.html'));
+});
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`[RainbowGold] API en http://localhost:${port}`));
+// ✅ Export default app for @vercel/node (no app.listen here)
+export default app;
