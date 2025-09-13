@@ -1,0 +1,110 @@
+
+import 'dotenv/config';
+import express from 'express';
+import path from 'path';
+import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
+
+const app = express();
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Sirve el frontend desde /web por el mismo origen (compatible con tu CSP)
+const WEB_DIR = process.env.WEB_DIR || path.resolve(process.cwd(), '../web');
+app.use(express.static(WEB_DIR));
+
+// === Helpers World ID OIDC ===
+const OIDC = {
+  authorize: 'https://id.worldcoin.org/authorize',
+  token: 'https://id.worldcoin.org/token'
+};
+
+function randomStr(n=32){ return crypto.randomBytes(n).toString('hex'); }
+
+// Inicia el login → redirige a World ID authorize
+app.get('/auth/login', (req, res) => {
+  const client_id = process.env.WLD_CLIENT_ID;
+  const redirect_uri = process.env.WLD_REDIRECT_URI;
+  const scope = process.env.WLD_SCOPE || 'openid';
+  const state = randomStr(12);
+  const returnTo = req.query.returnTo || '/';
+
+  if (!client_id || !redirect_uri) {
+    return res.status(500).send('Faltan WLD_CLIENT_ID o WLD_REDIRECT_URI en .env');
+  }
+
+  // Guarda state y returnTo en cookie simple (en producción usa un store/redis)
+  res.cookie('wld_state', state, { httpOnly: true, sameSite: 'lax', maxAge: 10*60*1000 });
+  res.cookie('wld_return', returnTo, { httpOnly: true, sameSite: 'lax', maxAge: 10*60*1000 });
+
+  const url = new URL(OIDC.authorize);
+  url.searchParams.set('client_id', client_id);
+  url.searchParams.set('redirect_uri', redirect_uri);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', scope);
+  url.searchParams.set('state', state);
+
+  // Nota: en World App, esta URL abre la interfaz nativa de verificación
+  res.redirect(url.toString());
+});
+
+// Callback → canjea el code por tokens y notifica al frontend
+app.get('/auth/callback', async (req, res) => {
+  const { code, state } = req.query;
+  const cookieState = req.cookies?.wld_state;
+  const returnTo = req.cookies?.wld_return || '/';
+
+  if (!code || !state || !cookieState || state !== cookieState) {
+    return res.status(400).send('State inválido o falta code');
+  }
+
+  // Intercambio (usar fetch nativo en Node >=18)
+  const body = new URLSearchParams();
+  body.set('grant_type', 'authorization_code');
+  body.set('code', code);
+  body.set('client_id', process.env.WLD_CLIENT_ID || '');
+  body.set('client_secret', process.env.WLD_CLIENT_SECRET || '');
+  body.set('redirect_uri', process.env.WLD_REDIRECT_URI || '');
+
+  let ok = false;
+  try {
+    const r = await fetch(OIDC.token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await r.json();
+    ok = !!data?.access_token || !!data?.id_token;
+  } catch (e) {
+    console.error('Token exchange error', e);
+  }
+
+  // Pequeña página que avisa a la ventana madre y cierra
+  res.send(`<!doctype html>
+  <html><body>
+  <script>
+    try {
+      if (${ok ? 'true' : 'false'}) {
+        if (window.opener) {
+          window.opener.postMessage({ type: 'wld:verified' }, '*');
+          window.close();
+        } else if (window.parent) {
+          window.parent.postMessage({ type: 'wld:verified' }, '*');
+          location.replace(${JSON.stringify(returnTo)});
+        } else {
+          location.replace(${JSON.stringify(returnTo)});
+        }
+      } else {
+        if (window.opener) { window.opener.postMessage({ type: 'wld:error' }, '*'); }
+        document.body.textContent = 'No se pudo verificar con World ID.';
+      }
+    } catch (_) { document.body.textContent = 'Error postMessage.'; }
+  </script>
+  </body></html>`);
+});
+
+app.get('/health', (req, res) => res.json({ ok: true }));
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`[RainbowGold] API en http://localhost:${port}`));
