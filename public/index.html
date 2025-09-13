@@ -959,7 +959,7 @@ body.has-drawer{
           }
 
           window.VERIFIED = true;
-          try { setVerifiedUI?.(true); } catch(_){}
+          setVerifiedUI(true);
           return true;
         }
       } catch(_){}
@@ -967,30 +967,38 @@ body.has-drawer{
     }
 
     async function ensureUnlocked() {
-      try { setVerifiedUI?.(true); } catch(_){}
-      try { unlock?.(); } catch(_){}
-      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
+      setVerifiedUI(true);
+      if (typeof unlock === 'function') unlock();
+      if (typeof connectWallet === 'function') connectWallet();
+      hideSplash();
     }
 
     (async () => {
       if (t) {
+        // Viene con token -> mostrar modal de verificación
         window.SESSION_TOKEN = t;
         window.VERIFIED = true;
         history.replaceState({}, '', location.origin + location.pathname);
-        await ensureUnlocked();
         await applySessionFromCookie();
+        showVerificationModal();
       } else {
-        const ok = await applySessionFromCookie();
-        if (ok) await ensureUnlocked();
+        // Sin token -> verificar sesión existente
+        const hasSession = await applySessionFromCookie();
+        if (hasSession) {
+          await ensureUnlocked();
+        }
       }
     })();
 
     window.addEventListener('load', () => {
-      if (window.VERIFIED) {
+      if (window.VERIFIED && typeof unlock === 'function') {
         let tries = 0;
-        const h = setInterval(() => {
-          if (typeof unlock === 'function') { ensureUnlocked(); clearInterval(h); }
-          if (++tries > 10) clearInterval(h);
+        const interval = setInterval(() => {
+          if (typeof unlock === 'function') { 
+            ensureUnlocked(); 
+            clearInterval(interval); 
+          }
+          if (++tries > 10) clearInterval(interval);
         }, 300);
       }
     });
@@ -1045,30 +1053,98 @@ body.has-drawer{
 })();
 </script>
 
-
-  <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
     <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
-
   </div>
 
-  <button id="wldSignIn" data-i18n="signin_wld"
+  <button id="wldSignIn" onclick="showWorldIDModal()" data-i18n="signin_wld"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
          color:#fff;font-weight:700;cursor:pointer">
   Entrar con World ID
 </button>
 
+  <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
+    <span data-i18n="preparing_session">Preparando tu sesión</span>
+    <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+  </div>
+</div>
+
+<!-- Modal World ID -->
+<div id="worldIdModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:flex-end;justify-content:center;z-index:1000">
+  <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:400px;padding:30px;color:#333">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <h2 style="font-size:24px;font-weight:600;color:#333;margin:0">Iniciar sesión</h2>
+        <p style="font-size:14px;color:#666;margin:0">a RainbowGold Tap</p>
+      </div>
+      <button onclick="hideWorldIDModal()" style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;border:none;cursor:pointer">×</button>
+    </div>
+    
+    <p style="margin-bottom:20px">La app verá tu</p>
+    
+    <div style="margin:20px 0">
+      <div style="display:flex;align-items:center;margin:15px 0;font-size:16px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#333;color:white;display:flex;align-items:center;justify-content:center;margin-right:15px;font-weight:bold">✓</span>
+        Ser humano único
+      </div>
+    </div>
+    
+    <p style="font-size:12px;color:#888;margin:20px 0">
+      Al iniciar sesión con World ID, aceptas los Términos del servicio y Política de privacidad de la app
+    </p>
+    
+    <button onclick="initiateWorldID()" style="width:100%;padding:16px;background:#333;color:white;border:none;border-radius:25px;font-size:16px;font-weight:600;cursor:pointer">
+      Inicia sesión con World ID
+    </button>
+  </div>
+</div>
+
+<!-- Modal Verificación -->
+<div id="verificationModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:flex-end;justify-content:center;z-index:1000">
+  <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:400px;padding:30px;color:#333;text-align:center">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <h2 style="font-size:24px;font-weight:600;color:#333;margin:0">Iniciar sesión</h2>
+        <p style="font-size:14px;color:#666;margin:0;display:flex;align-items:center;gap:8px">
+          a RainbowGold Tap
+          <span style="width:16px;height:16px;border-radius:50%;background:#4285f4;color:white;display:flex;align-items:center;justify-content:center;font-size:10px">✓</span>
+        </p>
+      </div>
+      <button onclick="hideVerificationModal()" style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;border:none;cursor:pointer">×</button>
+    </div>
+    
+    <p style="font-size:16px;color:#666;margin-bottom:30px;line-height:1.4">
+      Firma para confirmar la propiedad de la billetera y autenticarte.
+    </p>
+    
+    <p style="margin-bottom:20px">Esta aplicación verá tu</p>
+    
+    <div style="margin:20px 0">
+      <div style="display:flex;align-items:center;margin:15px 0;font-size:16px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#333;color:white;display:flex;align-items:center;justify-content:center;margin-right:15px;font-weight:bold">✓</span>
+        Billetera
+      </div>
+      <div style="display:flex;align-items:center;margin:15px 0;font-size:16px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#333;color:white;display:flex;align-items:center;justify-content:center;margin-right:15px;font-weight:bold">✓</span>
+        Nivel de verificación
+      </div>
+    </div>
+    
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0;padding:10px 0">
+      <span>Mantener mi sesión iniciada</span>
+      <div id="keepSessionToggle" onclick="toggleKeepSession()" style="position:relative;width:50px;height:24px;background:#333;border-radius:12px;cursor:pointer">
+        <div style="position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:2px;left:26px;transition:transform 0.2s"></div>
+      </div>
+    </div>
+    
+    <button onclick="completeVerification()" style="width:100%;padding:16px;background:#333;color:white;border:none;border-radius:25px;font-size:16px;font-weight:600;cursor:pointer">
+      Iniciar sesión
+    </button>
+  </div>
+</div>
   
- <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
-  <span data-i18n="preparing_session">Preparando tu sesión</span>
-  <span class="dots"><span>.</span><span>.</span><span>.</span></span>
-</div>
-
-
-
-</div>
 
 <!-- Left FABs -->
 <div class="floatCol">
@@ -4084,7 +4160,71 @@ window.addEventListener('load', () => {
   };
 })();
 </script>
+<script>
+// Funciones para World ID Modal
+function showWorldIDModal() {
+  document.getElementById('worldIdModal').style.display = 'flex';
+}
 
+function hideWorldIDModal() {
+  document.getElementById('worldIdModal').style.display = 'none';
+}
+
+function showVerificationModal() {
+  hideWorldIDModal();
+  document.getElementById('verificationModal').style.display = 'flex';
+}
+
+function hideVerificationModal() {
+  document.getElementById('verificationModal').style.display = 'none';
+}
+
+function initiateWorldID() {
+  window.location.href = '/api/auth/worldid';
+}
+
+async function completeVerification() {
+  try {
+    const response = await fetch('/api/session');
+    const data = await response.json();
+    
+    if (data.session && data.session.sub) {
+      hideVerificationModal();
+      hideSplash();
+      window.VERIFIED = true;
+      setVerifiedUI(true);
+      unlock();
+    } else {
+      alert('Error al obtener datos de sesión');
+    }
+  } catch (error) {
+    alert('Error en la verificación: ' + error.message);
+  }
+}
+
+function toggleKeepSession() {
+  const toggle = document.getElementById('keepSessionToggle');
+  const dot = toggle.querySelector('div');
+  const isActive = dot.style.left === '26px';
+  
+  if (isActive) {
+    dot.style.left = '2px';
+  } else {
+    dot.style.left = '26px';
+  }
+}
+
+// Función para ocultar splash
+function hideSplash() {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('splash--hide');
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 400);
+  }
+}
+</script>
 
 </body>
 </html>
