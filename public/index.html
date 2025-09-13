@@ -1,354 +1,3530 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RainbowGold Tap</title>
-  <meta name="wld-contract" content="0x2cfc85d8e48f8eab294be644d9e25c3030863003" />
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
-                 connect-src 'self' https://id.worldcoin.org https://worldchain-mainnet.g.alchemy.com/public;">
-  <style>
-    :root { --bg:#0e0f12; --panel:#15171c; --text:#e8e8ea; --muted:#a9afbf; --accent:#82ff9b; }
-    body { margin:0; background:#0b0c10; color:var(--text); font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
-    .wrap { max-width:900px; margin:18px auto; padding:16px; }
-    .splash { position:fixed; inset:0; display:grid; place-items:center; background:#0a0b10; z-index:50; }
-    .panel { width:min(520px, 92dvw); background:#0d0f14; border:1px solid #232736; border-radius:18px; padding:20px; text-align:center; }
-    .btn { cursor:pointer; border:0; border-radius:12px; padding:12px 16px; color:#0b0d10; background:var(--accent); font-weight:700; }
-    .hidden { display:none !important; }
-    .bar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .wallet { display:none; align-items:center; gap:10px; background:#15171c; padding:8px 12px; border-radius:12px; }
-    .pill { background:#0a0b0e; padding:6px 10px; border-radius:999px; color:#a9afbf; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:16px; margin-top:18px; }
-    .card { background:#15171c; border:1px solid #242834; border-radius:16px; padding:16px; }
-    .xs { font-size:12px; color:#a9afbf; }
-  </style>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<!-- ✅ CSP etapa 1: compatible con scripts/estilos inline -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  font-src 'self';
+  connect-src 'self' https://cdn.jsdelivr.net https://worldgold-api-o87j.vercel.app;
+  media-src 'self';
+  frame-ancestors 'none';
+">
+<!-- Referrer mínima (no filtramos URL) -->
+<meta http-equiv="Referrer-Policy" content="no-referrer">
+
+<!-- Permissions-Policy: cerramos sensores/cámara/mic/etc. -->
+<meta http-equiv="Permissions-Policy" content="
+  accelerometer=(),
+  camera=(),
+  geolocation=(),
+  gyroscope=(),
+  magnetometer=(),
+  microphone=(),
+  payment=(),
+  usb=()
+">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://worldgold-api-o87j.vercel.app" crossorigin>
+
+<title>RainbowGold — App</title>
+<meta name="theme-color" content="#1b103a">
+
+<style>
+:root{
+  -webkit-tap-highlight-color: transparent;
+  --bg1:#6C48FF; --bg2:#1B103A; --ink:#fff; --mut:#C7C4FF;
+  --gold:#F4C542; --gold-soft:#FFD872;
+  /* MÁS GRANDE y calzada */
+  --heroSize: clamp(100px, 82vw, 620px);
+  --coinSize: clamp(100px, 82vw, 620px);
+}
+
+/* Base */
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0; color:var(--ink);
+  font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial;
+  /* negro carbón con leve degradado vertical */
+  background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
+}
+
+/* Noise overlay (opcional) */
+.noise{
+  position:fixed; inset:0; pointer-events:none; opacity:0.08; mix-blend-mode:soft-light;
+  background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
+  z-index:0;
+}
+
+/* Topbar */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:5;
+  height:60px;
+  padding:0 12px;
+  background:linear-gradient(180deg,rgba(0,0,0,.0),rgba(0,0,0,0));
+  backdrop-filter:none;
+}
+
+
+.topbar h1{margin:0; font-size:28px}
+.top-actions{position:absolute; right:12px; top:calc(8px + env(safe-area-inset-top));z-index:10; font-size:12px; color:var(--mut); text-align:right}
+
+/* Left FABs */
+.floatCol{position:fixed; left:12px; top:calc(12px + env(safe-area-inset-top)); z-index:6; display:flex; flex-direction:column; gap:10px}
+.fab {
+  width:48px; height:48px;
+  border:none;
+  display:grid; place-items:center;
+  background: transparent;
+  box-shadow: none;
+  cursor:pointer;
+  transition: transform 0.2s ease, filter 0.3s ease;
+  position: relative;
+
+}
+
+.fab.profile, .fab.trophy, .fab.inbox {
+  background: transparent;
+  box-shadow: none;
+}
+
+.badge{position:absolute;
+   top:-6px;
+    right:-6px;
+     background:#ff3b3b;
+      color:#fff;
+       border-radius:999px;
+        min-width:18px; height:18px;
+         display:grid; place-items:center;
+          font-size:10px; font-weight:700; padding:0 6px}
+
+/* Hero */
+.hero{min-height:calc(100dvh - 76px - env(safe-area-inset-bottom)); display:grid; place-items:center; gap:12px;
+  padding:6px 14px calc(24px + env(safe-area-inset-bottom)); position:relative; z-index:1}
+.pill{
+  z-index:3;
+  background: #292828; border:1px solid #292828;
+  border-radius:999px; padding:8px 16px; font-weight:700; font-size:18px;
+  display:inline-flex; align-items:center; gap:10px; backdrop-filter:blur(4px);color: #eeeded;
+}
+.pill img{width:22px; height:22px; display:inline-block}
+
+/* Coin area */
+.coinWrap{
+  position:relative; width:var(--heroSize); height:var(--heroSize); border-radius:999px; display:grid; place-items:center;
+  background:radial-gradient(60% 60% at 50% 40%,#d9d9d9,#5a5a5a 100%);
+  box-shadow:0 40px 120px rgba(0,0,0,.35) inset, 0 10px 40px rgba(0,0,0,.25)
+}
+.ring{position:absolute; inset:0; border-radius:50%;
+  box-shadow:
+    inset 0 0 0 22px rgba(255,255,255,.03),  /* aro más grueso */
+    inset 0 0 0 2px rgba(255,255,255,0.15),
+    0 0 25px rgba(255, 230, 150, 0.4),
+    0 0 60px rgba(255, 220, 120, 0.25);
+}
+.coin{
+  width:var(--coinSize); height:var(--coinSize); border-radius:999px; display:grid; place-items:center; user-select:none; touch-action:manipulation;
+  background:radial-gradient(60% 60% at 50% 40%, #d9d9d9, #5a5a5a 70%);
+  border:2px solid rgba(255,255,255,0.15);
+  box-shadow:
+    0 0 15px rgba(255, 223, 120, 0.7),
+    0 0 35px rgba(255, 200, 80, 0.4),
+    0 0 60px rgba(255, 180, 60, 0.25);
+  transition:transform .08s ease; position:relative; overflow:hidden;
+}
+
+.coin:active{transform:scale(.98)}
+.coinImg{width:104%; height:109%; display:block; object-fit:cover; pointer-events:none; border-radius: 50%; image-rendering:-webkit-optimize-contrast}
+.coinFallback{font-size:52px}
+/* El número aparece justo donde tocas */
+.gain{
+  position:absolute;
+  transform:translate(-50%,-50%);   /* centrado relativo a su punto */
+  font-weight:900;
+  font-size:20px;
+  opacity:0;
+  pointer-events:none;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+.gain.show{ animation: float .50s ease-out forwards }  /* un poco más corto/suave */
+
+/* Flotado más corto y suave (menos brusco) */
+@keyframes float{
+  from{ opacity:.0; transform:translate(-50%,-4px) scale(.96) }
+  45% { opacity:1;  transform:translate(-50%,-12px) scale(1.00) }
+  to  { opacity:0;  transform:translate(-50%,-26px) scale(1.02) }
+}
+#fx{position:absolute; inset:0; pointer-events:none}
+
+/* Dock (Refill + Booster) debajo de la moneda */
+.action-dock{display:flex; align-items:center; justify-content:center; gap:14px; margin-top:12px; z-index:4}
+.btn-icon{
+  display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
+  background:rgba(255,255,255,.06); border:1px solid #b5b5b5; border-radius:12px; color:#f0e2e2;
+  backdrop-filter:blur(6px)
+}
+.btn-icon img{width:34px; height:34px; display:block}
+.price-pill{
+  font-weight:600; font-size:15px; line-height:20px; color:var(--gold-soft);
+  padding:5px 10px; border-radius:10px; background:rgba(10,8,24,.65); border:1px solid rgba(255,255,255,.16)
+}
+.btn-icon:disabled{opacity:.5; pointer-events:none}
+.btn-icon.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.btn-icon.shake{animation:shake .25s linear}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+
+/* Energy bar */
+.energyWrap{width:min(92%,560px); text-align:center; margin-top:16px}
+.energyBar{height:16px; background:#231b68; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.12)}
+.energyFill{height:100%; background:linear-gradient(90deg,#7c5cff,#bdb3ff); background-size:200% 100%; animation:shimmer 3s linear infinite}
+@keyframes shimmer{0%{background-position:0 0}100%{background-position:200% 0}}
+.energyLbl{margin-top:6px; font-size:13px; color:var(--mut)}
+
+/* Drawer simple */
+.backdrop{
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.03), rgba(10,10,14,.88) 60%, rgba(0,0,0,.95) 100%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity:0; pointer-events:none;
+  transition: opacity .28s ease;
+  position:fixed; inset:0; z-index:40;
+}
+.backdrop.show{opacity:1; pointer-events:auto}
+
+
+
+.drawer .close{position:sticky; top:0; margin-left:auto; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
+  background:transparent; color:#fff; cursor:pointer; font-size:18px}
+
+/* Demo card */
+.card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; margin:12px}
+
+/* Ajustes pantallas estrechas */
+@media (max-width:360px){
+  .btn-icon img{width:28px; height:28px}
+  .price-pill{font-size:13px; padding:3px 6px}
+  .action-dock{gap:10px}
+}/* === Estrellas sutiles === */
+
+
+
+/* Hover suave dorado en iconos */
+.fab img {
+  transition: transform 0.25s ease, filter 0.3s ease;
+}
+.fab:hover img {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
+}
+/* Estilo de lista de mensajes (Inbox) */
+.inbox-list { display: grid; gap: 10px; }
+.msg {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 10px;
+}
+.msg-time { font-size: 12px; color: var(--mut); margin-bottom: 4px; }
+.msg-text { white-space: pre-line; line-height: 1.45; }
+/* Tooltip del trofeo (limpio y sutil) */
+.trophyWrap{
+  position: relative;
+  display: inline-block;
+}
+.tip{
+  position: absolute;
+  right: 0;
+  top: -10px;                 /* nace un poco arriba del botón */
+  transform: translateY(-6px);
+  opacity: 0;
+  pointer-events: none;       /* no bloquea clics al botón */
+  background: rgba(0,0,0,.85);
+  color: #ffd872;
+  border: 1px solid rgba(255,223,120,.5);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 999;               /* por encima de todo */
+}
+.tip::after{
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 100%;
+  border: 6px solid transparent;
+  border-top-color: rgba(0,0,0,.85); /* flechita */
+}
+.tip.show{
+  opacity: 1;
+  transform: translateY(-14px); /* sube un poquito y aparece */
+}
+/* === Inbox: variantes de mensaje === */
+.msg-system{
+  border: 1px solid rgba(244, 197, 66, .65);
+  background: linear-gradient(180deg, rgba(255,224,150,.10), rgba(0,0,0,.10));
+  box-shadow:
+     0 0 0 1px rgba(244,197,66,.15) inset,
+     0 8px 24px rgba(244,197,66,.12),
+     0 0 14px rgba(244,197,66,.25);
+}
+.msg-system .msg-time{ color: #ffd872; }
+/* === OVERRIDE DEL LOGO (pisamos cualquier regla anterior) === */
+:root{
+  -webkit-tap-highlight-color: transparent;
+  /* Ajusta aquí sin miedo */
+  --logoSize: 10px;          /* ej.: 44px, 36px, clamp(28px,5vw,56px) */
+}
+
+/* Más específico + !important para ganar siempre */
+.topbar .logo-text{
+  font-size: var(--logoSize) !important;
+  color: var(--logoColor) !important;
+ }
+ .logo-text{
+  margin: 0;
+  font-size: var(--logoSize);
+  font-weight: 800;
+  color: var(--logoColor);
+  letter-spacing: 1.5px;
+  text-shadow:
+    0 0 3px var(--logoGlow1),
+    0 0 6px var(--logoGlow2);
+  display: inline-block;
+  pointer-events: none;
+}
+/* === Splash / Pantalla de carga === */
+.splash {
+  position: fixed; inset: 0; z-index: 9999;           /* por encima de todo */
+  display: grid; place-items: center;
+  background: radial-gradient(120% 120% at 50% 20%, #0f0f14 0%, #000 70%);
+  transition: opacity .36s ease;
+  opacity: 1;
+  pointer-events: auto;                                /* bloquea la UI detrás */
+}
+
+.splash--hide {
+  opacity: 0;
+  pointer-events: none;                                /* libera la UI al ocultar */
+}
+
+.splash__logo {
+  width: clamp(140px, 36vw, 220px);   /* más grande que antes */
+  height: clamp(140px, 36vw, 220px);
+  border-radius: 28px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  display: grid; place-items: center;
+  padding: 10px;                      /* menos padding para que la imagen crezca más */
+  box-shadow:
+    0 16px 40px rgba(0,0,0,.55),
+    0 0 28px rgba(255, 220, 120, .18);
+  animation: zoom-in 1s ease forwards;
+}
+
+
+@keyframes zoom-in {
+  0%   { transform: scale(1.3); opacity: 0; }
+  60%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+
+
+.splash__logo img {
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 223, 120, .35));
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* Animaciones suaves */
+@keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
+@keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
+
+/* Tip extra opcional */
+/* Texto del splash con transición simple (sin keyframes) */
+.splash__hint {
+  margin-top: 16px;
+  color: var(--mut);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;                   /* inicia oculto */
+  transform: translateY(6px);   /* pequeño empuje hacia abajo */
+  transition: opacity .8s ease, transform .8s ease;
+}
+/* Puntos animados tipo "..." uno a uno */
+.dots{
+  display:inline-block;
+  margin-left: 2px;          /* pequeño espacio tras el texto */
+  vertical-align: baseline;  /* se alinea como texto normal */
+}
+.dots span{
+  display:inline-block;
+  opacity:0;
+  animation: dotblink 1.2s infinite steps(1, end);
+}
+.dots span:nth-child(1){ animation-delay: 0s;    }
+.dots span:nth-child(2){ animation-delay: 0.2s;  }
+.dots span:nth-child(3){ animation-delay: 0.4s;  }
+
+@keyframes dotblink{
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }  /* se muestra */
+  100% { opacity: 1; }
+}
+#devBanner {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(255, 0, 0, 0.8);
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 8px;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  font-family: system-ui, sans-serif;
+}
+.coin.flash {
+  box-shadow: 
+    0 0 18px rgba(255, 223, 120, 0.7),
+    0 0 36px rgba(255, 200, 80, 0.35);
+  transition: box-shadow .22s ease-out;
+}
+/* Refill: estados visuales */
+#refillBtn.refillPulse {
+  animation: refillPulse 1.1s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes refillPulse {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  50%  { transform: scale(1.08); filter: brightness(1.12); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+
+/* Refill: alarma (energía 0) */
+#refillBtn.refillAlarm {
+  animation: refillAlarmBlink 0.7s steps(2, jump-none) infinite,
+             refillAlarmShake 0.28s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes refillAlarmBlink {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.35); }
+}
+@keyframes refillAlarmShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+
+/* Botón "Ideas" dentro de la moneda */
+.idea-btn{
+  position:absolute;
+  left:10px;           /* esquina inferior izquierda */
+  bottom:10px;
+  z-index:7;
+  width:44px; height:44px;
+  display:grid; place-items:center;
+  border:none; background:transparent;
+  cursor:pointer;
+}
+.idea-btn img{
+  width:50px; height:50px; display:block;
+  filter: brightness(0) saturate(100%) invert(67%) sepia(84%) saturate(423%) hue-rotate(350deg) brightness(96%) contrast(93%);
+  transition: transform .2s ease;
+}
+.idea-btn:hover img{ transform: scale(1.08); }
+/* Texto más oscuro en el drawer de Ideas */
+#drawerID { color:#e6e6e6; }
+#drawerID h3 { color:#f1f1f1; }
+#ticketTimer { color:#c9a848 !important; }  /* timer dorado más oscuro */
+#drawerID .hint { color:#bdbdbd; font-size:12px; }
+#drawerID input, #drawerID textarea {
+  background:#141318; color:#f0f0f0; border:1px solid #2a2930; border-radius:10px; padding:10px;
+}
+#drawerID .btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 12px; border-radius:10px; border:1px solid #3a3844; cursor:pointer;
+  background:#1a1920; color:#eaeaea;
+}
+#drawerID .btn:hover { filter:brightness(1.1); }
+
+
+/* === Aviso neón: lista vertical en TOPBAR (ancho = píldora) === */
+:root{
+  -webkit-tap-highlight-color: transparent;
+  --activityWidth: 260px;   /* lo ajusta el JS para igualar la píldora */
+}
+
+.topbar .activity-bar{
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top)); /* deja espacio para que suba */
+  left: 50%;
+  width: var(--activityWidth);                /* EXACTO al ancho de la píldora */
+  transform: translateX(-50%);
+  height: 18px;                               /* altura de “renglón” */
+  line-height: 18px;
+  text-align: center;
+  overflow: hidden;                           /* recorta arriba/abajo */
+  pointer-events: none;
+  z-index: 30;
+  white-space: nowrap;
+  font: 800 11px/18px system-ui, sans-serif;  /* letra pequeña */
+}
+
+.topbar .activity-item{
+  display: inline-block;
+  background: none;                           /* solo texto, sin caja */
+  margin: 0; padding: 0;
+  color: #758e91;                             /* neón */
+  text-shadow:
+    0 0 1px #252125,
+    0 0 1px #daece3,
+    0 0 1px #97aa73;
+  transform: translateY(24px);                /* arranca ABAJO del marco */
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.topbar .activity-item.run{
+  animation: flowSlide 3.2s ease-in-out forwards;
+}
+
+/* Lista vertical: aparece abajo → se queda vibrando → sigue subiendo → desaparece */
+@keyframes flowSlide{
+  0%   { transform: translateY(40px); opacity: 0; }   /* bien abajo */
+  20%  { transform: translateY(0);    opacity: 1; }   /* llega al centro */
+  40%  { transform: translateY(0);    opacity: 1; }   /* se mantiene */
+  50%  { transform: translateY(0) translateX(-2px); }
+  58%  { transform: translateY(0) translateX( 2px); } /* vibra horizontal */
+  66%  { transform: translateY(0) translateX(-1px); }
+  74%  { transform: translateY(0) translateX( 1px); }
+  80%  { transform: translateY(0); opacity: 1; }      /* último instante en centro */
+  100% { transform: translateY(-60px); opacity: 0; }  /* se va hacia arriba */
+}
+
+/* === Cards pro unificadas === */
+.cardPro{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.cardPro h3,.cardPro h4{margin:0 0 10px;font:700 16px/1.2 system-ui;color:#ffd872}
+
+/* === Botón pro (usa en acciones) === */
+.btnPro{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 14px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#fff;font-weight:800;letter-spacing:.2px;
+  transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+}
+.btnPro:hover{transform:translateY(-1px);background:rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.btnPro:active{transform:translateY(0)}
+.btnPro.success{border-color:rgba(0,230,140,.35);background:rgba(0,230,140,.12);color:#00e68c}
+.btnPro.warn{border-color:rgba(255,120,80,.35);background:rgba(255,120,80,.12);color:#ff9a6b}
+
+/* === Encuestas (barras lindas) === */
+.pollRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.pollLabel{min-width:72px;font-weight:800;opacity:.95}
+.pollBar{
+  flex:1;height:12px;border-radius:8px;overflow:hidden;
+  background:#0f0e13;border:1px solid rgba(255,255,255,.12);
+}
+.pollFill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#ffd872,#ffb347);
+  transition:width .35s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 0 8px rgba(255,216,114,.35);
+}
+
+/* === Inbox estilo chat === */
+.chatList{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1)}
+.msg.me{align-self:flex-end;background:rgba(255,255,255,.06)}
+.msg.other{align-self:flex-start;background:rgba(0,0,0,.35)}
+.msg .meta{font-size:11px;opacity:.7;margin-top:6px}
+
+/* === Inputs del perfil / formularios === */
+.inputPro, .textareaPro{
+  width:100%;padding:10px 12px;border-radius:10px;
+  background:rgba(255,255,255,.06);color:#fff;
+  border:1px solid rgba(255,255,255,.12);
+  outline:none;transition:border .15s ease, box-shadow .15s ease;
+}
+.inputPro:focus,.textareaPro:focus{
+  border-color:rgba(255,216,114,.45);box-shadow:0 0 0 3px rgba(255,216,114,.18)
+}
+.textareaPro{min-height:90px;resize:vertical}
+/* === Drawers pro: entrada suave y panel elegante === */
+
+.drawer.open { opacity: 1 !important; }
+
+/* Panel interno del drawer (cuerpo) */
+.drawer .drawer-body{
+  background: rgba(20,20,26,.78);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(8px);
+
+  transform: translateY(22px) scale(.985);
+  opacity: 0;
+  transition: transform .28s ease, opacity .24s ease, box-shadow .2s ease;
+  padding: 14px 16px; /* espacio uniforme adentro */
+}
+
+/* Al abrir: sube y aparece suave */
+.drawer.open .drawer-body{
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* Títulos dentro del panel */
+.drawer .drawer-body h3, 
+.drawer .drawer-body h4{
+  margin: 0 0 10px;
+  font: 700 16px/1.2 system-ui;
+  color: #ffd872;
+}
+
+/* Separadores suaves */
+.drawer .drawer-body .section + .section{
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255,255,255,.10);
+}
+/* === NUEVO estilo pro para paneles y tarjetas === */
+.drawer .drawer-body, .cardPro {
+  background: rgba(25, 25, 35, 0.78);          /* translúcido oscuro */
+  border: 1px solid rgba(255, 255, 255, 0.08); /* borde suave */
+  border-radius: 18px;                         /* esquinas redondeadas */
+  padding: 16px 18px;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.45),
+    0 0 0 1px rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(10px);                 /* difuminado elegante */
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Títulos dentro de tarjetas/drawers */
+.drawer .drawer-body h3,
+.drawer .drawer-body h4,
+.cardPro h3, .cardPro h4 {
+  margin: 0 0 10px;
+  font: 700 16px/1.2 system-ui;
+  color: #ffd872;
+}
+
+/* Botones pro */
+.btnPro {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 14px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:#fff; font-weight:800; letter-spacing:.2px;
+  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+}
+.btnPro:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+#markRead { color: #e4e0d8; }
+#payIdeasBtn { color: #fffcf6; }
+#claimBtn { color: #d1d0cc; }
+
+/* === Drawer estilo Floating Card === */
+.drawer {
+  position: fixed;
+  top: 6%;
+  right: -380px;
+  width: min(340px, 88vw);
+  height: 88dvh;
+
+  /* 🎨 Fondo translúcido card */
+  background: rgba(18,18,22,0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  /* 🔘 Bordes grandes, tipo “tarjeta flotante” */
+  border-radius: 36px 0 0 36px;
+
+  /* 🌟 Sombra profunda */
+  box-shadow: -12px 0 32px rgba(0,0,0,.65),
+              -18px 0 48px rgba(255,216,114,.10);
+
+  padding: 20px 18px calc(28px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  z-index: 60;
+
+  /* 🎬 Transición slide+scale */
+  transform: translateX(24px) scale(.96);
+  opacity: 0;
+  transition: transform .55s cubic-bezier(.25,1,.3,1),
+              opacity .45s ease;
+}
+
+.drawer.show {
+  right: 12px; /* se separa un poquito del borde */
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
+
+/* Glow discreto dorado en el borde */
+.drawer::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: 36px 0 0 36px;
+  pointer-events:none;
+  box-shadow: inset 0 0 0 1px rgba(255,216,114,.14);
+}
+/* === Entrada en cascada para el contenido del drawer === */
+
+/* Estado inicial (invisible y un poco abajo) */
+.drawer > *:not(.close) {
+  opacity: 0;
+  transform: translateY(10px) scale(.985);
+  will-change: transform, opacity;
+}
+
+/* Cuando el drawer está abierto, animamos los hijos directos */
+.drawer.show > *:not(.close) {
+  animation: drawerItemIn .42s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+/* Delays escalonados (primeros 10 hijos) */
+.drawer.show > *:not(.close):nth-child(1)  { animation-delay: .04s; }
+.drawer.show > *:not(.close):nth-child(2)  { animation-delay: .08s; }
+.drawer.show > *:not(.close):nth-child(3)  { animation-delay: .12s; }
+.drawer.show > *:not(.close):nth-child(4)  { animation-delay: .16s; }
+.drawer.show > *:not(.close):nth-child(5)  { animation-delay: .20s; }
+.drawer.show > *:not(.close):nth-child(6)  { animation-delay: .24s; }
+.drawer.show > *:not(.close):nth-child(7)  { animation-delay: .28s; }
+.drawer.show > *:not(.close):nth-child(8)  { animation-delay: .32s; }
+.drawer.show > *:not(.close):nth-child(9)  { animation-delay: .36s; }
+.drawer.show > *:not(.close):nth-child(10) { animation-delay: .40s; }
+
+/* Los elementos internos de tarjetas también “respiran” un poco */
+.drawer.show .cardPro > * {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: cardChildIn .32s ease-out forwards;
+  animation-delay: .28s; /* empieza tras la entrada de la tarjeta */
+}
+
+/* Suavidad para botones dentro del drawer */
+.drawer .btn, .drawer .btn-icon, .drawer .btnPro {
+  transition: transform .12s ease, filter .18s ease, box-shadow .18s ease;
+}
+.drawer .btn:hover, .drawer .btn-icon:hover, .drawer .btnPro:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 8px 22px rgba(255,216,114,.10);
+}
+
+/* Keyframes */
+@keyframes drawerItemIn {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  70%  { opacity: 1; transform: translateY(0)    scale(1.000); }
+  to   { opacity: 1; transform: translateY(0)    scale(1.000); }
+}
+
+@keyframes cardChildIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+/* ===== Drawers optimizados ===== */
+.drawer{
+  transform: translate3d(0,100%,0);
+  transition: transform .28s ease, opacity .28s ease;
+  will-change: transform, opacity;
+  contain: layout paint;
+}
+.drawer.drawer--open{
+  transform: translate3d(0,0,0);
+}
+
+.backdrop{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.backdrop.backdrop--show{
+  opacity: .85;        /* ajusta si quieres más/menos oscuro */
+  pointer-events: auto;
+}
+
+/* Menos mareo para quienes prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce){
+  .drawer, .backdrop { transition: none !important; }
+}
+/* Evita scroll del fondo cuando hay drawer abierto */
+body.has-drawer{
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+</style>
 </head>
 <body>
-  <div id="splash" class="splash">
-    <div class="panel">
-      <h2>RainbowGold Tap</h2>
-      <p class="xs" id="splashMsg">Preparando tu sesión…</p>
-      <div style="height:8px"></div>
-      <button id="btnLogin" class="btn">Entrar con World ID</button>
-      <div class="xs" style="margin-top:8px">Primero login con World ID, luego conectaremos tu billetera automáticamente.</div>
+  <!-- === SPLASH / CARGA INICIAL === -->
+<div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
+  <div class="splash__logo">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+
+  </div>
+
+  <button id="wldSignIn" data-i18n="signin_wld"
+  style="margin-top:18px;padding:12px 16px;border-radius:12px;
+         background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+         color:#fff;font-weight:700;cursor:pointer">
+  Entrar con World ID
+</button>
+
+  
+ <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
+  <span data-i18n="preparing_session">Preparando tu sesión</span>
+  <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+</div>
+
+
+
+</div>
+
+<!-- Left FABs -->
+<div class="floatCol">
+  <button id="profileBtn" class="fab profile" title="Profile">
+    <img src="img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
+  </button>
+  <button id="inboxBtn" class="fab inbox" title="Inbox">
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
+    <span id="inboxBadge" class="badge" style="display:none">0</span>
+  </button>
+</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <h1 class="logo-text"></h1>
+  <!-- Aviso público centrado ARRIBA (donde estaba el logo) -->
+  <div id="activityBar" class="activity-bar" aria-live="polite"></div>
+</div>
+
+
+
+
+<!-- Botón trofeo en top-actions -->
+<div class="top-actions" style="overflow:visible">
+  <div><span data-i18n="wld_balance">Saldo WLD:</span></div>
+  <div><b id="balWLD">0.00</b> WLD</div>
+
+  <!-- WRAP del trofeo: el tip vive junto al botón -->
+  <div class="trophyWrap">
+    <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
+      <img src="img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
+    </button>
+    <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
+  </div>
+  </div>
+
+<!-- HERO -->
+<section class="hero">
+  <!-- Pastilla de WLGp: SOLO esto adentro -->
+  <div class="pill">
+    <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
+    WLGp: <b id="balWLGp" aria-live="polite">0.000</b>
+  </div>
+
+  <!-- Moneda (coin) — YA NO va dentro de .pill -->
+  <div class="coinWrap" id="coinBox">
+    <div class="ring"></div>
+    <canvas id="fx"></canvas>
+
+    <div id="coin" class="coin" aria-label="Tap">
+      <svg id="windowArc" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform:rotate(-90deg);z-index:6">
+        <defs>
+          <linearGradient id="frenzy777" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stop-color="#ff0055"/>
+            <stop offset="20%"  stop-color="#ff9500"/>
+            <stop offset="40%"  stop-color="#ffee00"/>
+            <stop offset="60%"  stop-color="#33dd55"/>
+            <stop offset="80%"  stop-color="#33aaff"/>
+            <stop offset="100%" stop-color="#aa66ff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd872" stroke-width="4" stroke-linecap="round" pathLength="360"></circle>
+      </svg>
+
+      <div id="windowTag"
+        style="position:absolute;top:8px;left:50%;transform:translateX(-50%) scale(.9);padding:4px 10px;font-weight:800;font-size:12px;line-height:1;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.70);color:#ffd872;opacity:0;transition:opacity .14s,transform .18s;pointer-events:none;z-index:999"></div>
+
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
+      <div id="fallback" class="coinFallback" style="display:none">🪙</div>
+
+      <div id="gain"
+        style="position:absolute; left:0; top:0;
+               font-size:14px; font-weight:900; color:#fff;
+               text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35);
+               pointer-events:none; z-index:1001;">
+      </div>
+
+      <div id="hot" style="
+        position:absolute; inset:0;
+        pointer-events:none; opacity:0; transition:opacity .18s ease;
+        filter: drop-shadow(0 0 10px rgba(255,223,120,.25));
+      "></div>
+
+      <div id="hotCore" style="
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%,-50%);
+        width:0; height:0; border-radius:50%;
+        pointer-events:none; opacity:0;
+        box-shadow: 0 0 6px rgba(0,0,0,.25) inset, 0 0 6px rgba(255,255,255,.15);
+      "></div>
+
+      <div id="comboBadge" style="
+        position:absolute; top:10px; left:10px;
+        background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+        color:#ffd872; font-weight:800; font-size:12px;
+        padding:4px 8px; border-radius:10px; display:none; pointer-events:none;">
+        COMBO x1
+      </div>
+
+      <div id="windowBar" style="position:absolute;top:0;left:0;height:4px;width:0;background:#ffd872;border-bottom:1px solid rgba(0,0,0,.35);box-shadow:0 0 6px rgba(255,216,114,.6);opacity:0;transition:opacity .12s"></div>
+    </div>
+
+    <!-- Botón Ideas anclado a la moneda -->
+    <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
+      <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
+    </button>
+  </div>
+
+  <!-- DOCK bajo la moneda -->
+  <div class="action-dock" aria-label="acciones rápidas">
+    <button id="refillBtn" class="btn-icon" aria-label="Refill">
+      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
+      <span id="refillPrice" class="price-pill">0.10 WLD</span>
+    </button>
+    <button id="openUp" class="btn-icon" aria-label="Boosters">
+      <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
+    </button>
+  </div>
+
+  <div class="energyWrap">
+    <div class="energyBar"><div id="energyFill" class="energyFill" style="width:100%"></div></div>
+    <div class="energyLbl">⚡ <b id="energyNow">100</b>/<b id="energyMax">100</b></div>
+  </div>
+</section>
+
+
+
+
+
+<!-- Drawers (Boosters simple + Inbox placeholder+Perfil) -->
+<div id="backdropUP" class="backdrop"></div>
+<aside id="drawerUP" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('UP')">x</button>
+  <h3 data-i18n="boosters_title">Impulsores</h3>
+  <p style="opacity:.85" data-i18n="coming_soon">Proximamente... ✔</p>
+</aside>
+
+
+<div id="backdropIN" class="backdrop"></div>
+<aside id="drawerIN" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('IN')">x</button>
+<h3 data-i18n="inbox_title" style="margin:0 0 8px">Buzón</h3>
+<div id="inboxList" class="inbox-list cardPro"></div>
+<button id="markRead" class="btn-icon" data-i18n="mark_read"><i>Marcar como leído</i></button>
+</aside>
+<!-- Drawer IDEAS -->
+ <div id="backdropID" class="backdrop"></div>
+<aside id="drawerID" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('ID')">x</button>
+ <h3 data-i18n="ideas_title">Ideas</h3>
+
+
+  <!-- Vista inicial: pagar -->
+  <div id="ideasPayView" class="cardPro"> 
+   <p data-i18n="ideas_pay_intro">¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!</p>
+  <button id="payIdeasBtn" class="btn-icon">
+  <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
+  <span data-i18n="ideas_pay_btn">Comprar ticket</span>
+  <span class="price-pill"><b>1 WLD 🎟️</b></span>
+</button>
+</div>
+
+
+  <!-- Vista desbloqueada: opciones -->
+  <div id="ideasOptionsView" class="cardPro" style="display:none">
+  <p><b data-i18n="ideas_choose">Escoge una opción</b></p>
+  <p id="ticketTimer" style="margin:10px 0;font-size:14px;color:#ffd872;font-weight:bold">
+  Tiempo restante: 05:00
+  </p>
+  <button id="voteBtn" class="btn-icon btnPro"><b data-i18n="vote">Votar✍️</b></button>
+  <button id="suggestBtn" class="btn-icon btnPro"><b data-i18n="suggest">Sugerencia💡</b></button>
+  <p style="font-size:12px;opacity:.6;margin-top:6px">
+  <i data-i18n="each_action_consumes">*Cada acción consume 1 ticket</i>
+  </p>
+
+  </div>
+  <!-- Vista: Encuesta -->
+<div id="ideasPollView" class="cardPro" style="display:none">
+<h4 style="margin:6px 0 8px" data-i18n="poll_title">🏁 ¡EMPIEZA LA CARRERA!</h4>
+<p class="hint"><b data-i18n="poll_hint">TÚ ELIGES💊</b></p>
+
+
+  <!-- Opciones -->
+  <div style="display:grid; gap:8px; margin:10px 0 12px;">
+    <button class="btn" id="pollOptA"><b data-i18n="opt_a">Comodidad/Seguridad🔵</b></button>
+<button class="btn" id="pollOptB"><b data-i18n="opt_b">Cambio/Riesgo🔴</b></button>
+<button class="btn" id="pollOptC"><b data-i18n="opt_c">Autotap 🤖</b></button>
+</div>
+
+  <!-- Resultados (barras simples) -->
+  <div id="pollResults" style="display:none; margin-top:10px;">
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">A</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barA" style="height:100%;width:0;background:#c9a848"></div>
+      </div>
+      <span id="pctA" style="width:48px;text-align:right">0%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">B</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barB" style="height:100%;width:0;background:#9aa0ff"></div>
+      </div>
+      <span id="pctB" style="width:48px;text-align:right">0%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+      <span style="width:58px;opacity:.8">C</span>
+      <div style="flex:1;background:#0f0e13;border:1px solid #2a2930;border-radius:8px;overflow:hidden;height:10px">
+        <div id="barC" style="height:100%;width:0;background:#78d59c"></div>
+      </div>
+      <span id="pctC" style="width:48px;text-align:right">0%</span>
     </div>
   </div>
 
-  <div class="wrap">
-    <div class="bar">
-      <div><span id="profileName" class="pill">Invitado</span></div>
-      <div id="walletBar" class="wallet">
-        <span class="mono" id="walletShort">0x—</span>
-        <span class="pill">WLD: <span id="walletWLD">--</span></span>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <h3>Ideas</h3>
-        <p class="xs">Ticket por <b>1 WLD</b>.</p>
-        <button id="btnIdeas" class="btn">Comprar ticket (1 WLD)</button>
-      </div>
-
-      <div class="card">
-        <h3>Refill energía</h3>
-        <p class="xs">Capacidad: <b>100</b> • Tarifa: <b>0.1%</b> • Precio: <b id="refillLabel">0.100 WLD</b></p>
-        <button id="btnRefill" class="btn">Pagar Refill</button>
-      </div>
-    </div>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+   <button class="btn" id="pollClose" data-i18n="poll_close">Cerrar</button>
   </div>
+</div>
+
+<!-- Vista: Enviar sugerencia -->
+<div id="ideasSuggestView" class="cardPro" style="display:none">
+  <h4 style="margin:6px 0 8px" data-i18n="suggest_title">¿Alguna idea?</h4>
+<p class="hint"><b data-i18n="suggest_hint">Máx. 400 caracteres.</b></p>
+<textarea id="suggestText" class="textareaPro" rows="5" maxlength="240"
+  data-i18n-placeholder="placeholder_suggest"
+  placeholder="Escribe tu idea o mejora aquí…" style="width:100%;"></textarea>
+
+<button class="btn" id="sendSuggestBtn" data-i18n="send">Enviar</button>
+<button class="btn" id="sugClose" data-i18n="close">Cerrar</button>
+
+  </div>
+</div>
+
+
+</aside>
+
+
+<div id="backdropPF" class="backdrop"></div>
+<aside id="drawerPF" class="drawer" role="dialog" aria-modal="true">
+  <button class="close" aria-label="Cerrar" onclick="closeDrawer('PF')">x</button>
+  <h3 data-i18n="profile_title" style="margin:0 0 12px">Perfil</h3>
+  <div class="cardPro">
+
+
+<label data-i18n="username_label" style="display:block;margin-bottom:8px;font-size:14px;">Nombre de usuario</label>
+<input id="usernameInput"  class="inputPro" type="text"
+  style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;"
+  data-i18n-placeholder="username_placeholder"
+  placeholder="Tu nombre">
+
+<div id="saveRow" style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+  <button id="saveUsernameBtn" class="btn-icon" style="min-height:auto;padding:6px 10px;display:none" data-i18n="save">Guardar</button>
+  <span id="savedBadge" style="display:none;font-size:12px;color:#ffd872;">✓ <span data-i18n="saved">Guardado</span></span>
+</div>
+
+<label data-i18n="language_label" style="display:block;margin:16px 0 8px;font-size:14px;">Idioma</label>
+<select id="langSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;">
+  <option value="es" data-i18n="option_es">Español</option>
+  <option value="en" data-i18n="option_en">Inglés</option>
+</select>
+
+<div style="margin:16px 0;">
+  <p><span data-i18n="profile_wlgp_label">WLGp:</span> <b id="profWLGp">0.000</b></p>
+  <p style="opacity:.7;"><span data-i18n="profile_wlg_label">WLG Balance:</span> <b id="profWLG">--</b> 🔒</p>
+  <p style="opacity:.7;"><span data-i18n="profile_wld_label">WLD Balance:</span> <b id="profWLD">--</b> 🔒</p>
+</div>
+
+<button id="claimBtn" class="btn-icon" disabled style="opacity:.5;" data-i18n="claim_soon">Reclamar (Pronto)</button>
+
+</aside>
 
 <script>
-document.getElementById('refillLabel').textContent = REFILL_COST_WLD.toFixed(3) + ' WLD';
+  window.VERIFIED = false;
+function setVerifiedUI(on){
+  const rb = document.getElementById('refillBtn');
+  const ib = document.getElementById('payIdeasBtn');
+  if (on){
+    rb?.removeAttribute('disabled');
+    ib?.removeAttribute('disabled');
+  }else{
+    rb?.setAttribute('disabled','');
+    ib?.setAttribute('disabled','');
+  }
+}
+  
+  // Clickjacking guard (defensa extra al CSP)
+try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
 
-function msg(s){ try{ document.getElementById('splashMsg').textContent = s }catch{} }
-document.getElementById('btnLogin')?.addEventListener('click', ()=>{ msg('Abriendo verificación…'); location.href='/api/auth/login'; });
+// 👇 Flag para mostrar/ocultar el demo
+const SHOW_DEMO = false;
+window.WG_DEV_MODE = false; // DEV: simular pago de Ideas
 
-async function connectWallet(){
-  try{
-    const bar = document.getElementById('walletBar');
-    if (!window.ethereum){ if (bar) bar.style.display='none'; return; }
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x1e0' }] }).catch(()=>{});
-    const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
-    const addr = accs?.[0] || ''; if (!addr) return;
-    window.WALLET_ADDRESS = addr;
-    document.getElementById('walletShort').textContent = addr.slice(0,6)+'…'+addr.slice(-4);
-    bar.style.display = 'inline-flex';
-    const bal = await fetchWldBalance(addr);
-    if (bal != null) document.getElementById('walletWLD').textContent = bal.toFixed(4);
-  }catch{}
+/* ==== COMBOS/MANCHAS (config editable) ==== */
+const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
+const WINDOW_MS = { 1:700, 2:1200, 3:1600, 4:2000, 5:2400 };       // duración de ventana
+const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas completas necesarias
+const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
+const FRENZY_MS = 5500;                                           // combo máximo
+const DECOY_CHANCE = 0.25;                                        // prob. de decoy
+const USE_TAP_SPAWN = true; 
+/* ==== DESAFÍO ARCOÍRIS (config) ==== */
+const RAINBOW = {
+  HITS: 6,                     // toques necesarios a manchas arcoíris
+  DECOY_CHANCE: 0.45,          // probabilidad de distractor durante el desafío
+  APPEAR_MS: [1500, 2300],       // visibilidad de cada mancha (ms)
+  TOTAL_MS: 12000              // tiempo máximo del desafío (ms). Si no se logra → vuelve al base
+};
+
+const challenge = {
+  active: false,
+  completed: false,
+  hits: 0,
+  t0: 0,
+  arcRaf: 0,
+  timerId: 0
+};
+
+// Umbral para marcar energía baja (0..100)
+const LOW_ENERGY_THRESHOLD = 50;
+// Aparición (antes de activarla): rangos por nivel (ms)
+const APPEAR_MS = {
+  1: [1600, 2400],
+  2: [1400, 2000],
+  3: [1100, 1600],
+  4: [ 900, 1300],
+  5: [ 700, 1000],
+  decoy: [650, 900]
+};
+
+function updateRefillCue(){
+  if (!refillBtn) return;
+  const now = performance.now();
+  const inCooldown = now < (noEnergyUntil || 0);
+  const e = (typeof energy === 'number') ? energy : 100;
+
+  // limpia estados
+  refillBtn.classList.remove('refillPulse', 'refillAlarm');
+
+  if (e <= 0 || inCooldown) {
+    // vacío o cooldown → alarma fuerte
+    refillBtn.classList.add('refillAlarm');
+  } else if (e > 0 && e < LOW_ENERGY_THRESHOLD) {
+    // bajo → pulso suave
+    refillBtn.classList.add('refillPulse');
+  }
 }
 
-async function fetchWldBalance(address){
-  try{
-    const C = document.querySelector('meta[name=wld-contract]')?.content || '0x2cfc85d8e48f8eab294be644d9e25c3030863003';
-    const selector = '0x70a08231';
-    const data = selector + '000000000000000000000000' + address.replace(/^0x/, '');
-    const payload = { jsonrpc:'2.0', id:1, method:'eth_call', params:[{ to:C, data }, 'latest'] };
-    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload) });
-    const j = await r.json();
-    if (!j?.result) return null;
-    const hex = j.result.replace(/^0x/,'') || '0';
-    const big = BigInt('0x'+hex);
-    return Number(big)/1e18;
-  }catch{ return null; }
+// === decimales fijos y helpers del numerito ===
+const GAIN_DECIMALS = 4;
+const fmt = (n) => Number(n).toFixed(GAIN_DECIMALS);
+const setLastGainTotal = (tot) => { if (lastGainEl) lastGainEl.textContent = `+${fmt(tot)}`; };
+                                    // usamos spawn por TAP
+
+/* ==== Estado de combo ==== */
+const combo = {
+  level: 0,                               // 0 base; 1..5 = X1..X5
+  progress: {1:0,2:0,3:0,4:0},            // ventanas completas por nivel
+  window: null,                           // ventana activa
+  frenzyUntil: 0,                         // fin de Frenzy (ms, performance.now)
+  tapCounter: 0,                          // conteo de taps global
+  nextSpawnAt: 0                          // umbral próximo spawn
+  };
+// cooldown de “sin energía” (2s)
+let noEnergyUntil = 0;
+// Control del halo/mancha
+let hotAutoTimer = 0;   // timeout para auto-ocultar si NO se activa
+let hotLocked = false;  // true mientras la ventana esté activa (no ocultar)
+// --- No permitir que hideHot() oculte la mancha mientras hay ventana activa ---
+const _hideHotOrig = (typeof window.hideHot === 'function') ? window.hideHot : null;
+function hideHotSafe(){
+  if (hotLocked) return;        // si hay ventana, NO ocultes
+  _hideHotOrig && _hideHotOrig();
+}
+// reemplaza el hideHot global por el seguro
+if (_hideHotOrig) window.hideHot = hideHotSafe;
+
+
+ 
+function targetLevel(){ return Math.max(1, combo.level || 1); }
+// — Aplica combo/ventana/frenzy en este tap —
+function applyComboTap(e){
+  const now = performance.now();
+
+  // 1) FRENZY: +5% de POWER_BASE extra (el base ya lo sumó addTap())
+if (now < combo.frenzyUntil){
+  const extra = POWER_BASE * 0.05;
+  addTapAmount(extra);
+  setLastGainTotal(POWER_BASE + extra);
+
+  // 👉 NUEVO: durante Frenzy sí suena tick.mp3
+  try { if (typeof playSnd === 'function') playSnd('tick', { volume: .7 }); } catch(_){}
+
+  updateBadge();
+  return;
 }
 
-function toWei(wld){ return '0x'+(BigInt(Math.round(wld*1e6))*BigInt(10**12)).toString(16) }
-function pad32(hex){ return hex.replace(/^0x/,'').padStart(64,'0') }
-function encTransfer(to, amountWei){
-  const selector='0xa9059cbb';
-  return selector + pad32(to) + pad32(amountWei);
-}
-async function payWLD(amount){
-  await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x1e0' }] }).catch(()=>{});
-  const [from] = await window.ethereum.request({ method:'eth_requestAccounts' });
-  const C = document.querySelector('meta[name=wld-contract]')?.content || '0x2cfc85d8e48f8eab294be644d9e25c3030863003';
-  const data = encTransfer(RECEIVER, toWei(amount));
-  const tx = { from, to:C, data, value:'0x0' };
-  return await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] });
-}
 
-document.getElementById('btnIdeas')?.addEventListener('click', async()=>{
-  try{ const h = await payWLD(1); if(h) alert('Pago Ideas enviado: '+h); }catch{ alert('Falló / canceló'); }
-});
-document.getElementById('btnRefill')?.addEventListener('click', async()=>{
-  try{ const h = await payWLD(REFILL_COST_WLD); if(h) alert('Refill enviado: '+h); }catch{ alert('Falló / canceló'); }
-});
+  // 2) Si hay ventana activa: cada tap suma extra y puede completar
+if (combo.window){
+  const L = combo.window.level;
 
-// Bootstrap OIDC
-(function(){
-  const qs = new URLSearchParams(location.search);
-  const t = qs.get('token');
-  async function applySession(){
-    try{
-      const r = await fetch('/api/session', { credentials:'include' });
-      const j = await r.json();
-      if (j?.session){
-        document.getElementById('profileName').textContent = j.session.name || 'Jugador';
-        window.VERIFIED = true; return true;
+  // Solo cuenta si el tap cae dentro del núcleo capturado
+  if (!isInWindowRect(e)) return; // fuera del difuminado: sin bonus ni progreso
+
+  combo.window.tapsDone += 1;
+    soundTapProgress(L, combo.window.tapsDone);
+
+  if (windowTag) windowTag.textContent = 'X'+L+' '+combo.window.tapsDone+'/'+combo.window.tapsNeeded;
+
+  popLabel('X'+L, e.clientX, e.clientY, { color:'#ff3030', fontSize:36, dy:-130 });
+
+  // extra por tap dentro de ventana
+  const extra = POWER_BASE * BONUS[L];
+  addTapAmount(extra);
+  setLastGainTotal(POWER_BASE + extra);
+
+
+  // ¿completa antes de que se acabe el tiempo?
+  if (combo.window.tapsDone >= combo.window.tapsNeeded){
+    const level = L;
+
+
+    arcFlash();
+
+    // Cerramos un instante después para que se vea el flash
+    setTimeout(()=>{
+      const r = coin.getBoundingClientRect();
+      popSparkle(r.left + r.width/2, r.top + r.height/2);
+
+      closeWindow();
+      combo.progress[level] = (combo.progress[level] || 0) + 1;
+
+     if (level === 5){
+       playSnd('rainbow', { volume: 1.0 }); // anuncio RAINBOW RACE
+        // ✅ En lugar de Frenzy directo → DESAFÍO ARCOÍRIS
+        startRainbowChallenge();
+        return; // importante
+      } else {
+              // Subir si cumple requisito; si no, se mantiene
+              if (combo.progress[level] >= ADV_REQ[level]){
+                combo.level = level + 1;
+                combo.progress[level] = 0;
+              } else {
+                combo.level = Math.max(combo.level, level);
+              }
+        updateBadge();
       }
-    }catch{}
-    return false;
+    }, 160);
   }
-  async function unlock(){
-    document.getElementById('splash').classList.add('hidden');
-    connectWallet();
+
+  return; // importante: salimos aquí
+}
+
+
+  // 3) No hay ventana activa → ¿tocaste mancha real?
+  const hit = (typeof hotActive!=='undefined' && hotActive && typeof isInHot==='function' && isInHot(e));
+  const skin = (typeof hotSkin==='string') ? hotSkin : '';
+  if (hit && /^x[1-5]$/.test(skin)){
+  const level = Math.max(1, Math.min(5, parseInt(skin.slice(1),10) || 1));
+  popLabel('X'+level, e.clientX, e.clientY, { color:'#ff3030', fontSize:40, dy:-150 });
+  createWindow(level);
   }
-  (async()=>{
-    if(t){ window.SESSION_TOKEN=t; window.VERIFIED=true; history.replaceState({},'',location.pathname); await unlock(); await applySession(); }
-    else { const ok = await applySession(); if(ok) await unlock(); }
-  })();
-  window.addEventListener('load', ()=>{
-    if(window.VERIFIED) document.getElementById('splash').classList.add('hidden');
-  });
-})();
-</script>
-<script>
-/* ======= CONFIG ======= */
-const RECEIVER = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a'; // wallet que recibe pagos
-const ENERGY_CAPACITY = 100;             // tu capacidad actual
-const REFILL_RATE = 0.001;               // 0.1%
-const REFILL_COST_WLD = +(ENERGY_CAPACITY * REFILL_RATE).toFixed(3);
-const WLD_CONTRACT = '0x2cfc85d8e48f8eab294be644d9e25c3030863003'; // WLD en World Chain
-const WORLDCHAIN_CHAINID = '0x1e0';      // World Chain
+  // Si fue decoy o no había mancha real → sin cambios
+}
 
-/* ======= UI helper ======= */
-function $(sel){ return document.querySelector(sel); }
-function msg(s){ try{ $('#splashMsg').textContent = s }catch{} }
 
-/* ======= “NO RELock”: si ya está verificado, ignorar lock() ======= */
+/* ==== Sonidos (usa tone() que ya tienes) ==== */
+function soundLevel(n){ const base=560+n*70; tone(base,0.05,'square',.09); setTimeout(()=>tone(base+90,0.04,'triangle',.07),70); }
+function soundMiss(){ tone(520,0.045,'sawtooth',.07); setTimeout(()=>tone(420,0.045,'sawtooth',.06),70); }
+function soundFrenzyStart(){ tone(680,0.12,'square',.10); setTimeout(()=>tone(840,0.12,'triangle',.09),120); }
+function soundTapProgress(level, tapIndex){
+  // Pitch crece por nivel y por el índice del tap
+  const base = 1000 + level*120 + (tapIndex-1)*90;
+  tone(base, .035, 'square', .07);
+  if (typeof playSnd === 'function') playSnd('tick', { volume: .7 });
+}
+
+function soundFrenzy777(){
+
+  // campanillas rápidas tipo máquina 777
+  const seq = [620,740,880,740,880,980,1100];
+  let t = 0;
+  for (let i=0;i<seq.length;i++){
+    setTimeout(()=>tone(seq[i],0.05,'triangle',.10), t);
+    t += 70;
+  }
+}
+
+
+/* ==== Helper pequeño ==== */
+function randInt(a,b){ return (a|0)+Math.floor(Math.random()*((b|0)-(a|0)+1)); }
+// === Badge (Xn / FRENZY / oculto en base) ===
+const comboBadgeEl = document.getElementById('comboBadge');
+function spawnHotWithTimer(skin){
+  // skin: 'x1'..'x5' o 'decoy'
+  if (typeof showHot === 'function') showHot(skin);
+
+  hotLocked = false;                // aún NO activada
+  clearTimeout(hotAutoTimer);
+
+  const key = (skin === 'decoy') ? 'decoy' : Math.max(1, Math.min(5, parseInt(skin.slice(1),10)));
+  const R = APPEAR_MS[key];         // [min,max]
+  const ms = randInt(R[0], R[1]);
+
+  hotAutoTimer = setTimeout(()=>{
+    if (!hotLocked && typeof hideHot === 'function') hideHot();
+  }, ms);
+}
+
+function setBadge(txt, bg, fg){
+  if (!comboBadgeEl) return;
+  if (!txt){
+    comboBadgeEl.style.display = 'none';
+    return;
+  }
+  comboBadgeEl.style.display = 'block';
+  comboBadgeEl.textContent = txt;
+  comboBadgeEl.style.background = bg || 'rgba(0,0,0,.55)';
+  comboBadgeEl.style.color = fg || '#ffd872';
+}
+
+function updateBadge(){
+  const now = performance.now();
+  if (now < combo.frenzyUntil){
+    // FRENZY activo
+    setBadge('FRENZY', 'linear-gradient(180deg,#3a2a00,#1a1200)', '#ffd872');
+    return;
+  }
+  if (combo.level >= 1){
+    const colorPorNivel = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'}[combo.level] || '#ffd872';
+    setBadge('X'+combo.level, 'rgba(0,0,0,.55)', colorPorNivel);
+  } else {
+    setBadge(null); // base: oculto
+  }
+}
+// === Ventanas (barra + temporizador) ===
+// === ARO (helpers) ===
+const windowArc = document.getElementById('windowArc');
+// Sonido de éxito al completar la ventana (corto y ascendente)
+function soundWindowComplete(level){
+  const base = 600 + level*60;
+  tone(base,0.06,'square',.10);
+  setTimeout(()=>tone(base+140,0.05,'triangle',.10),80);
+  setTimeout(()=>tone(base+260,0.05,'triangle',.09),160);
+}
+
+// Flash del aro: muestra el círculo completo y engrosa un instante
+function arcFlash(){
+  if (!windowArc || !windowArcCircle) return;
+  const prevDash  = windowArcCircle.getAttribute('stroke-dasharray') || '360 360';
+  const prevWidth = windowArcCircle.getAttribute('stroke-width') || '4';
+
+  // mostrar aro completo y más grueso por ~140ms
+  windowArcCircle.setAttribute('stroke-dasharray','360 360');
+  windowArcCircle.setAttribute('stroke-width','6');
+  windowArc.style.opacity = '1';
+
+  setTimeout(()=>{
+    windowArcCircle.setAttribute('stroke-dasharray', prevDash);
+    windowArcCircle.setAttribute('stroke-width', prevWidth);
+  }, 140);
+}
+
+const windowArcCircle = windowArc ? windowArc.querySelector('circle') : null;
+const LEVEL_COLOR = {1:'#ffd872',2:'#9cff70',3:'#6ae1ff',4:'#d08bff',5:'#ff6a6a'};
+
+function arcShowSegment(deg, color){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = color || '#ffd872';
+  windowArcCircle.setAttribute('stroke-dasharray', `${deg} 360`); // segmento visible + hueco
+  windowArcCircle.setAttribute('stroke-dashoffset', '0');         // empieza sin consumir
+  windowArc.style.opacity = '1';
+}
+
+function arcUpdateProgress(level, t){  // level: 1..5, t: 0→1
+  if (!windowArcCircle) return;
+  const deg = Math.round((level/6)*360); // X1=60°, X2=120° ... X5=300°
+  const off = Math.min(deg, deg * t);    // cuánto se consume del segmento
+  windowArcCircle.setAttribute('stroke-dashoffset', String(off));
+}
+
+function arcHide(){
+  if (windowArc) windowArc.style.opacity = '0';
+}
+
+
+// ==== Ganancias flotantes (un div por cada tap) ====
+let lastGainEl = null;
+const gainPool = []; // para no acumular infinitos
+
+function spawnGain(x, y, text){
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.position = 'fixed';          // fuera de la moneda, no se recorta
+  el.style.left = x + 'px';
+  el.style.top  = (y - 70) + 'px';
+  el.style.fontSize = '18px';
+  el.style.fontWeight = '900';
+  el.style.color = '#fff';
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = 1001;
+  el.style.textShadow = '0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35)';
+  el.style.willChange = 'transform,opacity';
+  document.body.appendChild(el);
+
+  // animación más lenta y alta (no tocamos la altura)
+  const anim = el.animate(
+    [{ transform:'translateY(0)',   opacity:1 },
+     { transform:'translateY(-100px)', opacity:0 }],
+    { duration: 3200, easing:'cubic-bezier(.18,.9,.22,1)' }
+  );
+  anim.onfinish = () => el.remove();
+
+  // guarda referencia al "último" para poder actualizar a base+bonus
+  lastGainEl = el;
+
+  // limita la cantidad (por si spamean): máximo 10 en pantalla
+  gainPool.push(el);
+  if (gainPool.length > 10){
+    const old = gainPool.shift();
+    try { old.remove(); } catch(e){}
+  }
+}
+
+// --- Mostrar el "+valor" más lento y SIEMPRE por fuera de la moneda ---
+let gainAnim = null;
+function showGain(x, y, text){
+  // x,y ahora son COORDENADAS DE PANTALLA (clientX, clientY)
+  gain.style.position = 'fixed';     // ← clave: no lo recorta el #coin
+  gain.style.left     = x + 'px';
+  gain.style.top      = (y - 70) + 'px'; // la altura que ya te gustó
+  gain.style.zIndex   = 1001;
+  gain.style.opacity  = '1';
+  gain.textContent    = text;
+
+  try { if (gainAnim) gainAnim.cancel(); } catch(e){}
+
+  // MISMA altura (~96px) pero más LENTO (1.4s)
+  gainAnim = gain.animate(
+    [
+      { transform:'translateY(0px)',   opacity: 1 },
+      { transform:'translateY(-96px)', opacity: 0 }
+    ],
+    { duration: 2400, easing: 'cubic-bezier(.18,.9,.22,1)' } // ← más lento
+  );
+
+  // Limpieza automática (no queda pegado)
+  gainAnim.onfinish = () => { gain.style.opacity = '0'; gain.textContent = ''; };
+  setTimeout(() => {
+    if (!gainAnim || gainAnim.playState !== 'running'){
+      gain.style.opacity = '0';
+      gain.textContent = '';
+    }
+  }, 1900);
+}
+/* ==== Stickers/Labels flotantes ==== */
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function popLabel(text, x, y, opt={}){
+  const {
+    fontSize = 36,        // tamaño default
+    dy       = -120,      // cuánto sube
+    duration = 1600,      // ← antes 1000 aprox
+    color    = '#ff3030', // rojo llamativo
+    weight   = 900
+  } = opt;
+
+  const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.position = 'fixed';
+  el.style.left = clamp(x, 24, window.innerWidth-24) + 'px';
+  el.style.top  = clamp(y, 24, window.innerHeight-24) + 'px';
+  el.style.transform = 'translate(-50%,-50%)';
+  el.style.fontSize = fontSize + 'px';
+  el.style.fontWeight = String(weight);
+  el.style.color = color;
+  el.style.textShadow = '0 2px 10px rgba(0,0,0,.45)';
+  el.style.letterSpacing = '1px';
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = 1002;
+  document.body.appendChild(el);
+
+  // más suave: entra, se queda un poquito, luego se va
+  const anim = el.animate(
+    [
+      { transform:'translate(-50%,-50%) scale(.92)',  opacity: 0   },
+      { transform:'translate(-50%,-54%) scale(1.00)', opacity: 1, offset: .38 },
+      { transform:`translate(-50%, calc(-50% + ${dy}px)) scale(1.04)`, opacity: 0 }
+    ],
+    { duration, easing:'cubic-bezier(.18,.9,.22,1)' } // easing más calmado
+  );
+  anim.onfinish = ()=> el.remove();
+}
+
+
+function popLaugh(x, y){
+  popLabel('😂', x, y, { fontSize: 40, dy: -120, duration: 2200, color:'#fff' });
+}
+function popSparkle(x, y){
+  // Sin brillo visual (sin emoji ✨); conservamos solo el sonido NICE
+  try {
+    if (typeof playSnd === 'function') playSnd('nice', { volume: 0.95 });
+  } catch (_){}
+}
+
+
+
+function popBadge(text){
+  // centrado en la moneda
+  const r = coin.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2 - 20;
+  popLabel(text, cx, cy, { fontSize: 36, dy: -120 });
+}
+
+
+
+// Letrero del nivel/progreso (si aún no lo pegaste)
+const windowTag = document.getElementById('windowTag');
+function tagShow(text, color){
+  if (!windowTag) return;
+  windowTag.textContent = text;
+  if (color) windowTag.style.color = color;
+  windowTag.style.opacity = '1';
+  windowTag.style.transform = 'scale(1.06)';
+  setTimeout(()=>{ if(windowTag) windowTag.style.transform='scale(1)'; }, 90);
+}
+function tagHide(){
+  if (!windowTag) return;
+  windowTag.style.opacity = '0';
+  windowTag.style.transform = 'scale(.9)';
+}
+
+// Aro completo para FRENZY
+function startFrenzyArc(){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = 'url(#frenzy777)';
+  windowArcCircle.setAttribute('stroke-dasharray', '360 360');
+  windowArcCircle.setAttribute('stroke-dashoffset', '0');
+  windowArc.style.opacity = '1';
+
+  const t0 = performance.now();
+  function tick(){
+    const now = performance.now();
+    const elapsed = Math.min(FRENZY_MS, now - t0);
+    const off = 360 * (elapsed / FRENZY_MS);
+    windowArcCircle.setAttribute('stroke-dashoffset', String(off));
+    if (now < combo.frenzyUntil){
+      requestAnimationFrame(tick);
+    } else {
+      arcHide();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function startChallengeArc(){
+  if (!windowArc || !windowArcCircle) return;
+  windowArcCircle.style.stroke = 'url(#frenzy777)'; // usamos el mismo gradiente multicolor
+  windowArcCircle.setAttribute('stroke-dasharray', '360 360');
+  windowArc.style.opacity = '1';
+
+  // giro infinito hasta que termine el desafío
+  const t0 = performance.now();
+  function tick(){
+    const now = performance.now();
+    const off = (now - t0) * 0.15; // velocidad de giro
+    windowArcCircle.setAttribute('stroke-dashoffset', String(off % 360));
+    if (challenge.active){
+      challenge.arcRaf = requestAnimationFrame(tick);
+    } else {
+      arcHide();
+    }
+  }
+  challenge.arcRaf = requestAnimationFrame(tick);
+}
+
+function stopChallengeArc(){
+  cancelAnimationFrame(challenge.arcRaf || 0);
+  arcHide();
+}
+
+
+function isInWindowRect(e){
+  if (!combo.window || !combo.window.hitRect) return false;
+  const coinRect = coin.getBoundingClientRect();
+  const x = (e.clientX - coinRect.left) / coinRect.width;
+  const y = (e.clientY - coinRect.top ) / coinRect.height;
+  const r = combo.window.hitRect;
+  return (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+}
+
+
+
+function closeWindow(){
+  if (!combo.window) return;
+  cancelAnimationFrame(combo.window.rafId);
+  combo.window = null;
+  arcHide();
+  tagHide();
+  hotLocked = false;
+  clearTimeout(hotAutoTimer);
+  if (typeof hideHot === 'function') hideHot();  // ocultar la mancha al terminar la ventana
+
+}
+
+function tickWindow(){
+  const w = combo.window; if (!w) return;
+  const now = performance.now();
+  const t = Math.min(1, (now - w.t0) / w.durationMs); // 0→1
+  arcUpdateProgress(w.level, t);
+  if (t >= 1){
+    // Tiempo agotado → FALLO
+    soundMiss();
+        // Burla centrada en la moneda cuando expira la ventana
+    (function(){
+      const r = coin.getBoundingClientRect();
+      popLaugh(r.left + r.width/2, r.top + r.height/2);
+    })();
+    playSnd('laugh', { volume: 0.9 });
+
+
+    if (w.level >= 2){ combo.level = w.level - 1; }
+    else { combo.level = 0; }
+    combo.progress = {1:0,2:0,3:0,4:0};
+    closeWindow();
+    updateBadge();
+    return;
+  }
+
+  combo.window.rafId = requestAnimationFrame(tickWindow);
+}
+
+function createWindow(level){
+  if (combo.window) return; // ya hay una activa, la que manda
+  // Rect del núcleo capturado (normalizado al tamaño de la moneda)
+const coinRect = coin.getBoundingClientRect();
+const coreRect = hotCore ? hotCore.getBoundingClientRect() : null;
+let hitRect = null;
+if (coreRect){
+  hitRect = {
+    x: (coreRect.left - coinRect.left) / coinRect.width,
+    y: (coreRect.top  - coinRect.top ) / coinRect.height,
+    w:  coreRect.width  / coinRect.width,
+    h:  coreRect.height / coinRect.height
+  };
+}
+
+  combo.window = {
+    level,
+    tapsNeeded: level, // regla: #taps == nivel
+    tapsDone: 0,
+    t0: performance.now(),
+    durationMs: WINDOW_MS[level],
+    rafId: 0,
+    hitRect // ← área válida donde deben caer los taps
+  };
+  soundLevel(level);
+  // Mantener visible la mancha durante toda la ventana
+  hotLocked = true;
+  clearTimeout(hotAutoTimer);
+
+    // Aro segmentado según el nivel (X1=1/6...X5=5/6)
+  const deg = Math.round((level/6)*360);
+  arcShowSegment(deg, LEVEL_COLOR[level]);
+
+  // (opcional) ocultar la barrita horizontal si no la quieres
+  if (windowBar){ windowBar.style.opacity='0'; windowBar.style.width='0'; }
+  tagShow('X'+level+' 0/'+level, LEVEL_COLOR[level]);
+
+  updateBadge();
+  combo.window.rafId = requestAnimationFrame(tickWindow);
+}
+
+function spawnRainbowOrDecoy(){
+  // aparición rápida y exclusiva del desafío
+  clearTimeout(hotAutoTimer);
+  const isDecoy = Math.random() < RAINBOW.DECOY_CHANCE;
+  const skin = isDecoy ? 'decoy' : 'rb';
+  if (typeof showHot === 'function') showHot(skin);
+
+  hotLocked = false;
+  const ms = Math.round(rand(RAINBOW.APPEAR_MS[0], RAINBOW.APPEAR_MS[1]));
+  hotAutoTimer = setTimeout(()=>{
+    if (!hotLocked && typeof hideHot === 'function') hideHot();
+  }, ms);
+}
+
+function startFrenzy(){
+  setTickModeMp3(true);
+
+  // Igual que antes: activa Frenzy por FRENZY_MS y luego resetea a X1
+  combo.frenzyUntil = performance.now() + FRENZY_MS;
+
+  if (typeof arcHide === 'function') arcHide();     // limpia estado previo
+  requestAnimationFrame(()=> startFrenzyArc());     // arranca el arco con un frame de respiro
+
+  if (typeof soundFrenzy777 === 'function') soundFrenzy777();
+  else if (typeof soundFrenzyStart === 'function') soundFrenzyStart();
+
+  if (typeof tagShow === 'function') tagShow('FRENZY', '#ffd872');
+  popBadge('FRENZY');
+
+  updateBadge();
+
+  setTimeout(()=>{
+        if (performance.now() >= combo.frenzyUntil){
+          setTickModeMp3(false);
+      combo.level = 1;
+      combo.progress = {1:0,2:0,3:0,4:0};
+      combo.frenzyUntil = 0;
+      if (typeof tagHide === 'function') tagHide();
+      if (typeof arcHide === 'function') arcHide();
+      updateBadge();
+    }
+  }, FRENZY_MS + 20);
+}
+
+function endRainbowChallenge(success){
+  setTickModeMp3(false);
+
+  clearTimeout(challenge.timerId);   // 👈 matar timer
+  
+  challenge.completed = true;
+
+
+  // 🔇 cortar música de tensión (hard stop + refuerzo)
+  stopSnd('tension');
+  setTimeout(()=> stopSnd('tension'), 50);
+
+  challenge.active = false;
+  clearTimeout(challenge.spawnTimer);
+  stopChallengeArc();
+  tagHide();
+  hideHotSafe();
+
+  if (success){
+    // ✨ brillo centrado al ganar el desafío
 (function(){
-  const origLock = window.lock;
-  window.lock = function(...a){
-    if (window.VERIFIED) return; // no permitir volver al splash
-    return typeof origLock === 'function' ? origLock.apply(this, a) : undefined;
+  const r = coin.getBoundingClientRect();
+  popSparkle(r.left + r.width/2, r.top + r.height/2);
+})();
+playSnd('freeze', { volume: 1.0 });
+    setTimeout(()=> playSnd('slot', { volume: 0.9, loop: true }), 400); // arranca un poco después
+    setTimeout(()=> stopSnd('slot'), 5500); // corta a los 5s
+startFrenzy(); // pasamos al Frenzy
+
+  } else {
+    playSnd('laugh', { volume: 0.9 });
+    combo.level = 0;
+    combo.progress = {1:0,2:0,3:0,4:0};
+    updateBadge();
+  }
+}
+
+function startRainbowChallenge(){
+setTickModeMp3(true);
+
+
+playSnd('rainbow', { volume: 1.0 });
+playSnd('tension', { volume: 0.7, loop: true });
+
+  challenge.active = true;
+  challenge.completed = false;
+  challenge.hits = 0;
+  challenge.t0 = performance.now();
+
+  // UI
+  tagShow(`DESAFÍO 0/${RAINBOW.HITS}`, '#ffd872');
+  startChallengeArc();
+  popBadge('RAINBOW CHALLENGE');
+
+
+ function autoSpawn(){
+    if (!challenge.active) return;
+    spawnRainbowOrDecoy();
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(1200,1600)); 
+  }
+  autoSpawn();
+
+  clearTimeout(challenge.timerId); 
+  challenge.timerId = setTimeout(()=>{
+    if (challenge.active) endRainbowChallenge(false);
+  }, RAINBOW.TOTAL_MS);
+}
+
+function handleChallengeTap(e){
+  if (!challenge.active || challenge.completed) return;
+
+  // Acierto en mancha arcoíris real (rb)
+  const wasHit = (hotActive && hotSkin === 'rb' && typeof isInHot === 'function' && isInHot(e));
+  // Acierto en DECOY (usa el núcleo real para que sí detecte)
+  const hitDecoy = (hotActive && hotSkin === 'decoy' && typeof isInHotCore === 'function' && isInHotCore(e));
+
+  if (wasHit){
+     playSnd('tick', { volume: .8 });
+    challenge.hits = Math.min(RAINBOW.HITS, challenge.hits + 1);
+   
+    arcFlash();
+    if (typeof popSparkleSilent === 'function') {
+    popSparkleSilent(e.clientX, e.clientY);}
+    tagShow(`DESAFÍO ${challenge.hits}/${RAINBOW.HITS}`, '#ffd872');
+
+
+      // 👇 Un tap por mancha: desaparecer al instante
+    clearTimeout(hotAutoTimer);
+    hotLocked = false;
+    hideHotSafe();
+
+    if (challenge.hits >= RAINBOW.HITS){
+      challenge.completed = true;
+      clearTimeout(challenge.timerId);
+      clearTimeout(challenge.spawnTimer);
+      hotLocked = false;
+      hideHotSafe();
+      setTimeout(()=> endRainbowChallenge(true), 80);
+    }
+    return;
+  }
+
+  if (hitDecoy){
+   
+  if (hotActive) 
+    popLaugh(e.clientX, e.clientY);
+    playSnd('laugh', { volume: 0.9 });
+    soundMiss();
+    return;
+  }
+
+  // Tap fuera de cualquier cosa → ignorar (NO termina el desafío)
+}
+
+
+// — Spawn por TAP (real o decoy) —
+function maybeSpawnByTap(){
+  // Se llama al final de CADA click (tenga o no energía)
+  combo.tapCounter++;
+  if (combo.tapCounter >= combo.nextSpawnAt){
+    const lvl = targetLevel();
+    const isDecoy = Math.random() < DECOY_CHANCE;
+    spawnHotWithTimer(isDecoy ? 'decoy' : ('x'+lvl));
+    const R = SPAWN_TAPS[lvl]; // [min,max]
+    combo.nextSpawnAt = combo.tapCounter + randInt(R[0], R[1]);
+  }
+}
+
+// — Sumar WLGp de forma segura si el proyecto no define addTapAmount —
+if (typeof addTapAmount !== 'function'){
+  window.addTapAmount = function(amount){
+    if (!amount) return;
+    wlgp += amount;
+    localStorage.setItem('wlgp', String(wlgp));
+    // si tu render ya se llama al final del click, no hace falta aquí
+  };
+}
+
+
+/* ===== Helpers ===== */
+const $=q=>document.querySelector(q);
+
+
+
+
+
+let AC; function tone(f=560,d=.05,t='triangle',v=.08){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g).connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d+0.02);}catch(e){}}
+window.__tickUseMp3 = false;
+window.setTickModeMp3 = (on) => { window.__tickUseMp3 = !!on; };
+
+// === Audio optimizado (WebAudio + fallback) ===
+(() => {
+  const hasWA = !!(window.AudioContext || window.webkitAudioContext);
+  const manifest = {
+    nice:'snd/nice.mp3',
+    rainbow:'snd/rainbow_race.mp3',
+    freeze:'snd/freeze.mp3',
+    laugh:'snd/laugh.mp3',
+    slot:'snd/slot_loop.mp3',
+    tension:'snd/tension_loop.mp3',
+    tick:'snd/tick.mp3',
+    join:'snd/join.mp3'
+  };
+
+  // --- Fallback súper simple si no hay WebAudio (mantiene API) ---
+  if (!hasWA) {
+    const tag = {};
+    for (const k in manifest) {
+      const a = new Audio(manifest[k]);
+      if (k==='slot' || k==='tension') a.loop = true;
+      a.preload = (k==='tick' || k==='nice') ? 'auto' : 'metadata';
+      tag[k] = a;
+    }
+ // Fallback basado en <audio> (sin WebAudio)
+window.playSnd = function(name, { volume = 1, loop = false } = {}) {
+  // Tick: fuera de Rainbow/Frenzy NO reproducimos mp3 (el beep lo hace tone())
+  if (name === 'tick' && !window.__tickUseMp3) {
+    return;
+  }
+
+  const a = tag[name];
+  if (!a) return;
+
+  try {
+    a.pause();
+    a.currentTime = 0;
+    a.loop = !!loop;
+    a.volume = volume ?? 1;
+    a.play();
+  } catch (_) { /* noop */ }
+};
+
+    window.stopSnd = function(name){
+      const a = tag[name]; if (a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+    };
+    return;
+  }
+
+  // --- WebAudio manager ---
+  const Ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  const master = Ctx.createGain(); master.gain.value = 1; master.connect(Ctx.destination);
+  const buffers = new Map();        // name -> AudioBuffer
+  const loops   = new Map();        // name -> {src, gain}
+  const lastHit = {};               // throttling (p.ej. 'tick')
+
+  function resumeOnGestureOnce(){
+    const resume = () => { Ctx.resume().catch(()=>{}); cleanup(); };
+    const cleanup = () => {
+      window.removeEventListener('pointerdown', resume, true);
+      window.removeEventListener('keydown', resume, true);
+      window.removeEventListener('touchstart', resume, true);
+    };
+    window.addEventListener('pointerdown', resume, true);
+    window.addEventListener('keydown', resume, true);
+    window.addEventListener('touchstart', resume, true);
+  }
+  resumeOnGestureOnce();
+
+  // Suspender en background para ahorrar batería/CPU
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { Ctx.suspend().catch(()=>{}); }
+    else { Ctx.resume().catch(()=>{}); }
+  });
+
+  function idle(fn){ ('requestIdleCallback' in window) ? requestIdleCallback(fn, {timeout:1500}) : setTimeout(fn,0); }
+
+  async function loadBuffer(name){
+    if (buffers.has(name)) return buffers.get(name);
+    const url = manifest[name];
+    const resp = await fetch(url);
+    const ab   = await resp.arrayBuffer();
+    const buf  = await Ctx.decodeAudioData(ab);
+    buffers.set(name, buf);
+    return buf;
+  }
+
+  function playOnce(name, volume=1){
+    const nodeGain = Ctx.createGain();
+    nodeGain.gain.value = volume;
+    nodeGain.connect(master);
+    const src = Ctx.createBufferSource();
+    src.buffer = buffers.get(name);
+    src.connect(nodeGain);
+    src.start();
+    // liberar al terminar
+    src.onended = () => { nodeGain.disconnect(); };
+  }
+
+  function playLoop(name, volume=1){
+    // si ya está sonando, solo ajusta volumen
+    if (loops.has(name)) {
+      const obj = loops.get(name);
+      obj.gain.gain.setTargetAtTime(volume, Ctx.currentTime, 0.01);
+      return;
+    }
+    const g = Ctx.createGain(); g.gain.value = volume; g.connect(master);
+    const src = Ctx.createBufferSource();
+    src.buffer = buffers.get(name);
+    src.loop = true;
+    src.connect(g);
+    src.start();
+    loops.set(name, { src, gain: g });
+  }
+
+  function stopLoop(name){
+    const obj = loops.get(name);
+    if (!obj) return;
+    // fade out corto
+    obj.gain.gain.setTargetAtTime(0.0001, Ctx.currentTime, 0.03);
+    try { obj.src.stop(Ctx.currentTime + 0.035); } catch(e){}
+    setTimeout(() => { obj.gain.disconnect(); }, 60);
+    loops.delete(name);
+  }
+
+  // Precarga liviana en idle (golpes cortos)
+  idle(() => { ['tick','nice','laugh','freeze'].forEach(n => loadBuffer(n).catch(()=>{})); });
+ // ===== WebAudio =====
+window.playSnd = async function(name, {volume=1, loop=false} = {}){
+  // Tick.mp3 solo en Rainbow/Frenzy; afuera no reproducimos el mp3
+  if (name === 'tick' && !window.__tickUseMp3) return;
+
+  // throttle para 'tick' (evita spam y jank)
+  if (name === 'tick') {
+    const now = performance.now();
+    if (lastHit.tick && now - lastHit.tick < 45) return;
+    lastHit.tick = now;
+  }
+
+  try {
+    if (!buffers.has(name)) await loadBuffer(name);
+    if (loop) playLoop(name, volume);
+    else      playOnce(name, volume);
+  } catch(e) {
+    // Fallback mínimo con WebAudio si falla la carga
+    try {
+      const o = Ctx.createOscillator(), g = Ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = (name==='tick') ? 1400 : 560;
+      g.gain.value = 0.08 * volume;
+      o.connect(g).connect(master);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, Ctx.currentTime + 0.05);
+      o.stop(Ctx.currentTime + 0.07);
+    } catch(_){}
+  }
+};
+
+
+  window.stopSnd = function(name){ stopLoop(name); };
+  // Preload mínimo en idle (móvil)
+  ('requestIdleCallback' in window ? requestIdleCallback : cb=>setTimeout(cb,0))(()=>{
+    ['nice','laugh','freeze','tick'].forEach(n=>loadBuffer(n).catch(()=>{}));
+    });
+})();
+
+
+/* ===== Estado base (demo) ===== */
+const BASE_CAP=100, BASE_REGEN_PER_SEC=100, POWER_BASE=0.1000;
+let wld = +localStorage.getItem('wld') || 0;
+let wlgp= +localStorage.getItem('wlgp')|| 0;
+let energy=+localStorage.getItem('energy'); if(isNaN(energy)) energy=BASE_CAP;
+let lastTs=+localStorage.getItem('last_ts')||Date.now();
+// === Hotspot / Combo ===
+const HOT_SHOW_MS= 1600;    // tiempo visible del hotspot 1.6s
+const HOT_CD_MIN = 2800;    // cooldown mínimo
+const HOT_CD_MAX = 4400;    // cooldown máximo
+
+/* ===== Derivados ===== */
+function capMax(){return BASE_CAP}
+function regenPerSec(){return BASE_REGEN_PER_SEC}
+function priceRefill(){return +(capMax()* 0.001).toFixed(2)} // 0.1% capacidad
+function lazyRegen(){
+  const now = Date.now();
+
+  // ⛔ Pausa regeneración si estás en cooldown (noEnergyUntil)
+  if (performance.now() < (noEnergyUntil || 0)){
+    // resetea sellos para no “acumular” dt
+    lastTs = now;
+    localStorage.setItem('last_ts', String(lastTs));
+    return;
+  }
+
+  const dt = (now - lastTs) / 1000;
+  lastTs = now;
+  energy = Math.min(capMax(), energy + regenPerSec() * dt);
+  localStorage.setItem('last_ts', String(lastTs));
+  localStorage.setItem('energy', String(energy));
+}
+
+
+/* ===== Refs ===== */
+const balWLD=$('#balWLD'), balWLGp=$('#balWLGp');
+const coin=$('#coin'), gain=$('#gain');
+// Hotspot + Combo (refs)
+const hot = document.getElementById('hot');
+const comboBadge = document.getElementById('comboBadge');
+const hotCore = document.getElementById('hotCore');
+const windowBar = document.getElementById('windowBar'); // evita ReferenceError
+
+
+// === Hotspot: helpers y ciclo ===
+function rand(min, max){ return Math.random()*(max-min)+min; }
+// Centro y tamaño de la mancha (en % relativo a la moneda)
+let hotCX = 50, hotCY = 50; // centro (%)
+let hotCoreR = 10;          // radio del NÚCLEO (hit real) en %
+let hotGlowR = 20;          // radio del HALO (solo visual) en %
+
+// Dibuja el sector dorado radial
+function drawHot(){
+  if (!hot) return;
+  const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
+
+  // HALO (solo visual, difuminado)
+  hot.style.background = `radial-gradient(
+    circle at ${hotCX}% ${hotCY}%,
+    ${s.glowA} 0%,
+    ${s.glowB} ${Math.round(hotGlowR*0.6)}%,
+    transparent ${hotGlowR}%
+  )`;
+
+  // NÚCLEO (hitbox real)
+  if (hotCore){
+    hotCore.style.left   = hotCX + '%';
+    hotCore.style.top    = hotCY + '%';
+    hotCore.style.width  = (hotCoreR*2) + '%';
+    hotCore.style.height = (hotCoreR*2) + '%';
+    hotCore.style.background = s.core;
+  }
+}
+
+
+
+function showHot(skin = null){
+  if (!hot) return;
+
+  // Skin aleatoria para que veas colores (luego la ligamos a X1..X5)
+  if (!skin){
+    const pool = ['x1','x2','x3','x4','x5','decoy'];
+    hotSkin = pool[Math.floor(Math.random()*pool.length)];
+  } else {
+    hotSkin = skin;
+  }
+
+  // Toma tamaños según skin
+  const s = HOT_SKIN[hotSkin] || HOT_SKIN.x1;
+  hotCoreR = s.coreR;
+  hotGlowR = s.glowR;
+
+  // Posición aleatoria con margen
+  hotCX = Math.random()*70 + 15; // 15..85
+  hotCY = Math.random()*70 + 15; // 15..85
+
+  drawHot();
+  hotActive = true;
+  hot.style.opacity = '1';
+  if (hotCore) hotCore.style.opacity = '1';
+// Solo auto-ocultar en el modo "por tiempo". En modo TAP lo maneja spawnHotWithTimer()
+  if (!USE_TAP_SPAWN){
+  setTimeout(()=>{
+    if (hotLocked) return;
+    if (typeof hideHot === 'function') hideHot();
+    scheduleHot();
+  }, HOT_SHOW_MS);
+}
+}
+// Helper para ocultar la mancha (usado por timeouts y al cerrar ventana)
+function hideHot(){
+  if (!hot) return;
+  hotActive = false;
+  hot.style.opacity = '0';
+  if (hotCore) hotCore.style.opacity = '0';
+}
+
+
+// Apariencia por tipo: X1..X5 y decoy (JAJA)
+const HOT_SKIN = {
+  x1:   { core:'#FFD872', glowA:'rgba(255,216,114,.90)', glowB:'rgba(255,216,114,.45)', coreR:10, glowR:20 },
+  x2:   { core:'#9CFF70', glowA:'rgba(156,255,112,.90)', glowB:'rgba(156,255,112,.45)', coreR:9,  glowR:18 },
+  x3:   { core:'#6AE1FF', glowA:'rgba(106,225,255,.90)', glowB:'rgba(106,225,255,.45)', coreR:8,  glowR:16 },
+  x4:   { core:'#D08BFF', glowA:'rgba(208,139,255,.90)', glowB:'rgba(208,139,255,.45)', coreR:7,  glowR:14 },
+  x5:   { core:'#FF6A6A', glowA:'rgba(255,106,106,.90)', glowB:'rgba(255,106,106,.45)', coreR:6,  glowR:12 },
+  decoy:{ core:'#A0A6FF', glowA:'rgba(160,166,255,.90)', glowB:'rgba(160,166,255,.45)', coreR:9,  glowR:17 }, // solo distrae
+  rb: {
+    core: 'conic-gradient(#ff0055, #ff9500, #ffee00, #33dd55, #33aaff, #aa66ff, #ff0055)',
+    glowA:'rgba(255,255,255,.85)',
+    glowB:'rgba(255,255,255,.35)',
+    coreR: 9,
+    glowR: 19
+  },
+
+};
+let hotSkin = 'x1'; // skin actual
+
+
+// Programa la siguiente aparición
+function scheduleHot(){
+  const cd = Math.round(rand(HOT_CD_MIN, HOT_CD_MAX));
+  setTimeout(()=>{ showHot(); }, cd);
+}
+
+// ¿El tap cayó dentro del NÚCLEO? (el halo NO cuenta)
+function isInHot(event){
+  if (hotSkin === 'decoy') return false; // “JAJA” nunca cuenta
+  const r = coin.getBoundingClientRect();
+  const x = ((event.clientX - r.left) / r.width ) * 100;
+  const y = ((event.clientY - r.top )  / r.height) * 100;
+  const dx = x - hotCX, dy = y - hotCY;
+  return Math.hypot(dx, dy) <= hotCoreR;
+}
+function isInHotCore(e){
+  const coinRect = coin.getBoundingClientRect();
+  const x = (e.clientX - coinRect.left) / coinRect.width;
+  const y = (e.clientY - coinRect.top ) / coinRect.height;
+  const r = hotCore ? hotCore.getBoundingClientRect() : null;
+  if (!r) return false;
+  const core = {
+    x: (r.left - coinRect.left) / coinRect.width,
+    y: (r.top  - coinRect.top ) / coinRect.height,
+    w:  r.width  / coinRect.width,
+    h:  r.height / coinRect.height
+  };
+  return (x >= core.x && x <= core.x + core.w && y >= core.y && y <= core.y + core.h);
+}
+
+
+
+
+// Estado hotspot/combo
+let hotActive = false;
+
+const fx=$('#fx'), ctx=fx.getContext('2d');
+const energyFill=$('#energyFill'), energyNow=$('#energyNow'), energyMax=$('#energyMax');
+const refillBtn=$('#refillBtn'), refillPrice=$('#refillPrice');
+const openUp=$('#openUp'), drawerUP=$('#drawerUP'), backdropUP=$('#backdropUP');
+const inboxBtn=$('#inboxBtn'), drawerIN=$('#drawerIN'), backdropIN=$('#backdropIN'), inboxBadge=$('#inboxBadge');
+const profileBtn=$('#profileBtn'), drawerPF=$('#drawerPF'), backdropPF=$('#backdropPF');
+// === Ideas: refs y lógica ===
+const ideasBtn         = document.querySelector('#ideasBtn');
+const drawerID         = document.querySelector('#drawerID');
+const backdropID       = document.querySelector('#backdropID');
+const payIdeasBtn      = document.querySelector('#payIdeasBtn');
+const ideasPayView     = document.querySelector('#ideasPayView');
+const ideasOptionsView = document.querySelector('#ideasOptionsView');
+const voteBtn          = document.querySelector('#voteBtn');
+const suggestBtn       = document.querySelector('#suggestBtn');
+let ideasTicketActive = false;
+// === Encuesta: refs y estado ===
+const ideasPollView = document.getElementById('ideasPollView');
+const pollOptA = document.getElementById('pollOptA');
+const pollOptB = document.getElementById('pollOptB');
+const pollOptC = document.getElementById('pollOptC');
+const pollResults = document.getElementById('pollResults');
+const barA = document.getElementById('barA');
+const barB = document.getElementById('barB');
+const barC = document.getElementById('barC');
+const pctA = document.getElementById('pctA');
+const pctB = document.getElementById('pctB');
+const pctC = document.getElementById('pctC');
+const pollClose = document.getElementById('pollClose');
+
+// Estado local (solo demo)
+let votes = JSON.parse(localStorage.getItem('wg_votes') || '{"A":0,"B":0,"C":0}');
+function saveVotes(){ localStorage.setItem('wg_votes', JSON.stringify(votes)); }
+
+function renderPoll(){
+  const total = votes.A + votes.B + votes.C;
+  const pA = total ? Math.round((votes.A/total)*100) : 0;
+  const pB = total ? Math.round((votes.B/total)*100) : 0;
+  const pC = total ? Math.round((votes.C/total)*100) : 0;
+  barA.style.width = pA + '%'; pctA.textContent = pA + '%';
+  barB.style.width = pB + '%'; pctB.textContent = pB + '%';
+  barC.style.width = pC + '%'; pctC.textContent = pC + '%';
+}
+
+function showPoll(){
+  ideasOptionsView.style.display = 'none';
+  ideasPollView.style.display = 'block';
+  pollResults.style.display = 'block'; // muestra resultados siempre
+  renderPoll();
+}
+
+function consumeTicketAndReset(){
+  // consumir acceso: volver a pagar
+  ideasTicketActive = false; 
+  clearInterval(ticketTimerId);
+  document.getElementById('ticketTimer')?.style && (document.getElementById('ticketTimer').textContent='⛔ Ticket vencido');
+  ideasPollView.style.display = 'none';
+  ideasSuggestView.style.display = 'none';
+  ideasOptionsView.style.display = 'none';
+  ideasPayView.style.display = 'block';
+}
+/* === Feed público: lista vertical con cola === */
+const activityBar = document.getElementById('activityBar');
+const noticeQueue = [];
+let noticeRunning = false;
+
+// igualar ancho del aviso al ancho real de la píldora (responsive)
+(function syncActivityWidth(){
+  const pill = document.querySelector('.pill');
+  function apply(){
+    if (!pill) return;
+    const w = Math.round(pill.getBoundingClientRect().width);
+    document.documentElement.style.setProperty('--activityWidth', w + 'px');
+  }
+  apply();
+  window.addEventListener('resize', apply);
+  setTimeout(apply, 0);
+})();
+
+function postActivity(html){
+  if (!activityBar) return;
+  noticeQueue.push(html);
+  if (!noticeRunning) runNextNotice();
+}
+
+function runNextNotice(){
+  const html = noticeQueue.shift();
+  if (!html){ noticeRunning = false; return; }
+  noticeRunning = true;
+
+  // un solo item visible a la vez
+  activityBar.innerHTML = '';
+
+  const el = document.createElement('div');
+  el.className = 'activity-item';
+  el.innerHTML = html;
+  activityBar.appendChild(el);
+
+  // arrancar la animación (entra desde abajo → vibra → sube y sale)
+  requestAnimationFrame(() => el.classList.add('run'));
+
+  el.addEventListener('animationend', () => {
+    el.remove();
+    runNextNotice();          // mostrar el siguiente de la cola
+  }, { once: true });
+}
+
+
+
+function handleVote(key){
+
+  // bloquear doble clic
+  [pollOptA,pollOptB,pollOptC].forEach(b=> b && (b.disabled = true));
+  // % antes
+  const totalBefore = votes.A + votes.B + votes.C;
+  const beforePct = totalBefore ? Math.round(((votes[key]||0) / totalBefore) * 100) : 0;
+
+  // sumar voto
+  votes[key] = (votes[key] || 0) + 1;
+  saveVotes();
+
+  // % después
+  const totalAfter = votes.A + votes.B + votes.C;
+  const afterPct = totalAfter ? Math.round(((votes[key]||0) / totalAfter) * 100) : 0;
+  const delta = afterPct - beforePct;
+
+  renderPoll();
+
+  // nombre y etiqueta opción
+  const user = (typeof getUsername === 'function') ? getUsername() : 'Usuario';
+  const optName = ({A:'🔴',B:'🔵',C:'🤖'})[key] || key;
+
+  // mensaje público
+  const deltaTxt = (delta === 0) ? '±0%' : (delta>0 ? `+${delta}%` : `${delta}%`);
+  const cur = getLang(); const T = I18N[cur] || I18N.es;
+const msgVote = (cur === 'en')
+  ? `${user} voted <b>${optName}</b> (${deltaTxt}) → <b>${afterPct}%</b>`
+  : `<b>${user}</b> votó ${optName} (${deltaTxt}) → <b>${afterPct}%</b>`;
+postActivity(msgVote);
+alert(T.vote_recorded || '✅ Voto registrado');
+
+    consumeTicketAndReset();
+    closeDrawer('ID');
+document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
+
+}
+
+
+if (voteBtn){
+  voteBtn.onclick = () => {
+    if (!ideasTicketActive) { const cur = getLang(); const T = I18N[cur] || I18N.es;
+alert(T.need_active_ticket || 'Necesitas un ticket activo');
+ return; }
+    showPoll();
+  };
+}
+if (pollOptA) pollOptA.onclick = () => handleVote('A');
+if (pollOptB) pollOptB.onclick = () => handleVote('B');
+if (pollOptC) pollOptC.onclick = () => handleVote('C');
+if (pollClose) pollClose.onclick = () => { ideasPollView.style.display='none'; ideasOptionsView.style.display='block'; };
+
+// === Sugerencias: refs y lógica ===
+const ideasSuggestView = document.getElementById('ideasSuggestView');
+const suggestBtnEl = document.getElementById('suggestBtn');  // ya existe arriba como suggestBtn
+const suggestText = document.getElementById('suggestText');
+const sendSuggestBtn = document.getElementById('sendSuggestBtn');
+const sugClose = document.getElementById('sugClose');
+const sugCount = document.getElementById('sugCount');
+
+function showSuggest(){
+  ideasOptionsView.style.display = 'none';
+  ideasSuggestView.style.display = 'block';
+  if (suggestText) { suggestText.value=''; sugCount.textContent='0'; suggestText.focus(); }
+}
+
+function safeText(s){
+  // bloqueo básico de HTML: reemplaza < y >
+  return String(s || '').replaceAll('<','&lt;').replaceAll('>','&gt;').trim();
+}
+
+if (suggestBtn){
+  suggestBtn.onclick = () => {
+    if (!ideasTicketActive) { const cur = getLang(); const T = I18N[cur] || I18N.es;
+alert(T.need_active_ticket || 'Necesitas un ticket activo');
+ return; }
+    showSuggest();
+  };
+}
+
+if (suggestText){
+  suggestText.addEventListener('input', () => {
+    const n = (suggestText.value || '').length;
+    sugCount.textContent = String(n);
+  });
+}
+
+if (sendSuggestBtn){
+  sendSuggestBtn.onclick = () => {
+    const txt = safeText(suggestText.value);
+    if (!txt || txt.length < 4){
+      alert('Escribe al menos 4 caracteres.');
+      return;
+    }
+    // Guarda privado en localStorage (solo tú lo ves)
+    const box = JSON.parse(localStorage.getItem('wg_suggestions') || '[]');
+    box.unshift({ txt, ts: Date.now() });
+    localStorage.setItem('wg_suggestions', JSON.stringify(box));
+
+    {
+  const cur = getLang(); const T = I18N[cur] || I18N.es;
+  alert(T.sug_sent_private || '✅ Sugerencia enviada (privada)');
+  const u = (typeof getUsername==='function'?getUsername():'Usuario');
+  const msgSug = (cur === 'en') ? `${u} sent a suggestion!` : `<b>${u}</b> envió una sugerencia`;
+  postActivity(msgSug);
+}
+
+    consumeTicketAndReset();
+    closeDrawer('ID');
+document.querySelector('.hero')?.scrollIntoView({behavior:'smooth'});
+
+  };
+}
+
+if (sugClose){
+  sugClose.onclick = () => {
+    ideasSuggestView.style.display = 'none';
+    ideasOptionsView.style.display = 'block';
+  };
+}
+
+
+// ==== Temporizador del ticket ====
+let ticketTimerId = null;
+let ticketExpiresAt = 0;
+
+function startTicketTimer(minutes=5){
+  ticketExpiresAt = Date.now() + minutes*60*1000;
+  updateTicketTimer();
+  ticketTimerId = setInterval(updateTicketTimer, 1000);
+}
+
+function updateTicketTimer(){
+  const el = document.getElementById('ticketTimer');
+  if (!el) return;
+  const remaining = ticketExpiresAt - Date.now();
+  const cur = getLang();
+  const T = I18N[cur] || I18N.es;
+
+  if (remaining <= 0){
+    clearInterval(ticketTimerId);
+    el.textContent = T.ticket_expired || "⛔ Ticket vencido";
+    ideasPayView.style.display = 'block';
+    ideasOptionsView.style.display = 'none';
+    return;
+  }
+
+  const m = Math.floor(remaining/60000);
+  const s = Math.floor((remaining%60000)/1000);
+  el.textContent = `${T.ticket_time_left || 'Tiempo restante:'} ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+
+// ==== Pago (DEV simulado o real con World App) ====
+if (payIdeasBtn){
+  payIdeasBtn.onclick = async (ev) => {
+    ev.preventDefault();
+    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
+    if (window.WG_DEV_MODE){
+      {
+        const cur = getLang(); const T = I18N[cur] || I18N.es;
+          alert(T.ticket_bought_dev || "✅ Ticket comprado (simulación DEV)");
+       }
+
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
+      startTicketTimer(5);
+      return;
+    }
+
+   try{
+      const res = await MiniKit.commandsAsync.pay({
+        to: MERCHANT,
+        token: "WLD",
+        amount: "1",
+        reference: crypto.randomUUID()
+      });
+
+
+     if (res.status !== "success"){
+        alert("❌ Pago cancelado");
+        return;
+      }
+
+      await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(res)
+      });
+
+      alert("✅ Ticket Ideas comprado con éxito");
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
+      startTicketTimer(5);
+
+    }catch(e){
+      console.error("Error en pago Ideas:", e);
+      alert("⚠️ Hubo un problema con el pago");
+    }
+  };
+}
+
+
+const btnAddWLD=$('#btnAddWLD'), btnReset=$('#btnReset');
+// ===== Inbox: estado y render =====
+let msgs = JSON.parse(localStorage.getItem('msgs') || '[]');
+let unread = +localStorage.getItem('unread') || 0;
+
+function saveMsgs(){
+  localStorage.setItem('msgs', JSON.stringify(msgs));
+  localStorage.setItem('unread', String(unread));
+}
+
+function renderInbox(){
+  const box = document.getElementById('inboxList');
+  if (!box) return;
+
+  const cur = getLang();
+  const locale = (cur === 'en') ? 'en-US' : 'es-PE';
+  const T = I18N[cur] || I18N.es;
+
+  if (msgs.length === 0){
+    // "Sin mensajes" también se traduce:
+    box.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.opacity = '.7';
+    p.textContent = (cur === 'en') ? 'No messages.' : 'Sin mensajes.';
+    box.appendChild(p);
+  } else {
+    box.innerHTML = '';
+    msgs.forEach(m => {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg' + (m.type === 'system' ? ' msg-system' : '');
+
+      const time = document.createElement('div');
+      time.className = 'msg-time';
+      time.textContent = new Date(m.ts).toLocaleString(locale);
+
+      const txt = document.createElement('div');
+      txt.className = 'msg-text';
+
+      // Si el mensaje tiene "key", se traduce; si no, usa el texto literal
+      if (m.key && T[m.key] != null){
+        txt.textContent = T[m.key];
+      } else {
+        txt.textContent = String(m.text || '');
+      }
+
+      wrap.appendChild(time);
+      wrap.appendChild(txt);
+      box.appendChild(wrap);
+    });
+  }
+
+  if (unread > 0){
+    inboxBadge.style.display = 'grid';
+    inboxBadge.textContent = unread;
+  } else {
+    inboxBadge.style.display = 'none';
+  }
+}
+
+// Mensaje con TEXTO literal (no se traduce al cambiar idioma)
+function addMessage(text, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ text: String(text || ''), ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
+
+// Mensaje por CLAVE del diccionario (sí se traduce al cambiar idioma)
+function addMessageKey(key, type='announce'){
+  const allowed = new Set(['system','announce','reward']);
+  if (!allowed.has(type)) return;
+  msgs.unshift({ key: String(key || ''), ts: Date.now(), type });
+  unread++;
+  saveMsgs();
+  renderInbox();
+}
+
+// Abrir Inbox = mostrar y limpiar contador
+if (inboxBtn) inboxBtn.onclick = () => {
+  openDrawer('IN');
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+// Botón "Marcar como leído"
+const markRead = document.getElementById('markRead');
+if (markRead) markRead.onclick = () => {
+  unread = 0;
+  saveMsgs();
+  renderInbox();
+};
+
+/* ===== Canvas del tamaño de la moneda ===== */
+function sizeCanvasToCoin(){
+  const r = coin.getBoundingClientRect();
+  const scale = Math.min(window.devicePixelRatio || 1, 1.75);
+
+  fx.width  = Math.round(r.width * scale);
+  fx.height = Math.round(r.height * scale);
+  fx.style.width  = r.width + 'px';
+  fx.style.height = r.height + 'px';
+}
+addEventListener('resize', sizeCanvasToCoin);
+
+/* ===== Partículas con fallback ===== */
+let sparkle = new Image();
+sparkle.src = 'img/sparkle.png';
+
+
+let parts=[];
+function spawn(x,y){
+  for(let i=0;i<10;i++){
+    const a  = Math.random()*Math.PI*2;
+    const sp = 1.3 + Math.random()*2.0;
+    const s  = 14 + Math.random()*8;
+    parts.push({
+      x, y,
+      vx: Math.cos(a)*sp,
+      vy: Math.sin(a)*sp,
+      life: 520 + Math.random()*320,
+      size: s,
+      alpha: 1
+    });
+  }
+}
+
+
+
+function stepFX(dt){
+  ctx.clearRect(0,0,fx.width,fx.height);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.life-=dt; if(p.life<=0){parts.splice(i,1); continue;}
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.alpha=Math.max(0,p.life/700);
+    ctx.globalAlpha=p.alpha;
+    if(sparkle.complete){
+      ctx.drawImage(sparkle, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+    }else{
+      ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,.9)';
+      ctx.arc(p.x,p.y, Math.max(2, p.size*0.15), 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ===== UI render ===== */
+function render(){
+  balWLD.textContent=wld.toFixed(2); balWLGp.textContent=wlgp.toFixed(3);
+  const eMax=capMax(), pct=Math.max(0,Math.min(100,(energy/eMax)*100));
+  energyFill.style.width=pct.toFixed(1)+'%'; energyNow.textContent=Math.floor(energy); energyMax.textContent=eMax;
+
+  const cost=priceRefill(); refillPrice.textContent=cost.toFixed(2)+' WLD';
+  const low = pct<25, canPay = wld>=cost && energy<eMax-1e-6;
+  refillBtn.classList.toggle('pulse', low && canPay);
+  refillBtn.disabled = energy>=eMax-1e-6;
+    if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
+}
+
+
+/* ===== Tap logic ===== */
+// === Cola de taps → servidor ===
+let tapQueue = 0;
+async function flushTapQueue(){
+  if (!tapQueue || !window.SESSION_TOKEN) return;
+  try{
+    const resp = await fetch("https://worldgold-api-o87j.vercel.app/api/tapBatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
+    });
+    const data = await resp.json();
+    if (data?.ok && data?.token && data?.state){
+      // nuevo token firmado
+      window.SESSION_TOKEN = data.token;
+      // fuente autoritativa:
+      wld    = +data.state.wld;
+      wlgp   = +data.state.wlgp;
+      energy = +data.state.energy;
+      render?.();
+    }
+  }catch(e){ console.warn("flushTapQueue error", e); }
+  tapQueue = 0;
+}
+// cada ~4s
+setInterval(flushTapQueue, 4000);
+
+function addTap(){ if(energy<1) return false; energy-=1; wlgp+=POWER_BASE; localStorage.setItem('energy',String(energy)); localStorage.setItem('wlgp',String(wlgp)); return true; }
+// Anti-autotap: rate limit
+let lastTapTime = 0;
+let tapCount = 0;
+
+coin.addEventListener('click', (e) => {
+  if (!window.VERIFIED) return; // 🔒 sin verificación no hay tap
+    // 🔒 Anti-autotap: ignorar clicks sintéticos
+  if (!e.isTrusted) return;
+    const nowMs = Date.now();
+  if (nowMs - lastTapTime < 1000) {
+    tapCount++;
+    if (tapCount > 12) return; // más de 12 taps en un segundo → ignorar
+  } else {
+    tapCount = 1;
+    lastTapTime = nowMs;
+  }
+
+
+  if (typeof lazyRegen === 'function') lazyRegen();
+
+  const now = performance.now();
+  const cx = e.clientX, 
+  cy = e.clientY; // coords de pantalla (no se recorta)
+
+    // 🔒 Durante el DESAFÍO: no gastas energía, no ganas WLGp, solo cuenta el reto
+  if (challenge.active) {
+    handleChallengeTap(e);
+    // no mostramos +ganancia y no tocamos energía
+    render?.();
+    updateRefillCue?.();
+    return;
+  }
+    // Si hay un DISTRACTOR y lo tocaste en el núcleo → burla (modo normal)
+  if (hotActive && hotSkin === 'decoy' && isInHotCore(e)) {
+    popLaugh(cx, cy);
+    soundMiss();
+  }
+
+
+
+  // Si estamos en cooldown por 0 energía → siempre 0.0000
+  if (now < (noEnergyUntil || 0)) {
+    spawnGain?.(cx, cy, `+${fmt(0)}`);
+    maybeSpawnByTap?.(); render?.(); 
+    updateRefillCue();
+    return;
+   
+  }
+
+  // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
+  if (now < combo.frenzyUntil) {
+    spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
+    addTapAmount(POWER_BASE);    // base sin tocar energía
+    applyComboTap(e);            // aquí añade el +5% y actualiza el numerito
+    maybeSpawnByTap?.(); render?.();
+    updateRefillCue();
+     return;
+  }
+
+  // Modo normal: intentar gastar energía usando addTap()
+  const ok = (typeof addTap === 'function') ? addTap() : true;
+
+  if (!ok) {
+    // No alcanzó (0.. <1) → marcar 0.0000 y activar cooldown de 2s
+    noEnergyUntil = now + 3000;
+    spawnGain?.(cx, cy, `+${fmt(0)}`);
+    maybeSpawnByTap?.(); render?.();
+    updateRefillCue();
+    
+    try { navigator.vibrate && navigator.vibrate([80,40,80]); } catch(e){}
+     return;
+  }
+
+  // Había energía suficiente → base + posible bonus (ventana)
+  spawnGain?.(cx, cy, `+${fmt(POWER_BASE)}`);
+  applyComboTap(e);
+ // 👇 Cola servidor: sumamos 1 tap (se sincroniza en lote)
+  tapQueue++;
+  maybeSpawnByTap?.();
+  render?.();
+  updateRefillCue();
+}
+);
+
+
+/* ===== Refill ===== */
+function doRefill(){
+  const cost=priceRefill(), eMax=capMax();
+  if(energy>=eMax-1e-6) return;
+  if(wld<cost){refillBtn.classList.add('shake'); setTimeout(()=>refillBtn.classList.remove('shake'),260); return;}
+  wld-=cost; energy=eMax; localStorage.setItem('wld',String(wld)); localStorage.setItem('energy',String(energy));
+  tone(620,0.08,'sine',.08); render();
+}
+refillBtn.onclick=doRefill;
+
+
+/* ===== Boosters drawer (placeholder) ===== */
+openUp.onclick=()=>openDrawer('UP');
+
+function openDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID],   
+  };
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.add('show');
+  bd.classList.add('show');
+}
+function closeDrawer(which){
+  const map = {
+    UP: [drawerUP, backdropUP],
+    IN: [drawerIN, backdropIN],
+    PF: [drawerPF, backdropPF],
+    ID: [drawerID, backdropID],  
+  };
+  const pair = map[which];
+  if (!pair) return;
+  const [dr, bd] = pair;
+  dr.classList.remove('show');
+  bd.classList.remove('show');
+}
+// 1) Clic en cualquier backdrop: cierra su drawer correspondiente
+document.addEventListener('click', (ev) => {
+  const el = ev.target;
+  if (!el.classList || !el.classList.contains('backdrop')) return;
+  // ids: backdropUP / backdropIN / backdropPF / backdropID
+  const code = el.id.replace('backdrop',''); // "UP" | "IN" | "PF" | "ID"
+  closeDrawer(code);
+});
+
+// 2) Clic en la "x" de cualquier drawer
+document.querySelectorAll('.drawer .close').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const aside = btn.closest('.drawer');
+    if (!aside || !aside.id) return;
+    const code = aside.id.replace('drawer',''); // "UP" | "IN" | "PF" | "ID"
+    closeDrawer(code);
+  });
+});
+
+// 3) Tecla ESC: cierra todos los drawers abiertos
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  ['UP','IN','PF','ID'].forEach(code => closeDrawer(code));
+});
+
+/* === Clicks de Perfil e Inbox (no volver a declarar profileBtn/inboxBtn) === */
+if (profileBtn) profileBtn.onclick = () => openDrawer('PF');
+if (ideasBtn) {
+  ideasBtn.onclick = () => {
+    openDrawer('ID');
+
+    // vistas: pago / opciones / encuesta / sugerencia
+    const pay  = document.getElementById('ideasPayView');
+    const opts = document.getElementById('ideasOptionsView');
+    const poll = document.getElementById('ideasPollView');
+    const sugg = document.getElementById('ideasSuggestView');
+
+    // si no hay ticket activo, muestra "Comprar"; si hay, muestra "Opciones"
+    if (window.ideasTicketActive) {
+      if (pay)  pay.style.display  = 'none';
+      if (opts) opts.style.display = 'block';
+    } else {
+      if (pay)  pay.style.display  = 'block';
+      if (opts) opts.style.display = 'none';
+    }
+
+    if (poll) poll.style.display = 'none';
+    if (sugg) sugg.style.display = 'none';};}
+
+
+
+
+
+// === Demo buttons (handlers seguros) ===
+const addWldBtn = document.getElementById('btnAddWLD');
+if (addWldBtn) {
+  addWldBtn.addEventListener('click', () => {
+    wld += 5;                                   // suma 5 WLD
+    localStorage.setItem('wld', String(wld));   // persiste
+    render();                                   // refresca balances/energía
+    if (typeof renderProfile === 'function') renderProfile(); // sincroniza Perfil
+  });
+}
+
+const resetBtn = document.getElementById('btnReset');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    if (confirm('¿Reiniciar demo?')) {
+      localStorage.clear();
+      location.reload();
+    }
+  });
+}
+
+/* ===== OPF: Orquestador Presupuestado de Frames (≤8ms) + integración ===== */
+const BUDGET_MS = 8;
+const OPF_Q = { now: [], next: [], idle: [] };
+let OPF_over = 0;
+
+function opfNow(fn){ OPF_Q.now.push(fn); }
+function opfNext(fn){ OPF_Q.next.push(fn); }
+function opfIdle(fn){ OPF_Q.idle.push(fn); }
+
+function __opfTick(){
+  const start = performance.now();
+  let i = 0;
+  for (; i < OPF_Q.now.length; i++){
+    try { OPF_Q.now[i](); } catch(e){}
+    if (performance.now() - start > BUDGET_MS){
+      OPF_Q.next = OPF_Q.now.slice(i+1).concat(OPF_Q.next);
+      OPF_over++;
+      break;
+    }
+  }
+  OPF_Q.now = OPF_Q.next;
+  OPF_Q.next = [];
+  if (OPF_Q.idle.length){
+    const runIdle = () => {
+      const t0 = performance.now();
+      const B = 12;
+      while (OPF_Q.idle.length && (performance.now() - t0) < B){
+        try { OPF_Q.idle.shift()(); } catch(e){}
+      }
+    };
+    if ('requestIdleCallback' in window) requestIdleCallback(runIdle, { timeout: 60 });
+    else setTimeout(runIdle, 0);
+  }
+  if (OPF_over > 3){ document.body.dataset.lowpower = '1'; OPF_over = 0; }
+  requestAnimationFrame(__opfTick);
+}
+requestAnimationFrame(__opfTick);
+
+/* ===== Integración: FX por frame y Regen/UI temporizados ===== */
+let __tPrev = performance.now();
+function __fxStepTask(){
+  const t = performance.now();
+  const dt = t - __tPrev; __tPrev = t;
+  if (typeof stepFX === 'function') stepFX(dt);
+}
+
+(function __enqueueFX(){
+  opfNow(__fxStepTask);
+  requestAnimationFrame(__enqueueFX);
+})();
+
+const REGEN_UI_MS = 500;
+let __nextRU = performance.now();
+(function __scheduleRU(){
+  const now = performance.now();
+  if (now >= __nextRU){
+    __nextRU = now + REGEN_UI_MS;
+    opfNow(() => { try{ lazyRegen(); }catch(_){} try{ render(); }catch(_){} });
+  }
+  requestAnimationFrame(__scheduleRU);
+})();
+
+/* ===== Perfil: nombre de usuario + idioma ===== */
+/* Helpers sin TDZ */
+function getLang(){ return localStorage.getItem('lang') || 'es'; }
+function setLang(v){ localStorage.setItem('lang', v === 'en' ? 'en' : 'es'); }
+
+var username = localStorage.getItem('username') || 'Player'; // por compatibilidad con otros trozos
+function getUsername(){ return localStorage.getItem('username') || 'Player'; }
+function setUsername(v){
+  const s = (v || '').slice(0,20);
+  localStorage.setItem('username', s);
+  username = s;
+  return s;
+}
+
+
+/* Diccionario i18n (UNA sola vez) */
+/* Diccionario i18n (UNA sola vez) */
+const I18N = {
+  es: {
+    wld_balance:   'Saldo WLD:',
+    coming_soon:   'Próximamente',
+    inbox_title:   'Buzón',
+    boosters_title:'Impulsores',
+    profile_title: 'Perfil',
+    mark_read:     'Marcar como leído',
+    claim_soon:    'Reclamar (Pronto)',
+    demo_title:    'Herramientas de prueba (demo)',
+    save:          'Guardar',
+    saved:         'Guardado',
+
+    // 👇 NUEVO: Perfil
+    username_label:        'Nombre de usuario',
+    username_placeholder:  'Tu nombre',
+    language_label:        'Idioma',
+    option_es:             'Español',
+    option_en:             'Inglés',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+      // 👇 Seeds del Inbox (si usas addMessageKey)
+    seed_stay_tuned:  'Novedades MUY pronto. Mantente atento. 💌',
+    seed_get_wallet:  'Prepara tu billetera para ganar a lo GRANDE . 💸',
+    seed_farming_time:'¡Hora de farmear $WLG! Alístate para la sorpresa y toma la delantera. 🎮',
+  // --- Ideas / Boosters / Varios ---
+    ideas_title: 'Ideas',
+    ideas_pay_intro: '¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!',
+    ideas_pay_btn: 'Comprar ticket',
+    ideas_choose: 'Escoge una opción',
+    ticket_time_left: 'Tiempo restante:',
+    vote: 'Votar✍️',
+    suggest: 'Sugerencia💡',
+    each_action_consumes: '*Cada acción consume 1 ticket',
+    poll_title: '🏁 ¡EMPIEZA LA CARRERA!',
+    poll_hint: 'TÚ ELIGES💊',
+    opt_a: 'Comodidad/Seguridad🔵',
+    opt_b: 'Cambio/Riesgo🔴',
+    opt_c: 'Autotap 🤖',
+    poll_close: 'Cerrar',
+    suggest_title: '¿Alguna idea?',
+    suggest_hint: 'Máx. 400 caracteres.',
+    placeholder_suggest: 'Escribe tu idea o mejora aquí…',
+    send: 'Enviar',
+    close: 'Cerrar',
+    signin_wld: 'Entrar con World ID',
+    need_active_ticket: 'Necesitas un ticket activo',
+    vote_recorded: '✅ Voto registrado',
+    sug_sent_private: '✅ Sugerencia enviada (privada)',
+    ticket_expired: '⛔ Ticket vencido',
+    ticket_bought_dev: '✅ Ticket comprado (simulación DEV)',
+    preparing_session: 'Preparando tu sesión',
+
+  
+  },
+
+en: {
+    wld_balance:   'WLD Balance:',
+    coming_soon:   'Coming Soon',
+    inbox_title:   'Inbox',
+    boosters_title:'Boosters',
+    profile_title: 'Profile',
+    mark_read:     'Mark as read',
+    claim_soon:    'Claim (Soon)',
+    demo_title:    'Demo tools',
+    save:          'Save',
+    saved:         'Saved',
+
+    // 👇 NEW: Profile
+    username_label:        'Username',
+    username_placeholder:  'Your name',
+    language_label:        'Language',
+    option_es:             'Spanish',
+    option_en:             'English',
+    profile_wlgp_label:    'WLGp:',
+    profile_wlg_label:     'WLG Balance:',
+    profile_wld_label:     'WLD Balance:',
+
+    // 👇 Inbox seeds
+    seed_stay_tuned:  'Stay tuned — big updates soon. 💌',
+    seed_get_wallet:  'Get your wallet ready to earn BIG. 💸',
+    seed_farming_time:'Farming time for $WLG! Get ready for surprise and take the lead. 🎮',
+    // --- Ideas / Boosters / Misc ---
+    ideas_title: 'Ideas',
+    ideas_pay_intro: 'Be part of the devs and race with the community. PARTICIPATE!',
+    ideas_pay_btn: 'Buy ticket',
+    ideas_choose: 'Choose an option',
+    ticket_time_left: 'Time left:',
+    vote: 'Vote✍️',
+    suggest: 'Suggestion💡',
+    each_action_consumes: '*Each action consumes 1 ticket',
+    poll_title: '🏁 START THE RACE!',
+    poll_hint: 'YOU CHOOSE💊',
+    opt_a: 'Comfort/Security🔵',
+    opt_b: 'Change/Risk🔴',
+    opt_c: 'Autotap 🤖',
+    poll_close: 'Close',
+    suggest_title: 'Any idea?',
+    suggest_hint: 'Max. 400 characters.',
+    placeholder_suggest: 'Type your idea or improvement…',
+    send: 'Send',
+    close: 'Close',
+    signin_wld: 'Sign in with World ID',
+    need_active_ticket: 'You need an active ticket',
+    vote_recorded: '✅ Vote recorded',
+    sug_sent_private: '✅ Suggestion sent (private)',
+    ticket_expired: '⛔ Ticket expired',
+    ticket_bought_dev: '✅ Ticket purchased (DEV simulation)',
+    preparing_session: 'Preparing your session',
+
+  
+  
+  
+  }
+  
+};
+
+
+/* Aplica i18n a todos los [data-i18n] */
+/* Aplica i18n a todos los [data-i18n] y placeholders */
+function applyLang(){
+  const cur = getLang();
+  const T = I18N[cur] || I18N.es;
+
+  // 1) Textos
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if (T[key] != null) el.textContent = T[key];
+  });
+
+  // 2) Placeholders (inputs/textarea)
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (T[key] != null) el.setAttribute('placeholder', T[key]);
+  });
+
+  document.documentElement.lang = cur;
+
+  // Redibuja partes dependientes de idioma
+  renderInbox();                         // Inbox por clave
+}
+
+
+
+/* Carga campos del Perfil + botón Guardar */
+function loadProfileFields(){
+  const usernameInput = document.getElementById('usernameInput');
+  const saveBtn       = document.getElementById('saveUsernameBtn');
+  const savedBadge    = document.getElementById('savedBadge');
+  const langSelect    = document.getElementById('langSelect');
+
+  // Nombre de usuario
+  if (usernameInput){
+    usernameInput.value = getUsername();
+
+    const markDirty = ()=>{
+      const dirty = usernameInput.value !== getUsername();
+      if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
+      if (savedBadge) savedBadge.style.display = 'none';
+    };
+    usernameInput.addEventListener('input', markDirty);
+    usernameInput.addEventListener('focus', markDirty);
+
+    if (saveBtn){
+      saveBtn.onclick = ()=>{
+  const normalized = setUsername(usernameInput.value);
+  usernameInput.value = normalized;
+  saveBtn.style.display = 'none';
+  if (savedBadge){
+    savedBadge.style.display = 'inline';
+    clearTimeout(savedBadge._t);
+    savedBadge._t = setTimeout(()=> savedBadge.style.display = 'none', 1200);
+  }
+};
+
+    }
+    // Auto-guardar al salir del input
+    usernameInput.addEventListener('blur', ()=>{
+      if (usernameInput.value !== getUsername()){
+        if (saveBtn) saveBtn.click();
+      }
+    });
+  }
+
+  // Idioma
+  if (langSelect){
+    langSelect.value = getLang();
+    langSelect.onchange = (e)=>{
+      setLang(e.target.value);
+      applyLang();
+    };
+  }
+
+  // Primera aplicación
+  applyLang();
+}
+
+/* Muestra balances dentro del Perfil */
+function renderProfile(){
+  const pWLD  = document.getElementById('profWLD');
+  const pWLGp = document.getElementById('profWLGp');
+  if (pWLD)  pWLD.textContent  = wld.toFixed(2);
+  if (pWLGp) pWLGp.textContent = wlgp.toFixed(3);
+}
+
+
+  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
+
+/* ===== Init ===== */
+(function init(){
+  
+  sizeCanvasToCoin();
+  // Partículas de arranque para confirmar que se ven
+  setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
+
+  render();               // primer pintado
+  loadProfileFields();    // engancha Perfil (username/idioma)
+  if (typeof renderProfile === 'function') renderProfile(); // sincroniza WLD/WLGp en Perfil
+  // Mensajes iniciales con CLAVE (se traducen)
+if (msgs.length === 0) {
+  addMessageKey('seed_stay_tuned', 'system');
+  addMessageKey('seed_get_wallet', 'system');
+  addMessageKey('seed_farming_time', 'system');
+}
+
+// Primer pintado del Inbox (ahora sí, I18N ya existe)
+renderInbox();
+if (!USE_TAP_SPAWN) {
+      scheduleHot(); // modo clásico por tiempo
+} else {
+  // modo por TAP: configurar el primer umbral de aparición
+  combo.tapCounter = 0;
+  combo.nextSpawnAt = randInt(...SPAWN_TAPS[targetLevel()]);
+}
+updateBadge(); // inicia oculto en base
+
+})(); // 👈 MUY IMPORTANTE: cerrar la IIFE
+
+// === Sincroniza clase .open para animación de drawers ===
+(function(){
+  const prevOpen = window.openDrawer;
+  const prevClose = window.closeDrawer;
+
+  window.openDrawer = function(id){
+    if (typeof prevOpen === 'function') prevOpen(id);
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
+  };
+
+  window.closeDrawer = function(id){
+    if (typeof prevClose === 'function') prevClose(id);
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
   };
 })();
 
-/* ======= LOGIN (OIDC) ======= */
-function wireLoginButton(){
-  const btn = document.getElementById('btnLogin');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    msg('Abriendo verificación…');
-    location.href = '/api/auth/login';
-  }, { once:true });
-}
-
-/* ======= WALLET & BALANCE ======= */
-async function connectWallet(){
-  try{
-    const bar = $('#walletBar');
-    if (!window.ethereum){ if (bar) bar.style.display='none'; return; }
-
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: WORLDCHAIN_CHAINID }] }).catch(()=>{});
-    const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
-    const addr = accs?.[0] || ''; if (!addr) return;
-
-    window.WALLET_ADDRESS = addr;
-    const short = addr.slice(0,6)+'…'+addr.slice(-4);
-    $('#walletShort') && ($('#walletShort').textContent = short);
-    bar && (bar.style.display = 'inline-flex');
-
-    const bal = await fetchWldBalance(addr);
-    if (bal != null){
-      $('#walletWLD') && ($('#walletWLD').textContent = bal.toFixed(4));
-      $('#wldBalance') && ($('#wldBalance').textContent = bal.toFixed(4) + ' WLD');
-    }
-  }catch{}
-}
-
-async function fetchWldBalance(address){
-  try{
-    const selector = '0x70a08231'; // balanceOf(address)
-    const data = selector + '000000000000000000000000' + address.replace(/^0x/,'');
-    const payload = { jsonrpc:'2.0', id:1, method:'eth_call', params:[{ to: WLD_CONTRACT, data }, 'latest'] };
-    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
-      method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload)
-    });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const hex = (j?.result || '0x0').replace(/^0x/,'');
-    const big = BigInt('0x'+hex);
-    return Number(big)/1e18;
-  }catch{ return null; }
-}
-
-/* ======= PAGOS (ERC-20 transfer) ======= */
-function toWei(wld){ return '0x'+(BigInt(Math.round(wld*1e6))*BigInt(10**12)).toString(16) }
-function pad32(hex){ return hex.replace(/^0x/,'').padStart(64,'0') }
-function encTransfer(to, amountWei){ return '0xa9059cbb' + pad32(to) + pad32(amountWei); }
-
-async function payWLD(wldAmount){
-  if (!window.ethereum){ alert('Abre desde World App.'); return; }
-  await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: WORLDCHAIN_CHAINID }] }).catch(()=>{});
-  const [from] = await window.ethereum.request({ method:'eth_requestAccounts' });
-  if (!from){ alert('No se pudo conectar la billetera.'); return; }
-
-  const data = encTransfer(RECEIVER, toWei(wldAmount));
-  const tx = { from, to: WLD_CONTRACT, data, value: '0x0' };
-  const hash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] });
-  return hash;
-}
-
-/* ======= INYECTA barra de wallet y botones si faltan ======= */
-(function ensureUI(){
-  // barra de wallet
-  if (!document.getElementById('walletBar')){
-    const bar = document.createElement('div');
-    bar.id = 'walletBar';
-    bar.style.cssText = 'display:none;align-items:center;gap:10px;background:#15171c;padding:8px 12px;border-radius:12px;position:fixed;right:16px;top:16px;z-index:30;border:1px solid #242834';
-    bar.innerHTML = `
-      <span id="walletShort" style="font-family:ui-monospace,Menlo,monospace;color:#cfd3e1">0x—</span>
-      <span style="background:#0a0b0e;color:#a9afbf;padding:6px 10px;border-radius:999px">WLD: <span id="walletWLD">--</span></span>
-    `;
-    document.body.appendChild(bar);
-  }
-  // panel de pagos
-  if (!document.getElementById('rgPayments')){
-    const card = document.createElement('div');
-    card.id = 'rgPayments';
-    card.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:30;background:#15171c;border:1px solid #242834;border-radius:16px;padding:12px;max-width:320px';
-    card.innerHTML = `
-      <div style="font-weight:700;margin-bottom:6px">RainbowGold • Pagos</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="btnIdeas" style="cursor:pointer;border:0;border-radius:12px;padding:10px 12px;background:#82ff9b;color:#0b0d10;font-weight:700">Ideas (1 WLD)</button>
-        <button id="btnRefill" style="cursor:pointer;border:0;border-radius:12px;padding:10px 12px;background:#82ff9b;color:#0b0d10;font-weight:700">Refill (${REFILL_COST_WLD.toFixed(3)} WLD)</button>
-      </div>
-      <div id="wldBalance" style="margin-top:6px;font-size:12px;color:#a9afbf">--</div>
-    `;
-    document.body.appendChild(card);
-  }
-})();
-
-/* ======= BOOTSTRAP OIDC ======= */
+// ===== Lazy images (excepto las marcadas data-critical) =====
 (function(){
-  const qs = new URLSearchParams(location.search);
-  const t = qs.get('token');
+  const imgs = document.querySelectorAll('img:not([data-critical])');
+  imgs.forEach(img => {
+    // Evita tocar las del splash crítico
+    if (img.closest('#splash')) return;
+    try {
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      // para móviles antiguos sin soporte 'loading', no pasa nada
+    } catch(_) {}
+  });
+})();
+// ===== Body lock cuando hay drawers abiertos =====
+(function(){
+  const drawers = document.querySelectorAll('.drawer');
+  if (!drawers.length) return;
 
-  async function applySession(){
-    try{
-      const r = await fetch('/api/session', { credentials:'include' });
-      const j = await r.json();
-      if (j?.session){
-        // nombre de World App
-        const name = j.session.name || 'Jugador';
-        const el = document.getElementById('profileName') || (function(){
-          const e = document.createElement('div');
-          e.id = 'profileName';
-          e.style.cssText = 'position:fixed;left:16px;top:16px;background:#0a0b0e;color:#a9afbf;padding:6px 10px;border-radius:999px;z-index:30';
-          document.body.appendChild(e);
-          return e;
-        })();
-        el.textContent = name;
-        window.VERIFIED = true;
-        return true;
-      }
-    }catch{}
-    return false;
+  const update = () => {
+    const anyOpen = Array.from(drawers).some(d => d.classList.contains('show'));
+    document.body.classList.toggle('has-drawer', anyOpen);
+  };
+
+  // Observa cambios de clase en cada drawer (abre/cierra)
+  const mo = new MutationObserver(update);
+  drawers.forEach(d => mo.observe(d, { attributes: true, attributeFilter: ['class'] }));
+
+  // Llamada inicial por si ya hay alguno abierto al cargar
+  update();
+})();
+// 🔒 Anti-autotap: pausar juego si está en background
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    noEnergyUntil = performance.now() + 9999999; // bloquea mientras esté oculto
+  } else {
+    noEnergyUntil = 0; // desbloquea al volver
   }
+});
 
-  function hardUnlock(){
-    try{ document.getElementById('splash')?.classList.add('hidden'); }catch{}
-    try{ unlock?.(); }catch{}
-    try{ connectWallet(); }catch{}
-  }
+</script>
+<script>
+(function setupTrophyTip(){
+  const btn = document.getElementById('trophyBtn');
+  const tip = document.getElementById('trophyTip');
+  if (!btn || !tip) return;
 
-  (async () => {
-    wireLoginButton();
-
-    if (t){
-      window.SESSION_TOKEN = t;
-      window.VERIFIED = true;
-      history.replaceState({}, '', location.origin + location.pathname);
-      hardUnlock();
-      await applySession();
-      return;
-    }
-    const ok = await applySession();
-    if (ok) hardUnlock();
-  })();
-
-  window.addEventListener('load', ()=>{
-    if (window.VERIFIED){ hardUnlock(); }
-    // reintentos por si unlock() aparece tardísimo
-    let tries=0; const h=setInterval(()=>{ if(window.VERIFIED){ hardUnlock(); clearInterval(h);} if(++tries>10) clearInterval(h); },300);
+  let timer;
+  btn.addEventListener('click', () => {
+    tip.classList.add('show');     // aparece
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      tip.classList.remove('show'); // se desvanece
+    }, 1600); // 1.6s visible
   });
 })();
 </script>
 
-<!-- RG_ULTRA_PRESERVE -->
+<script type="module">
+// ===== MiniKit World App — Bloque mínimo con DEV =====
+const DEV_MODE = true;  // <<<<<< ACTIVADO (simula verify/pay)
+// 👇 Solo para DEV: desbloquear juego sin verificar cada vez
+if (DEV_MODE) {
+  window.VERIFIED = true;
+  window.SESSION_TOKEN = 'dev-' + (crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+  setVerifiedUI?.(true);
+  try { unlock?.(); } catch (_) {}
+}
+
+let MiniKit, VerificationLevel;
+
+try {
+  // Aunque estemos en DEV, intentamos cargar; si falla no importa.
+  const m = await import("https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.5.0/+esm");
+  MiniKit = m.MiniKit;
+  VerificationLevel = m.VerificationLevel;
+} catch (e) {
+  console.warn("MiniKit no cargó (ok si estás en DEV):", e);
+}
+
+// === Configuración ===
+const ACTION_ID = "rainbowgold";                                  // tu Action Identifier
+const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
+const TOKEN     = "WLD";
+const AMOUNT    = "0.10";
+
+// === Referencias UI ===
+const btn       = document.getElementById("wldSignIn");
+const splash    = document.getElementById("splash");
+const state     = document.getElementById("wldState");
+const refillBtn = document.getElementById("refillBtn");
+
+// === Helpers UI ===
+function msg(t){ if(state){ state.textContent = t; state.style.opacity = "1"; } }
+function unlock(){
+  document.querySelectorAll("#coin,.btn-icon,.fab").forEach(el => el.style.pointerEvents = "");
+  if (splash){ splash.classList.add("splash-hide"); setTimeout(() => splash.remove(), 450); }
+  try { playSnd('join', { volume: 0.9 }); } catch(_) {}
+}
+function hasMiniKit(){
+  return !!(MiniKit && (MiniKit.isInstalled?.() === true || MiniKit.isAvailable?.() === true));
+}
+function requireMiniKit(){
+  if (DEV_MODE) return true; // en DEV no exigimos MiniKit
+  const ok = hasMiniKit();
+  if (!ok) alert("Ábrelo desde el QR del portal con el escáner de la World App (no navegador).");
+  return ok;
+}
+
+// === Verificación ===
+async function startVerify(){
+  if (!requireMiniKit()) return;
+  if (btn) btn.disabled = true;
+
+  if (DEV_MODE){
+    msg("DEV: Verificación simulada ✔");
+    // Simula trabajo y desbloquea la app
+    setTimeout(() => { msg("¡Listo!"); unlock(); }, 600);
+    return;
+  }
+
+  msg("Abriendo verificación…");
+  try{
+    const { status, finalPayload } = await MiniKit.commandsAsync.verify({
+      action: ACTION_ID,
+      verification_level: VerificationLevel.Device
+    });
+
+    if (status !== "success"){
+      if (btn) btn.disabled = false;
+      msg("Verificación cancelada.");
+      return;
+    }
+
+    // Valida el proof en tu backend
+    const r = await fetch("https://worldgold-api-o87j.vercel.app/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(finalPayload)
+    });
+
+        const vr = await r.json();
+              if (vr?.ok){
+        window.VERIFIED = true;
+        setVerifiedUI?.(true);
+      } else {
+        window.VERIFIED = false;
+        setVerifiedUI?.(false);
+        alert("Verificación inválida. Inténtalo de nuevo.");
+        return;
+      }
+
+    if (!vr?.ok || !vr?.token){
+      if (btn) btn.disabled = false;
+      msg("Verificación inválida en servidor.");
+      return;
+    }
+    window.SESSION_TOKEN = vr.token; // 👈 guardamos token firmada en memoria (no localStorage)
+
+    if (!r.ok){
+      if (btn) btn.disabled = false;
+      msg("Verificación inválida en servidor.");
+      return;
+    }
+
+    msg("¡Listo!");
+    unlock();
+
+  } catch (err){
+    console.error(err);
+    if (btn) btn.disabled = false;
+    msg("Error al verificar.");
+  }
+}
+
+if (btn) btn.addEventListener("click", startVerify);
+
+// === Pago (Refill) ===
+async function payRefill(){
+  if (!requireMiniKit()) return;
+  if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
+
+  if (DEV_MODE){
+    alert("✅ DEV: Pago simulado de 0.10 WLD");
+    return;
+  }
+
+  try{
+    const res = await MiniKit.commandsAsync.pay({
+      to: MERCHANT,
+      token: TOKEN,
+      amount: AMOUNT,
+      reference: crypto.randomUUID()
+    });
+
+    if (res.status === "success"){
+      
+      try {
+        await fetch("https://worldgold-api-o87j.vercel.app/api/pay/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(res)
+        });
+      } catch (e) { console.warn("No se pudo confirmar en backend:", e); }
+            // ➜ cargar la energía y descontar el WLD en el cliente
+      try { doRefill(); } catch (e) { console.warn("doRefill() no disponible:", e); }
+
+      alert("✅ Pago realizado");
+    } else {
+      alert("Pago cancelado");
+    }
+  } catch (e){
+    console.error(e);
+    alert("Error en el pago");
+  }
+}
+
+if (refillBtn){
+  refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
+}
+// ===== Fin bloque MiniKit (DEV) =====
+</script>
+
+<footer style="text-align:center;opacity:.7;font-size:12px;margin:18px 0">
+  <a href="https://rainbowgold-app.vercel.app/terminos" target="_blank">Términos</a> ·
+  <a href="https://rainbowgold-app.vercel.app/privacidad" target="_blank">Privacidad</a>
+</footer>
+
+
+
+
+<!-- RG_PIN_PATCH -->
 <script>
 (()=>{
-  // === Namespace para no chocar con tus const/vars ===
+  // ===== Namespace para evitar colisiones =====
   const RG = (window.RG ??= {});
-  RG.RECEIVER ??= '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+  RG.RECEIVER ??= '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a'; // wallet destino
   RG.ENERGY_CAPACITY ??= 100;
   RG.REFILL_RATE ??= 0.001; // 0.1%
-  RG.WLD_CONTRACT ??= '0x2cfc85d8e48f8eab294be644d9e25c3030863003';
+  RG.WLD_CONTRACT ??= '0x2cfc85d8e48f8eab294be644d9e25c3030863003'; // WLD en World Chain
   RG.WORLDCHAIN_CHAINID ??= '0x1e0';
   RG.REFILL_COST_WLD = +(RG.ENERGY_CAPACITY * RG.REFILL_RATE).toFixed(3);
 
   const $ = (s)=>document.querySelector(s);
   const msg = (s)=>{ try{ (document.getElementById('splashMsg')||{}).textContent = s }catch{} };
 
-  // Anti-relock: si ya verificado, lock() no hace nada
+  // ===== Bloquea futuros 'lock()' si ya verificaste =====
   const prevLock = window.lock;
   window.lock = function(...a){
     if (window.VERIFIED) return;
     return typeof prevLock === 'function' ? prevLock.apply(this,a) : undefined;
   };
 
-  // Wire login en tu propio botón (usa tu id existente: #btnLogin si lo tienes)
+  // ===== Engancha TU botón de login (id="wldSignIn") =====
   (function wireLogin(){
-    const el = document.getElementById('btnLogin') || document.getElementById('login') || document.getElementById('loginBtn') || document.querySelector('[data-login]');
+    const el = document.getElementById('wldSignIn') || document.getElementById('btnLogin') || document.getElementById('login') || document.getElementById('loginBtn') || document.querySelector('[data-login]');
     if (!el) return;
-    el.addEventListener('click', ()=>{ msg('Abriendo verificación…'); location.href='/api/auth/login'; }, { once:true });
+    // Evitar listeners previos
+    try{ el.onclick = null }catch{}
+    el.addEventListener('click', (ev)=>{
+      try{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); }catch{}
+      msg('Abriendo verificación…');
+      location.href = '/api/auth/login';
+    }, { once:true, capture:true });
   })();
 
+  // ===== Wallet (World Chain) =====
   async function connectWallet(){
     try{
       if (!window.ethereum) return;
@@ -357,16 +3533,16 @@ async function payWLD(wldAmount){
       const addr = accs?.[0] || ''; if (!addr) return;
       window.WALLET_ADDRESS = addr;
 
-      // Actualiza UI si tienes estos ids; si no, no cambia nada visual
+      // Si tienes UI para wallet, la actualizo; si no, no toco nada
       try{
         const short = addr.slice(0,6)+'…'+addr.slice(-4);
-        const s=$('#walletShort'); if (s) s.textContent = short;
-        const bar=$('#walletBar'); if (bar) bar.style.display='inline-flex';
+        const s = $('#walletShort'); if (s) s.textContent = short;
+        const bar = $('#walletBar'); if (bar) bar.style.display = 'inline-flex';
         const bal = await fetchWldBalance(addr);
-        if (bal!=null){
-          const w=$('#walletWLD'); if (w) w.textContent = bal.toFixed(4);
-          const wb=$('#wldBalance'); if (wb) wb.textContent = bal.toFixed(4)+' WLD';
-          const rb=document.getElementById('btnRefill')||document.getElementById('refill')||document.getElementById('refillBtn');
+        if (bal != null){
+          const w = $('#walletWLD'); if (w) w.textContent = bal.toFixed(4);
+          const wb = $('#wldBalance'); if (wb) wb.textContent = bal.toFixed(4)+' WLD';
+          const rb = document.getElementById('btnRefill') || document.getElementById('refill') || document.getElementById('refillBtn');
           if (rb) rb.textContent = 'Refill ('+RG.REFILL_COST_WLD.toFixed(3)+' WLD)';
         }
       }catch{}
@@ -375,7 +3551,7 @@ async function payWLD(wldAmount){
 
   async function fetchWldBalance(address){
     try{
-      const selector='0x70a08231'; // balanceOf(address)
+      const selector='0x70a08231';
       const data = selector + '000000000000000000000000' + address.replace(/^0x/, '');
       const payload = { jsonrpc:'2.0', id:1, method:'eth_call', params:[{ to: RG.WLD_CONTRACT, data }, 'latest'] };
       const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
@@ -383,17 +3559,15 @@ async function payWLD(wldAmount){
       });
       if (!r.ok) return null;
       const j = await r.json();
-      const hex = (j?.result || '0x0').replace(/^0x/, '');
-      const big = BigInt('0x'+hex);
+      const hex = (j?.result || '0x0').replace(/^0x/,''); const big = BigInt('0x'+hex);
       return Number(big)/1e18;
     }catch{ return null; }
   }
 
-  // ERC20 transfer (WLD)
+  // ===== Pagos WLD =====
   function toWei(wld){ return '0x'+(BigInt(Math.round(wld*1e6))*BigInt(10**12)).toString(16) }
   function pad32(hex){ return hex.replace(/^0x/,'').padStart(64,'0') }
   function encTransfer(to,amountWei){ return '0xa9059cbb'+pad32(to)+pad32(amountWei) }
-
   async function payWLD(amount){
     if (!window.ethereum){ alert('Abre desde World App.'); return; }
     await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId: RG.WORLDCHAIN_CHAINID }] }).catch(()=>{});
@@ -412,6 +3586,7 @@ async function payWLD(wldAmount){
     if (refill) refill.addEventListener('click', ()=> payWLD(RG.REFILL_COST_WLD).catch(()=>{}));
   }
 
+  // ===== Sesión OIDC =====
   async function applySession(){
     try{
       const r = await fetch('/api/session', { credentials:'include' });
@@ -419,7 +3594,7 @@ async function payWLD(wldAmount){
       if (j?.session){
         const name = j.session.name || 'Jugador';
         const el = document.getElementById('profileName');
-        if (el) el.textContent = name; // si existe en tu UI
+        if (el) el.textContent = name;
         window.VERIFIED = true;
         return true;
       }
@@ -428,7 +3603,6 @@ async function payWLD(wldAmount){
   }
 
   function softUnlock(){
-    // NO modifico tu layout: oculto splash si existe y llamo unlock() si lo tienes
     try{ document.getElementById('splash')?.classList.add('hidden'); }catch{}
     try{ unlock?.(); }catch{}
     connectWallet();
