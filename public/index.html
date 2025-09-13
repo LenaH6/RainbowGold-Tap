@@ -14,8 +14,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-app.vercel.app/ https://worldchain-mainnet.g.alchemy.com/public;
-  media-src 'self';
+  connect-src 'self' https://cdn.jsdelivr.net #removed-old-worldgold-api'self' https://worldchain-mainnet.g.alchemy.com/public;
 ">
 <!-- Referrer mínima (no filtramos URL) -->
 <meta http-equiv="Referrer-Policy" content="no-referrer">
@@ -33,8 +32,9 @@
 ">
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://worldgold-api.vercel.app/" crossorigin>
 
-<title>RainbowGold — App</title>
+<title>WorldGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
 <style>
@@ -928,17 +928,14 @@ body.has-drawer{
 </style>
 </head>
 <body>
+
+<!-- Bootstrap robusto para desbloquear sin relock -->
 <script>
-/**
- * Bootstrap de sesión: si vuelve con ?token, marcamos VERIFICADO
- * inmediatamente (para que no te relockee), y luego refinamos con la cookie.
- */
 (function () {
   try {
     const qs = new URLSearchParams(location.search);
     const t = qs.get('token');
 
-    // — helpers UI/session —
     async function applySessionFromCookie() {
       try {
         const r = await fetch('/api/session', { credentials: 'include' });
@@ -949,66 +946,109 @@ body.has-drawer{
           const name = j.session.name || 'Jugador';
           if (input) { input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
           if (saveRow) { saveRow.style.display = 'none'; }
-          // ya estamos verificados; asegura UI
+
+          const w = j.session.wallet || '';
+          if (w) {
+            window.WALLET_ADDRESS = w;
+            try {
+              const short = w.slice(0,6)+'…'+w.slice(-4);
+              document.getElementById('walletShort').textContent = short;
+              document.getElementById('walletBar').style.display = 'inline-flex';
+            } catch(_){}
+          }
+
           window.VERIFIED = true;
-          try { setVerifiedUI?.(true); } catch (_){}
+          try { setVerifiedUI?.(true); } catch(_){}
           return true;
         }
-      } catch (_){}
+      } catch(_){}
       return false;
     }
 
     async function ensureUnlocked() {
-      try { setVerifiedUI?.(true); } catch (_){}
-      try { unlock?.(); } catch (_){}
-      try { if (typeof connectWallet === 'function') connectWallet(); } catch (_){}
+      try { setVerifiedUI?.(true); } catch(_){}
+      try { unlock?.(); } catch(_){}
+      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_){}
     }
 
     (async () => {
       if (t) {
-        // 1) Marca verificado de inmediato para que NADA te relockee
         window.SESSION_TOKEN = t;
         window.VERIFIED = true;
-
-        // 2) Quita el query para no repetir
         history.replaceState({}, '', location.origin + location.pathname);
-
-        // 3) Desbloquea ya mismo (UI + wallet)
         await ensureUnlocked();
-
-        // 4) Refina con la cookie (nombre, etc.). Si falla, seguimos verificados.
         await applySessionFromCookie();
       } else {
-        // Sin token (ej. retorno posterior): si hay cookie, desbloquea
         const ok = await applySessionFromCookie();
         if (ok) await ensureUnlocked();
       }
     })();
 
-    // 5) Salvavidas: si por orden de scripts unlock() aún no existe, reintenta
     window.addEventListener('load', () => {
       if (window.VERIFIED) {
         let tries = 0;
         const h = setInterval(() => {
-          if (typeof unlock === 'function') {
-            ensureUnlocked();
-            clearInterval(h);
-          }
-          if (++tries > 10) clearInterval(h); // ~3s
+          if (typeof unlock === 'function') { ensureUnlocked(); clearInterval(h); }
+          if (++tries > 10) clearInterval(h);
         }, 300);
       }
     });
-
-  } catch (_){}
+  } catch(_){}
 })();
 </script>
 
 
 
+<script>
+(function(){
+  try {
+    const qs = new URLSearchParams(location.search);
+    const t = qs.get('token');
+
+    async function unlockFromSession(){
+      try {
+        const r = await fetch('/api/session');
+        const j = await r.json();
+        if (j?.session) {
+          // fija nombre y esconde la edición
+          const name = j.session.name || 'Jugador';
+          const input = document.getElementById('usernameInput');
+          const saveRow = document.getElementById('saveRow');
+          if (input){ input.value = name; input.readOnly = true; input.setAttribute('aria-readonly','true'); }
+          if (saveRow){ saveRow.style.display = 'none'; }
+
+          window.VERIFIED = true;
+          try{ setVerifiedUI?.(true); }catch(_){}
+          try{ unlock?.(); }catch(_){}
+          // conecta billetera (World Chain)
+          try{ if (typeof connectWallet === 'function') connectWallet(); }catch(_){}
+          return true;
+        }
+      } catch{}
+      return false;
+    }
+
+    (async () => {
+      if (t) {
+        // flujo con ?token
+        window.SESSION_TOKEN = t;
+        history.replaceState({}, '', location.origin + location.pathname);
+        await unlockFromSession(); // usa cookie para nombre + wallet
+      } else {
+        // si no vino ?token pero ya hay cookie, igual desbloquea
+        await unlockFromSession();
+      }
+    })();
+
+  } catch(_){}
+})();
+</script>
+
+
   <!-- === SPLASH / CARGA INICIAL === -->
-<div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
+<div id="splash" class="splash" aria-busy="true" aria-label="Cargando WorldGold">
   <div class="splash__logo">
-    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="WorldGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
@@ -2709,6 +2749,17 @@ async function handleVote(key){
   const totalBefore = votes.A + votes.B + votes.C;
   const beforePct = totalBefore ? Math.round(((votes[key]||0) / totalBefore) * 100) : 0;
 
+  // === Guardar en backend ===
+  try {
+    await fetch("#removed-old-worldgold-api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, option: key })
+    });
+  } catch (e) {
+    console.error("Error al enviar voto al backend:", e);
+  }
+
   // === Mantener tu lógica local ===
   votes[key] = (votes[key] || 0) + 1;
   saveVotes();
@@ -2795,7 +2846,17 @@ if (sendSuggestBtn){
       alert('Escribe al menos 4 caracteres.');
       return;
     }
-  
+
+    // === Guardar en backend ===
+    try {
+      await fetch("#removed-old-worldgold-api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: window.SESSION_TOKEN, suggestion: txt })
+      });
+    } catch (e) {
+      console.error("Error al enviar sugerencia al backend:", e);
+    }
 
     // === Mantener tu UI local ===
     const box = JSON.parse(localStorage.getItem('wg_suggestions') || '[]');
@@ -2851,6 +2912,59 @@ function updateTicketTimer(){
   const m = Math.floor(remaining/60000);
   const s = Math.floor((remaining%60000)/1000);
   el.textContent = `${T.ticket_time_left || 'Tiempo restante:'} ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+
+// ==== Pago (DEV simulado o real con World App) ====
+if (payIdeasBtn){
+  payIdeasBtn.onclick = async (ev) => {
+    ev.preventDefault();
+    if (!window.SESSION_TOKEN) { alert("Verifícate primero."); return; }
+
+    if (window.WG_DEV_MODE){
+      {
+        const cur = getLang(); const T = I18N[cur] || I18N.es;
+          alert(T.ticket_bought_dev || "✅ Ticket comprado (simulación DEV)");
+       }
+
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
+      startTicketTimer(5);
+      return;
+    }
+
+   try{
+      const res = await MiniKit.commandsAsync.pay({
+        to: MERCHANT,
+        token: "WLD",
+        amount: "1",
+        reference: crypto.randomUUID()
+      });
+
+
+     if (res.status !== "success"){
+        alert("❌ Pago cancelado");
+        return;
+      }
+
+      await fetch("#removed-old-worldgold-api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(res)
+      });
+
+      alert("✅ Ticket Ideas comprado con éxito");
+      ideasPayView.style.display = 'none';
+      ideasOptionsView.style.display = 'block';
+      ideasTicketActive = true;
+      startTicketTimer(5);
+
+    }catch(e){
+      console.error("Error en pago Ideas:", e);
+      alert("⚠️ Hubo un problema con el pago");
+    }
+  };
 }
 
 
@@ -3012,6 +3126,32 @@ function render(){
   refillBtn.classList.toggle('pulse', low && canPay);
   refillBtn.disabled = energy>=eMax-1e-6;
     if (typeof renderProfile === 'function') renderProfile(); // 👈 mantiene el perfil sincronizado
+}
+
+
+/* ===== Tap logic ===== */
+// === Cola de taps → servidor ===
+let tapQueue = 0;
+async function flushTapQueue(){
+  if (!tapQueue || !window.SESSION_TOKEN) return;
+  try{
+    const resp = await fetch("#removed-old-worldgold-api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: window.SESSION_TOKEN, taps: tapQueue })
+    });
+    const data = await resp.json();
+    if (data?.ok && data?.token && data?.state){
+      // nuevo token firmado
+      window.SESSION_TOKEN = data.token;
+      // fuente autoritativa:
+      wld    = +data.state.wld;
+      wlgp   = +data.state.wlgp;
+      energy = +data.state.energy;
+      render?.();
+    }
+  }catch(e){ console.warn("flushTapQueue error", e); }
+  tapQueue = 0;
 }
 // cada ~4s
 setInterval(flushTapQueue, 4000);
@@ -3702,6 +3842,12 @@ try {
   console.warn("MiniKit no cargó (ok si estás en DEV):", e);
 }
 
+// === Configuración ===
+const ACTION_ID = "worldgold";                                  // tu Action Identifier
+const MERCHANT  = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tu wallet
+const TOKEN     = "WLD";
+const AMOUNT    = priceRefill();
+
 // === Referencias UI ===
 const btn       = document.getElementById("wldSignIn");
 const splash    = document.getElementById("splash");
@@ -3726,19 +3872,82 @@ function requireMiniKit(){
 }
 
 // === Verificación ===
-async function startVerify() {
-  // abre la UI oficial de World ID (OIDC)
-  msg?.("Abriendo verificación…");
-  window.location.href = '/api/auth/login';
+async function startVerify(){ msg?.('Abriendo verificación…'); window.location.href = '/api/auth/login'; }
+
+if (btn) btn.addEventListener('click', startVerify);
+
+// === Pago (Refill) ===
+async function payRefill(){
+  if (!requireMiniKit()) return;
+  if (!window.SESSION_TOKEN) { 
+    alert("Verifícate primero."); 
+    return; 
+  }
+
+  // --- DEV MODE ---
+ if (DEV_MODE){
+  alert("✅ DEV: Pago simulado de 0.10 WLD");
+
+  // Simula refill directamente
+  energy = capMax();   // recarga energía al 100%
+  render();            // refresca la barra de energía en pantalla
+
+  return;
 }
 
-if (btn) btn.addEventListener('click', startVerify);  
+
+  try {
+    // Pago real en World App
+    const res = await MiniKit.commandsAsync.pay({
+      to: MERCHANT,
+      token: TOKEN,
+      amount: AMOUNT,
+      reference: crypto.randomUUID()
+    });
+
+    if (res.status === "success") {
+      try {
+        // Confirmar en backend
+        let r = await fetch("#removed-old-worldgold-api", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(res)
+        });
+        let data = await r.json();
+
+        if (data.ok) {
+          window.SESSION_TOKEN = data.token;
+
+          // sincronizar con las variables que render() usa
+          wld    = +data.state.wld;
+          wlgp   = +data.state.wlgp;
+          energy = +data.state.energy;
+
+          render();   // 👈 refresca UI igual que flushTapQueue
+          alert("✅ Pago realizado");
+        }
+        else {
+          alert("Error: " + data.error);
+        }
+      } catch (e) {
+        console.error("Error al confirmar pago:", e);
+        alert("Error al confirmar el pago");
+      }
+    } else {
+      alert("Pago cancelado");
+    }
+
+  } catch (e) {
+    console.error(e);
+    alert("Error en el pago");
+  }
+}
 
 
 if (refillBtn){
   refillBtn.onclick = (ev) => { ev.preventDefault(); payRefill(); };
 }
-
+// ===== Fin bloque MiniKit (DEV) =====
 </script>
 <script>
   // Listeners pasivos para scroll/touch → evita bloqueos
@@ -3814,11 +4023,7 @@ async function fetchWldBalance(address){
       params:[{ to:C, data }, 'latest']
     };
 
-    const r = await fetch('https://worldchain-mainnet.g.alchemy.com/public', {
-      method:'POST',
-      headers:{ 'content-type':'application/json' },
-      body: JSON.stringify(payload) 
-    });
+    const r = await });
     const j = await r.json();
     if (!j?.result) return null;
     const hex = j.result.replace(/^0x/,'') || '0';
@@ -3828,39 +4033,6 @@ async function fetchWldBalance(address){
 }
 
 </script>
-<script>
-// Fallback: si ya estamos VERIFICADOS, intenta desbloquear cuando todo cargue
-window.addEventListener('load', () => {
-  if (window.VERIFIED) {
-    try { unlock(); } catch(_) {}
-    try { if (typeof connectWallet === 'function') connectWallet(); } catch(_) {}
-  }
-
-  // reintentos por si unlock() aún no está definido en el primer tick
-  let tries = 0;
-  const t = setInterval(() => {
-    if (window.VERIFIED && typeof unlock === 'function') {
-      try { unlock(); } catch(_) {}
-      try { if (typeof connectWallet === 'function') connectWallet(); } catch(_) {}
-      clearInterval(t);
-    }
-    if (++tries > 10) clearInterval(t); // ~3s total
-  }, 300);
-});
-</script>
-<div id="dbg" style="position:fixed;bottom:8px;left:8px;z-index:9999;background:rgba(0,0,0,.6);color:#0f0;padding:6px 8px;border-radius:8px;font:12px/1.2 monospace;white-space:pre;"></div>
-<script>
-(async function(){
-  const log = (...a)=>{ const d=document.getElementById('dbg'); if(d){ d.textContent += a.join(' ')+'\n' } };
-  const qs = new URLSearchParams(location.search);
-  log('token?', !!qs.get('token'));
-  try { const r = await fetch('/api/session'); const j = await r.json(); log('session:', JSON.stringify(j)); } catch(e){ log('session err:', e.message) }
-  log('VERIFIED:', !!window.VERIFIED);
-  log('unlock type:', typeof window.unlock);
-  window.addEventListener('load',()=>log('onload VERIFIED:', !!window.VERIFIED, 'unlock:', typeof window.unlock));
-})();
-</script>
-
 
 </body>
 </html>

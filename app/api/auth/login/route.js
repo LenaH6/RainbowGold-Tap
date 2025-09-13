@@ -11,7 +11,7 @@ export async function GET() {
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'openid profile email',
+    scope: 'openid profile email wallet verification',
     state, nonce, prompt: 'consent'
   })
   return NextResponse.redirect('https://id.worldcoin.org/authorize?' + params.toString())
