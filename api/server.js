@@ -11,23 +11,21 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve web from bundled folder
+// Serve frontend
 const WEB_DIR = path.resolve(__dirname, '../web');
 app.use(express.static(WEB_DIR));
 
-// Healthcheck
-app.get('/health', (req, res) => {
-  res.json({ ok: true, env: !!(process.env.WLD_CLIENT_ID || process.env.WORLD_ID_CLIENT_ID) });
-});
+// Health
+app.get('/health', (req,res)=>res.json({ ok:true, env:!!(process.env.WLD_CLIENT_ID||process.env.WORLD_ID_CLIENT_ID) }));
 
-// --- Stateless STATE helpers (HMAC) ---
+// --- Stateless STATE (HMAC) ---
 function b64url(buf){ return Buffer.from(buf).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function hmacSign(payload, secret){
   const h = crypto.createHmac('sha256', secret);
   h.update(payload);
   return b64url(h.digest());
 }
-function createState({ returnTo='/', ttlSec=600 }){
+function createState({ returnTo='/', ttlSec=1800 }){ // 30 min
   const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
   const data = { t: Date.now(), exp: Date.now() + ttlSec*1000, r: returnTo };
   const payload = b64url(Buffer.from(JSON.stringify(data)));
@@ -36,17 +34,18 @@ function createState({ returnTo='/', ttlSec=600 }){
 }
 function verifyState(state){
   try{
-    const parts = String(state || '').split('.');
-    if (parts.length !== 2) return null;
+    const parts = String(state||'').split('.');
+    if (parts.length!==2) return null;
     const [payload, sig] = parts;
     const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
     const expected = hmacSign(payload, secret);
     if (sig !== expected) return null;
     const json = Buffer.from(payload.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString('utf8');
     const data = JSON.parse(json);
-    if (!data || !data.exp || Date.now() > data.exp) return null;
+    if (!data || !data.exp) return null;
+    if (Date.now() > (data.exp + 120000)) return null; // +2 min de gracia
     return data;
-  } catch { return null; }
+  }catch{ return null; }
 }
 
 // OIDC endpoints
@@ -55,18 +54,18 @@ const OIDC = {
   token: 'https://id.worldcoin.org/token'
 };
 
-app.get('/auth/login', (req, res) => {
+app.get('/auth/login', (req,res)=>{
   const client_id = process.env.WLD_CLIENT_ID || process.env.WORLD_ID_CLIENT_ID;
   const redirect_uri = process.env.WLD_REDIRECT_URI || process.env.WORLD_ID_REDIRECT_URI;
   const scope = process.env.WLD_SCOPE || process.env.WORLD_ID_SCOPE || 'openid';
   const returnTo = req.query.returnTo || '/';
 
-  if (!client_id || !redirect_uri) {
+  if(!client_id || !redirect_uri){
     res.status(500).send('Missing OIDC env (client_id/redirect_uri)');
     return;
   }
 
-  const state = createState({ returnTo, ttlSec: 600 });
+  const state = createState({ returnTo, ttlSec: 1800 });
   const url = new URL(OIDC.authorize);
   url.searchParams.set('client_id', client_id);
   url.searchParams.set('redirect_uri', redirect_uri);
@@ -76,12 +75,12 @@ app.get('/auth/login', (req, res) => {
   res.redirect(url.toString());
 });
 
-app.get('/auth/callback', async (req, res) => {
+app.get('/auth/callback', async (req,res)=>{
   const { code, state } = req.query;
   const data = verifyState(state);
   const returnTo = (data && data.r) || '/';
 
-  if (!code || !data) {
+  if(!code || !data){
     res.status(400).send('state inválido o falta code');
     return;
   }
@@ -94,57 +93,39 @@ app.get('/auth/callback', async (req, res) => {
   params.set('redirect_uri', process.env.WLD_REDIRECT_URI || process.env.WORLD_ID_REDIRECT_URI || '');
 
   let ok = false;
-  try {
-    const r = await fetch(OIDC.token, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
-    });
+  try{
+    const r = await fetch(OIDC.token, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params });
     const j = await r.json();
     ok = !!(j && (j.access_token || j.id_token));
-  } catch (e) {}
+  }catch(e){}
 
-  // minimal page that sets a flag and returns
-  const html = [
-    '<!doctype html><html><body><script>(function(){',
-    'var ok = ' + (ok and 'true' or 'false') + ';',
-    'var returnTo = ' + JSON.stringify(returnTo) + ';',
-    'if (ok) { try { localStorage.setItem("wld_verified","1"); } catch(e){}',
-    'try { sessionStorage.setItem("wld_verified","1"); } catch(e){}',
-    'try { document.cookie="wld_verified=1; Max-Age=600; Path=/; SameSite=Lax"; } catch(e){} }',
-    'try { if (window.opener && ok) { window.opener.postMessage({type:"wld:verified"}, "*"); window.close(); return; } } catch(e){}',
-    'try { if (window.parent && window.parent !== window && ok) { window.parent.postMessage({type:"wld:verified"}, "*"); } } catch(e){}',
-    'location.replace(returnTo || "/");',
-    '})();</script></body></html>'
-  ].join('');
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  const html = '<!doctype html><html><body><script>(function(){'
+    + 'var ok=' + (ok ? 'true' : 'false') + ';'
+    + 'var returnTo=' + JSON.stringify(returnTo) + ';'
+    + 'if(ok){try{localStorage.setItem("wld_verified","1");}catch(e){}try{sessionStorage.setItem("wld_verified","1");}catch(e){}try{document.cookie="wld_verified=1; Max-Age=600; Path=/; SameSite=Lax";}catch(e){}}'
+    + 'try{if(window.opener&&ok){window.opener.postMessage({type:"wld:verified"},"*");window.close();return;}}catch(e){}'
+    + 'try{if(window.parent&&window.parent!==window&&ok){window.parent.postMessage({type:"wld:verified"},"*");}}catch(e){}'
+    + 'location.replace(returnTo||"/");'
+    + '})();</script></body></html>';
+  res.setHeader('Content-Type','text/html; charset=utf-8');
   res.send(html);
 });
 
 // NextAuth-style aliases
-app.get('/api/auth/login', (req, res) => {
-  req.url = '/auth/login' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
-app.get('/api/auth/callback/worldcoin', (req, res) => {
-  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
-app.get('/api/auth/callback', (req, res) => {
-  req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
-  app._router.handle(req, res);
-});
+app.get('/api/auth/login', (req,res)=>{ req.url = '/auth/login' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
+app.get('/api/auth/callback/worldcoin', (req,res)=>{ req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
+app.get('/api/auth/callback', (req,res)=>{ req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
 
 // SPA fallback
-app.get('/', (req, res) => res.sendFile(path.join(WEB_DIR, 'index.html')));
-app.get(/^\/(?!auth\/|api\/auth\/).*/, (req, res) => res.sendFile(path.join(WEB_DIR, 'index.html')));
+app.get('/', (req,res)=>res.sendFile(path.join(WEB_DIR, 'index.html')));
+app.get(/^\/(?!auth\/|api\/auth\/).*/, (req,res)=>res.sendFile(path.join(WEB_DIR, 'index.html')));
 
-// Error middleware (avoid hard crash)
-app.use((err, req, res, next) => {
+// Error middleware
+app.use((err, req, res, next)=>{
   console.error('[RainbowGold][Error]', err && err.stack || err);
-  if (res.headersSent) return next(err);
+  if(res.headersSent) return next(err);
   res.status(500).send('Internal error');
 });
 
 // Vercel handler
-export default function handler(req, res){ return app(req, res); }
+export default function handler(req,res){ return app(req,res); }

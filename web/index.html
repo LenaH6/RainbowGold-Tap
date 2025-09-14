@@ -14,8 +14,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
-  connect-src 'self' https://cdn.jsdelivr.net https://id.worldcoin.org/;
-
+  connect-src 'self' https://cdn.jsdelivr.net https://rainbowgold-api.vercel.app/;
   media-src 'self';
 ">
 <!-- Referrer mínima (no filtramos URL) -->
@@ -38,8 +37,8 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
 <!-- Backend RainbowGold API -->
-<link rel="dns-prefetch" href="/">
-<link rel="preconnect" href="/" crossorigin>
+<link rel="dns-prefetch" href="https://rainbowgold-api.vercel.app/">
+<link rel="preconnect" href="https://rainbowgold-api.vercel.app/" crossorigin>
 
 <title>RainbowGold</title>
 <meta name="theme-color" content="#1b103a">
@@ -398,7 +397,6 @@
 <script type="module" src="js/worldcoin-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
 
-  <!-- === JS (orden correcto) === -->
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
