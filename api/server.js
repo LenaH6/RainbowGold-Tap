@@ -105,7 +105,7 @@ app.get('/auth/callback', async (req,res)=>{
     + 'if(ok){try{localStorage.setItem("wld_verified","1");}catch(e){}try{sessionStorage.setItem("wld_verified","1");}catch(e){}try{document.cookie="wld_verified=1; Max-Age=600; Path=/; SameSite=Lax";}catch(e){}}'
     + 'try{if(window.opener&&ok){window.opener.postMessage({type:"wld:verified"},"*");window.close();return;}}catch(e){}'
     + 'try{if(window.parent&&window.parent!==window&&ok){window.parent.postMessage({type:"wld:verified"},"*");}}catch(e){}'
-    + 'location.replace(returnTo||"/");'
+    + 'var sep=(returnTo&&returnTo.indexOf("?")>-1)?"&":"?"; location.replace((returnTo||"/")+sep+"verified=1#play");'
     + '})();</script></body></html>';
   res.setHeader('Content-Type','text/html; charset=utf-8');
   res.send(html);
