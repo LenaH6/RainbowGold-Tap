@@ -121,10 +121,7 @@ app.get('/auth/callback', async (req, res) => {
 });
 app.get('/health', (req,res)=>res.json({ok:true, env:!!(process.env.WLD_CLIENT_ID||process.env.WORLD_ID_CLIENT_ID)}));
 
-const OIDC = {
-  authorize: 'https://id.worldcoin.org/authorize',
-  token: 'https://id.worldcoin.org/token'
-};
+/* OIDC (duplicado eliminado) */
 
 function b64url(buf){ return Buffer.from(buf).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function hmacSign(payload, secret){
