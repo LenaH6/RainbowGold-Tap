@@ -123,31 +123,24 @@ app.get('/health', (req,res)=>res.json({ok:true, env:!!(process.env.WLD_CLIENT_I
 
 /* OIDC (duplicado eliminado) */
 
-function b64url(buf){ return Buffer.from(buf).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
-function hmacSign(payload, secret){
-  const h = crypto.createHmac('sha256', secret);
-  h.update(payload);
-  return b64url(h.digest());
-}
-function createState({ returnTo='/', ttlSec=600 }){
+
+/* duplicate of b64url removed */
+
+
+/* duplicate of hmacSign removed */
+
+
+/* duplicate of createState removed */
+){
   const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
   const data = { t: Date.now(), exp: Date.now() + ttlSec*1000, r: returnTo };
   const payload = b64url(Buffer.from(JSON.stringify(data)));
   const sig = hmacSign(payload, secret);
   return `${payload}.${sig}`;
 }
-function verifyState(state){
-  try{
-    const [payload, sig] = String(state || '').split('.');
-    if (!payload || !sig) return null;
-    const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
-    const expected = hmacSign(payload, secret);
-    if (sig !== expected) return null;
-    const data = JSON.parse(Buffer.from(payload.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString('utf8'));
-    if (!data || !data.exp || Date.now() > data.exp) return null;
-    return data;
-  }catch(_){ return null; }
-}
+
+/* duplicate of verifyState removed */
+
 
 // === Login: redirige a World ID authorize (STATE sin cookies) ===
 app.get('/auth/login', (req, res) => {
