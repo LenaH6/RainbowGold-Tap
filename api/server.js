@@ -17,6 +17,9 @@ const WEB_DIR = process.env.WEB_DIR
   : path.resolve(__dirname, '../web');
 app.use(express.static(WEB_DIR));
 
+// Healthcheck simple
+app.get('/health', (req,res)=>res.json({ok:true, env:!!(process.env.WLD_CLIENT_ID||process.env.WORLD_ID_CLIENT_ID)}));
+
 const OIDC = {
   authorize: 'https://id.worldcoin.org/authorize',
   token: 'https://id.worldcoin.org/token'
@@ -123,4 +126,12 @@ app.get('/auth/callback', async (req, res) => {
 
 
 // Export para @vercel/node
-export default app;
+
+// Middleware de errores para evitar crash de la función
+app.use((err, req, res, next) => {
+  try { console.error('[RainbowGold][Error]', err && err.stack || err); } catch(_){}
+  if (res.headersSent) return next(err);
+  res.status(500).send('Internal error');
+});
+
+export default function handler(req, res){ return app(req, res); }
