@@ -11,48 +11,31 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend
 const WEB_DIR = path.resolve(__dirname, '../web');
 app.use(express.static(WEB_DIR));
 
-// Health
 app.get('/health', (req,res)=>res.json({ ok:true, env:!!(process.env.WLD_CLIENT_ID||process.env.WORLD_ID_CLIENT_ID) }));
 
-// --- Stateless STATE (HMAC) ---
 function b64url(buf){ return Buffer.from(buf).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
-function hmacSign(payload, secret){
-  const h = crypto.createHmac('sha256', secret);
-  h.update(payload);
-  return b64url(h.digest());
-}
-function createState({ returnTo='/', ttlSec=1800 }){ // 30 min
+function hmac(payload, secret){ const h=crypto.createHmac('sha256', secret); h.update(payload); return b64url(h.digest()); }
+function mkState({ returnTo='/', ttlSec=1800 }){
   const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
   const data = { t: Date.now(), exp: Date.now() + ttlSec*1000, r: returnTo };
   const payload = b64url(Buffer.from(JSON.stringify(data)));
-  const sig = hmacSign(payload, secret);
-  return payload + '.' + sig;
+  return payload + '.' + hmac(payload, secret);
 }
-function verifyState(state){
+function readState(state){
   try{
-    const parts = String(state||'').split('.');
-    if (parts.length!==2) return null;
-    const [payload, sig] = parts;
+    const [payload, sig] = String(state||'').split('.');
     const secret = process.env.WLD_CLIENT_SECRET || process.env.WORLD_ID_CLIENT_SECRET || 'dev-secret';
-    const expected = hmacSign(payload, secret);
-    if (sig !== expected) return null;
-    const json = Buffer.from(payload.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString('utf8');
-    const data = JSON.parse(json);
-    if (!data || !data.exp) return null;
-    if (Date.now() > (data.exp + 120000)) return null; // +2 min de gracia
+    if (!payload || !sig || sig !== hmac(payload, secret)) return null;
+    const data = JSON.parse(Buffer.from(payload.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));
+    if (!data || !data.exp || Date.now() > (data.exp + 120000)) return null; // +2 min gracia
     return data;
   }catch{ return null; }
 }
 
-// OIDC endpoints
-const OIDC = {
-  authorize: 'https://id.worldcoin.org/authorize',
-  token: 'https://id.worldcoin.org/token'
-};
+const OIDC = { authorize:'https://id.worldcoin.org/authorize', token:'https://id.worldcoin.org/token' };
 
 app.get('/auth/login', (req,res)=>{
   const client_id = process.env.WLD_CLIENT_ID || process.env.WORLD_ID_CLIENT_ID;
@@ -60,30 +43,24 @@ app.get('/auth/login', (req,res)=>{
   const scope = process.env.WLD_SCOPE || process.env.WORLD_ID_SCOPE || 'openid';
   const returnTo = req.query.returnTo || '/';
 
-  if(!client_id || !redirect_uri){
-    res.status(500).send('Missing OIDC env (client_id/redirect_uri)');
-    return;
-  }
+  if (!client_id || !redirect_uri) return res.status(500).send('Missing OIDC env');
 
-  const state = createState({ returnTo, ttlSec: 1800 });
-  const url = new URL(OIDC.authorize);
-  url.searchParams.set('client_id', client_id);
-  url.searchParams.set('redirect_uri', redirect_uri);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', scope);
-  url.searchParams.set('state', state);
-  res.redirect(url.toString());
+  const state = mkState({ returnTo, ttlSec: 1800 });
+  const u = new URL(OIDC.authorize);
+  u.searchParams.set('client_id', client_id);
+  u.searchParams.set('redirect_uri', redirect_uri);
+  u.searchParams.set('response_type', 'code');
+  u.searchParams.set('scope', scope);
+  u.searchParams.set('state', state);
+  res.redirect(u.toString());
 });
 
 app.get('/auth/callback', async (req,res)=>{
   const { code, state } = req.query;
-  const data = verifyState(state);
+  const data = readState(state);
   const returnTo = (data && data.r) || '/';
 
-  if(!code || !data){
-    res.status(400).send('state inválido o falta code');
-    return;
-  }
+  if (!code || !data) return res.status(400).send('state inválido o falta code');
 
   const params = new URLSearchParams();
   params.set('grant_type', 'authorization_code');
@@ -111,21 +88,17 @@ app.get('/auth/callback', async (req,res)=>{
   res.send(html);
 });
 
-// NextAuth-style aliases
+// Aliases NextAuth-style
 app.get('/api/auth/login', (req,res)=>{ req.url = '/auth/login' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
 app.get('/api/auth/callback/worldcoin', (req,res)=>{ req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
 app.get('/api/auth/callback', (req,res)=>{ req.url = '/auth/callback' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''); app._router.handle(req,res); });
 
 // SPA fallback
-app.get('/', (req,res)=>res.sendFile(path.join(WEB_DIR, 'index.html')));
-app.get(/^\/(?!auth\/|api\/auth\/).*/, (req,res)=>res.sendFile(path.join(WEB_DIR, 'index.html')));
+import fs from 'fs';
+app.get('/', (req,res)=>res.sendFile(path.join(WEB_DIR,'index.html')));
+app.get(/^\/(?!auth\/|api\/auth\/).*/, (req,res)=>res.sendFile(path.join(WEB_DIR,'index.html')));
 
 // Error middleware
-app.use((err, req, res, next)=>{
-  console.error('[RainbowGold][Error]', err && err.stack || err);
-  if(res.headersSent) return next(err);
-  res.status(500).send('Internal error');
-});
+app.use((err, req, res, next)=>{ console.error('[RainbowGold][Error]', err && err.stack || err); if(res.headersSent) return next(err); res.status(500).send('Internal error'); });
 
-// Vercel handler
 export default function handler(req,res){ return app(req,res); }

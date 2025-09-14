@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="preload" as="image" href="assets/img/Coin.png" imagesrcset="assets/img/Coin.png 1x, assets/img/Coin@2x.png 2x">
-<link rel="preload" as="image" href="assets/img/brand-mark-wg-128.png">
+<link rel="preload" as="image" href="img/Coin.png" imagesrcset="img/Coin.png 1x, img/Coin@2x.png 2x">
+<link rel="preload" as="image" href="img/brand-mark-wg-128.png">
 <meta charset="utf-8">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -40,7 +40,7 @@
 <link rel="dns-prefetch" href="https://rainbowgold-api.vercel.app/">
 <link rel="preconnect" href="https://rainbowgold-api.vercel.app/" crossorigin>
 
-<title>RainbowGold</title>
+<title>RainbowGold Tap</title>
 <meta name="theme-color" content="#1b103a">
 
 
@@ -49,7 +49,7 @@
   <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src="assets/img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
@@ -73,10 +73,10 @@
 <!-- Left FABs -->
 <div class="floatCol">
   <button id="profileBtn" class="fab profile" title="Profile">
-    <img src="assets/img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
+    <img src="img/icon-profile.png" alt="Perfil" style="width:45px;height:45px;">
   </button>
   <button id="inboxBtn" class="fab inbox" title="Inbox">
-    <img src="assets/img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
+    <img src="img/icon-inbox.png" alt="Inbox" style="width:35px;height:35px;">
     <span id="inboxBadge" class="badge" style="display:none">0</span>
   </button>
 </div>
@@ -99,7 +99,7 @@
   <!-- WRAP del trofeo: el tip vive junto al botón -->
   <div class="trophyWrap">
     <button id="trophyBtn" class="fab trophy" title="Leaderboard" type="button" aria-describedby="trophyTip">
-      <img src="assets/img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
+      <img src="img/icon-trophy.png" alt="Trophy" style="width:25px;height:25px;">
     </button>
     <div id="trophyTip" class="tip" data-i18n="coming_soon">Próximamente</div>
   </div>
@@ -109,7 +109,7 @@
 <section class="hero">
   <!-- Pastilla de RBGp: SOLO esto adentro -->
   <div class="pill">
-    <img src="assets/img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
+    <img src="img/brand-mark-wg-128.png" alt="" onerror="this.style.display='none'">
     RBGp: <b id="balRBGp" aria-live="polite">0.000</b>
   </div>
 
@@ -160,7 +160,7 @@
          pointer-events:none;z-index:999"></div>
 
 
-      <img src="assets/img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
+      <img src="img/Coin.png" alt="" class="coinImg" onerror="this.remove();document.getElementById('fallback').style.display='block'">
       <div id="fallback" class="coinFallback" style="display:none">🪙</div>
 
       <div id="gain"
@@ -198,18 +198,18 @@
 
     <!-- Botón Ideas anclado a la moneda -->
     <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
-      <img src="assets/img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
+      <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
     </button>
   </div>
 
   <!-- DOCK bajo la moneda -->
   <div class="action-dock" aria-label="acciones rápidas">
     <button id="refillBtn" class="btn-icon" aria-label="Refill">
-      <img src="assets/img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
+      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
       <span id="refillPrice" class="price-pill">0.10 WLD</span>
     </button>
     <button id="openUp" class="btn-icon" aria-label="Boosters">
-      <img src="assets/img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
+      <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
     </button>
   </div>
 
@@ -257,7 +257,7 @@
   <div id="ideasPayView" class="cardPro"> 
    <p data-i18n="ideas_pay_intro">¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!</p>
   <button id="payIdeasBtn" class="btn-icon">
-  <img src="assets/img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
+  <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
   <span data-i18n="ideas_pay_btn">Comprar ticket</span>
   <span class="price-pill"><b>1 WLD 🎟️</b></span>
 </button>
@@ -396,10 +396,76 @@
 <script type="module" src="js/minikit-config.js"></script>
 <script type="module" src="js/worldcoin-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
+<script>
+(function(){
+  if (window.__RG_bootstrap_lite) return; window.__RG_bootstrap_lite=true;
 
-  <script src="js/core.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/bootstrap.js"></script>
+  // WLD.login simple
+  window.WLD = window.WLD || {};
+  window.WLD.login = function(){
+    try{
+      var base = location.origin + location.pathname + (location.hash || '#play');
+      location.href = '/auth/login?returnTo=' + encodeURIComponent(base);
+    }catch(_){ location.href='/auth/login'; }
+  };
+
+  // Enlazar botón si existe (una vez)
+  document.addEventListener('DOMContentLoaded', function(){
+    var b = document.getElementById('wldSignIn');
+    if (b) b.addEventListener('click', function(){ if(window.WLD&&WLD.login) WLD.login(); }, { once:false });
+  });
+
+  // Enter game (try once)
+  function enterGameOnce(){
+    if (window.__RG_gate_done) return; window.__RG_gate_done = true;
+    try { if (typeof setVerifiedUI === 'function') setVerifiedUI(true); } catch(_){}
+    var fns=['startRainbowGold','startGame','initGame','beginGame','bootGame','start','main','gameStart'];
+    for (var i=0;i<fns.length;i++){ try{ if (typeof window[fns[i]]==='function'){ window[fns[i]](); break; } }catch(_){ } }
+    try{ var pb=document.querySelector('#play,#playBtn,.btn-play,[data-play]'); if(pb) pb.click(); }catch(_){}
+    try{ var cv=document.querySelector('canvas'); if(cv){ cv.focus(); cv.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); } }catch(_){}
+  }
+
+  function isVerified(){
+    try { if (new URLSearchParams(location.search).get('verified')==='1') return true; } catch(_){}
+    try { if (localStorage.getItem('wld_verified')==='1') return true; } catch(_){}
+    try { if (sessionStorage.getItem('wld_verified')==='1') return true; } catch(_){}
+    return false;
+  }
+  function clearVerified(){
+    try { localStorage.removeItem('wld_verified'); } catch(_){}
+    try { sessionStorage.removeItem('wld_verified'); } catch(_){}
+    try { document.cookie='wld_verified=; Max-Age=0; Path=/; SameSite=Lax'; } catch(_){}
+    try { var u=new URL(location.href); if(u.searchParams.get('verified')==='1'){ u.searchParams.delete('verified'); history.replaceState(null,'',u.toString()); } }catch(_){}
+  }
+
+  // Touch→Mouse + Audio resume
+  (function(){
+    var resumed=false;
+    function resumeAudio(){
+      if(resumed) return; resumed=true;
+      try{ if(window.audioCtx && typeof audioCtx.resume==='function') audioCtx.resume(); }catch(_){}
+      try{ if(window.AudioContext){ var ctx=new AudioContext(); if (ctx.state==='suspended') ctx.resume(); } }catch(_){}
+    }
+    function mapTouchToMouse(el){
+      function conv(type,t){ return new MouseEvent(type,{bubbles:true,cancelable:true,clientX:t.clientX,clientY:t.clientY}); }
+      el.addEventListener('touchstart',function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousedown',t)); resumeAudio(); },{passive:false});
+      el.addEventListener('touchmove', function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousemove',t)); },{passive:false});
+      el.addEventListener('touchend',  function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mouseup',t));   },{passive:false});
+    }
+    document.addEventListener('DOMContentLoaded',function(){
+      var c=document.querySelector('canvas'); if (c){ mapTouchToMouse(c); c.addEventListener('touchstart', resumeAudio, {passive:true}); }
+      document.addEventListener('touchstart', resumeAudio, {once:true, passive:true});
+    });
+  })();
+
+  // Auto: si venimos verificados -> entrar y limpiar marca
+  document.addEventListener('DOMContentLoaded', function(){
+    if (isVerified()) { enterGameOnce(); clearVerified(); }
+  });
+  window.addEventListener('message', function(ev){ if(ev&&ev.data&&ev.data.type==='wld:verified'){ enterGameOnce(); } });
+
+})();
+</script>
+
 </body>
 </html>
