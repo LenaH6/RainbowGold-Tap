@@ -1,5 +1,5 @@
 {
-  "name": "rainbowgold-root",
+  "name": "rainbowgold-final",
   "private": true,
   "type": "module",
   "version": "1.0.0",
@@ -7,5 +7,9 @@
     "postinstall": "cd api && npm i",
     "dev": "node api/server.js",
     "start": "node api/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
   }
 }
