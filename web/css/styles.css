@@ -869,6 +869,3 @@ body.has-drawer{
     z-index: 9;
   }
 }
-/* Touch/tap improvements */
-html,body,#app,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-canvas{outline:none;-webkit-user-select:none;user-select:none}
