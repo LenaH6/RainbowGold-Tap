@@ -10,7 +10,7 @@ function setVerifiedUI(on){
     ib?.setAttribute('disabled','');
   }
 }
-  
+
   // Clickjacking guard (defensa extra al CSP)
 try { if (window.top !== window.self) window.top.location = window.location.href; } catch(_){}
 
@@ -25,7 +25,7 @@ const ADV_REQ    = { 1:3, 2:2, 3:2, 4:2 };                         // ventanas c
 const SPAWN_TAPS = { 1:[7,12], 2:[9,14], 3:[10,15], 4:[12,18], 5:[14,20] };
 const FRENZY_MS = 5500;                                           // combo máximo
 const DECOY_CHANCE = 0.50;                                        // prob. de decoy
-const USE_TAP_SPAWN = true; 
+const USE_TAP_SPAWN = true;
 /* ==== DESAFÍO ARCOÍRIS (config) ==== */
 const RAINBOW = {
   HITS: 6,                     // toques necesarios a manchas arcoíris
@@ -103,7 +103,7 @@ function hideHotSafe(){
 if (_hideHotOrig) window.hideHot = hideHotSafe;
 
 
- 
+
 function targetLevel(){ return Math.max(1, combo.level || 1); }
 // — Aplica combo/ventana/frenzy en este tap —
 function applyComboTap(e){
@@ -282,7 +282,7 @@ if (challenge?.active) {
   const now = performance.now();
 
   if (now < combo.frenzyUntil){
-    
+
     setBadge('FRENZY', 'linear-gradient(180deg,#3a2a00,#1a1200)', '#ffd872');
     return;
   }
@@ -723,7 +723,7 @@ function endRainbowChallenge(success){
   setTickModeMp3(false);
 
   clearTimeout(challenge.timerId);   // 👈 matar timer
-  
+
   challenge.completed = true;
   if (comboBadgeEl) comboBadgeEl.classList.remove('rainbowPulse');
   updateBadge();  // 👈 vuelve a FRENZY o Xn según corresponda
@@ -779,11 +779,11 @@ playSnd('tension', { volume: 0.7, loop: true });
  function autoSpawn(){
     if (!challenge.active) return;
     spawnRainbowOrDecoy();
-    challenge.spawnTimer = setTimeout(autoSpawn, randInt(700,1100)); 
+    challenge.spawnTimer = setTimeout(autoSpawn, randInt(700,1100));
   }
   autoSpawn();
 
-  clearTimeout(challenge.timerId); 
+  clearTimeout(challenge.timerId);
   challenge.timerId = setTimeout(()=>{
     if (challenge.active) endRainbowChallenge(false);
   }, RAINBOW.TOTAL_MS);
@@ -800,7 +800,7 @@ function handleChallengeTap(e){
   if (wasHit){
      playSnd('tick', { volume: .8 });
     challenge.hits = Math.min(RAINBOW.HITS, challenge.hits + 1);
-   
+
     arcFlash();
     if (typeof popSparkleSilent === 'function') {
     popSparkleSilent(e.clientX, e.clientY);}
@@ -824,8 +824,8 @@ function handleChallengeTap(e){
   }
 
   if (hitDecoy){
-   
-  if (hotActive) 
+
+  if (hotActive)
     popLaugh(e.clientX, e.clientY);
     playSnd('laugh', { volume: 0.9 });
     soundMiss();
@@ -1297,7 +1297,7 @@ function showPoll(){
 
 function consumeTicketAndReset(){
   // consumir acceso: volver a pagar
-  ideasTicketActive = false; 
+  ideasTicketActive = false;
   clearInterval(ticketTimerId);
   document.getElementById('ticketTimer')?.style && (document.getElementById('ticketTimer').textContent='⛔ Ticket vencido');
   ideasPollView.style.display = 'none';
@@ -1786,7 +1786,7 @@ coin.addEventListener('click', (e) => {
   if (typeof lazyRegen === 'function') lazyRegen();
 
   const now = performance.now();
-  const cx = e.clientX, 
+  const cx = e.clientX,
   cy = e.clientY; // coords de pantalla (no se recorta)
 
     // 🔒 Durante el DESAFÍO: no gastas energía, no ganas RBGp, solo cuenta el reto
@@ -1808,10 +1808,10 @@ coin.addEventListener('click', (e) => {
   // Si estamos en cooldown por 0 energía → siempre 0.0000
   if (now < (noEnergyUntil || 0)) {
     spawnGain?.(cx, cy, `+${fmt(0)}`);
-    maybeSpawnByTap?.(); render?.(); 
+    maybeSpawnByTap?.(); render?.();
     updateRefillCue();
     return;
-   
+
   }
 
   // FRENZY: NO gasta energía; sumamos base y luego +5% en applyComboTap
@@ -1833,7 +1833,7 @@ coin.addEventListener('click', (e) => {
     spawnGain?.(cx, cy, `+${fmt(0)}`);
     maybeSpawnByTap?.(); render?.();
     updateRefillCue();
-    
+
     try { navigator.vibrate && navigator.vibrate([80,40,80]); } catch(e){}
      return;
   }
@@ -1869,7 +1869,7 @@ function openDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
-    ID: [drawerID, backdropID],   
+    ID: [drawerID, backdropID],
   };
   const pair = map[which];
   if (!pair) return;
@@ -1882,7 +1882,7 @@ function closeDrawer(which){
     UP: [drawerUP, backdropUP],
     IN: [drawerIN, backdropIN],
     PF: [drawerPF, backdropPF],
-    ID: [drawerID, backdropID],  
+    ID: [drawerID, backdropID],
   };
   const pair = map[which];
   if (!pair) return;
@@ -2093,7 +2093,7 @@ function loadProfileFields(){
         const normalized = await setUsernameLimited(usernameInput.value);
 
         // actualizar variable global + input
-        username = normalized;  
+        username = normalized;
         usernameInput.value = normalized;
 
         saveBtn.style.display = 'none';
@@ -2165,7 +2165,7 @@ const I18N = {
     ticket_bought_dev: '✅ Ticket comprado (simulación DEV)',
     preparing_session: 'Preparando tu sesión',
 
-  
+
   },
 
 en: {
@@ -2222,11 +2222,11 @@ en: {
     ticket_bought_dev: '✅ Ticket purchased (DEV simulation)',
     preparing_session: 'Preparing your session',
 
-  
-  
-  
+
+
+
   }
-  
+
 };
 /* Aplica i18n a todos los [data-i18n] y placeholders */
 function applyLang(){
@@ -2312,7 +2312,7 @@ function renderProfile(){
 
 /* ===== Init ===== */
 (function init(){
-  
+
   sizeCanvasToCoin();
   // Partículas de arranque para confirmar que se ven
   setTimeout(()=>{ spawn(fx.width/2, fx.height/2); }, 250);
@@ -2338,7 +2338,7 @@ if (!USE_TAP_SPAWN) {
 }
 updateBadge(); // inicia oculto en base
 
-})(); 
+})();
   // ===== Lazy images (excepto las marcadas data-critical) =====
   (function(){
     const imgs = document.querySelectorAll('img:not([data-critical])');
