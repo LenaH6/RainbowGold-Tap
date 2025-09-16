@@ -20,26 +20,6 @@
     .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
     .card { border:1px solid #e5e5e5; border-radius:14px; padding:12px 14px; }
   </style>
-<style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000; /* color de fondo del splash */
-    }
-    #splash {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #000; /* o imagen si quieres */
-      z-index: 999;
-    }
-    #game-screen {
-      display: none;
-    }
-  </style>
   <link rel="stylesheet" href="css/styles.css">
 
     <script src="https://unpkg.com/@wagmi/connectors@4.3.1/dist/wagmi-connectors.umd.js"></script>
@@ -48,7 +28,7 @@
 <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src="./img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+    <img src="web/img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
