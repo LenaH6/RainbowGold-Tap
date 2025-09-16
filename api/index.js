@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET || "dev_secret"));
 
 const ORIGIN = process.env.ORIGIN || "*"; // allow your Vercel domain via env
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: ORIGIN, credentials: true }));
 
 // In-memory stores (replace with Redis/DB in production)
 const sessions = new Map();
@@ -23,7 +23,7 @@ app.get("/api/nonce", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("hex");
   const sid = newSid();
   sessions.set(sid, { nonce, createdAt: Date.now() });
-  res.cookie("sid", sid, { httpOnly: true, path: "/", sameSite: "lax", secure: false });
+  res.cookie("sid", sid, { httpOnly: true, sameSite: "lax", secure: false });
   res.json({ nonce });
 });
 

@@ -368,6 +368,7 @@ html, body{
 @keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
 @keyframes breathe { 0%,100%{ transform: scale(1) } 50%{ transform: scale(1.04) } }
 
+/* Tip extra opcional */
 /* Texto del splash con transición simple (sin keyframes) */
 .splash__hint {
   margin-top: 16px;
