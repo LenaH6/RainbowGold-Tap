@@ -20,19 +20,28 @@
     .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
     .card { border:1px solid #e5e5e5; border-radius:14px; padding:12px 14px; }
   </style>
-
+<style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000; /* color de fondo del splash */
+    }
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000; /* o imagen si quieres */
+      z-index: 999;
+    }
+    #game-screen {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-
-  <div id="login-screen" class="card">
-    <h2>RainbowGold Tap</h2>
-    <button id="siweBtn" style="display:none" class="btn btn-primary">Login con SIWE (World App)</button>
-    <small>Solo World App (WalletConnect). No se permiten otras wallets.</small>
-  </div>
-
-  <div id="game-screen">
-    <!-- AQUÍ VA TU JUEGO (HTML original) -->
-    <div id="game-root">
 <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
@@ -52,10 +61,10 @@
   <span data-i18n="preparing_session">Preparando tu sesión</span>
   <span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
+</div> <!-- /#splash -->
 
-
-
-</div>
+<div id="game-screen" style="display:none">
+    <div id="game-root">
 
 <!-- Left FABs -->
 <div class="floatCol">
@@ -384,76 +393,46 @@
 <script type="module" src="js/worldcoin-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
 <script>
-(function(){
-  if (window.__RG_bootstrap_lite) return; window.__RG_bootstrap_lite=true;
+// === Conectar tu botón #wldSignIn al login SIWE (World App) ===
+// (Reemplaza por completo el bloque viejo que redirigía a /auth/login)
 
-  // WLD.login simple
-  window.WLD = window.WLD || {};
-  window.WLD.login = function(){
+window.WLD = window.WLD || {};
+function when(cond, cb, tries=50, delay=100){
+  const t = setInterval(() => {
     try{
-      var base = location.origin + location.pathname + (location.hash || '#play');
-      location.href = '/auth/login?returnTo=' + encodeURIComponent(base);
-    }catch(_){ location.href='/auth/login'; }
-  };
+      if (cond()) { clearInterval(t); cb(); }
+      else if (--tries<=0) clearInterval(t);
+    }catch(e){ clearInterval(t); }
+  }, delay);
+}
 
-  // Enlazar botón si existe (una vez)
-  document.addEventListener('DOMContentLoaded', function(){
-    var b = document.getElementById('wldSignIn');
-    if (b) b.addEventListener('click', function(){ if(window.WLD&&WLD.login) WLD.login(); }, { once:false });
-  });
-
-  // Enter game (try once)
-  function enterGameOnce(){
-    if (window.__RG_gate_done) return; window.__RG_gate_done = true;
-    try { if (typeof setVerifiedUI === 'function') setVerifiedUI(true); } catch(_){}
-    var fns=['startRainbowGold','startGame','initGame','beginGame','bootGame','start','main','gameStart'];
-    for (var i=0;i<fns.length;i++){ try{ if (typeof window[fns[i]]==='function'){ window[fns[i]](); break; } }catch(_){ } }
-    try{ var pb=document.querySelector('#play,#playBtn,.btn-play,[data-play]'); if(pb) pb.click(); }catch(_){}
-    try{ var cv=document.querySelector('canvas'); if(cv){ cv.focus(); cv.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); } }catch(_){}
+// WLD.login ahora ejecuta SIWE (NO redirige a /auth/login)
+window.WLD.login = function(){
+  if (typeof loginSiwe === "function") {
+    return loginSiwe().catch(err => alert("Error SIWE: " + (err?.message || err)));
+  } else {
+    when(() => typeof loginSiwe === "function",
+         () => loginSiwe().catch(err => alert("Error SIWE: " + (err?.message || err))));
   }
+};
 
-  function isVerified(){
-    try { if (new URLSearchParams(location.search).get('verified')==='1') return true; } catch(_){}
-    try { if (localStorage.getItem('wld_verified')==='1') return true; } catch(_){}
-    try { if (sessionStorage.getItem('wld_verified')==='1') return true; } catch(_){}
-    return false;
+// Enlazar tu botón del splash
+document.addEventListener("DOMContentLoaded", function(){
+  const b = document.getElementById("wldSignIn");
+  if (b) b.addEventListener("click", () => { if (window.WLD && WLD.login) WLD.login(); });
+});
+
+// Auto-sesión: si ya hay sesión válida, entramos directo (usa /api/me de tu backend)
+(async () => {
+  try {
+    const me = await fetch("/api/me", { credentials: "include" }).then(r => r.json());
+    if (me && me.ok) gotoGame(); else gotoLogin();
+  } catch {
+    gotoLogin();
   }
-  function clearVerified(){
-    try { localStorage.removeItem('wld_verified'); } catch(_){}
-    try { sessionStorage.removeItem('wld_verified'); } catch(_){}
-    try { document.cookie='wld_verified=; Max-Age=0; Path=/; SameSite=Lax'; } catch(_){}
-    try { var u=new URL(location.href); if(u.searchParams.get('verified')==='1'){ u.searchParams.delete('verified'); history.replaceState(null,'',u.toString()); } }catch(_){}
-  }
-
-  // Touch→Mouse + Audio resume
-  (function(){
-    var resumed=false;
-    function resumeAudio(){
-      if(resumed) return; resumed=true;
-      try{ if(window.audioCtx && typeof audioCtx.resume==='function') audioCtx.resume(); }catch(_){}
-      try{ if(window.AudioContext){ var ctx=new AudioContext(); if (ctx.state==='suspended') ctx.resume(); } }catch(_){}
-    }
-    function mapTouchToMouse(el){
-      function conv(type,t){ return new MouseEvent(type,{bubbles:true,cancelable:true,clientX:t.clientX,clientY:t.clientY}); }
-      el.addEventListener('touchstart',function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousedown',t)); resumeAudio(); },{passive:false});
-      el.addEventListener('touchmove', function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousemove',t)); },{passive:false});
-      el.addEventListener('touchend',  function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mouseup',t));   },{passive:false});
-    }
-    document.addEventListener('DOMContentLoaded',function(){
-      var c=document.querySelector('canvas'); if (c){ mapTouchToMouse(c); c.addEventListener('touchstart', resumeAudio, {passive:true}); }
-      document.addEventListener('touchstart', resumeAudio, {once:true, passive:true});
-    });
-  })();
-
-  // Auto: si venimos verificados -> entrar y limpiar marca
-  document.addEventListener('DOMContentLoaded', function(){
-    if (isVerified()) { enterGameOnce(); clearVerified(); }
-  });
-  window.addEventListener('message', function(ev){ if(ev&&ev.data&&ev.data.type==='wld:verified'){ enterGameOnce(); } });
-
 })();
 </script>
-    </div>
+
 
     <!-- MiniKit Pay botones de ejemplo (puedes quitar si no los usas aquí) -->
     <div style="padding:12px;">
@@ -484,55 +463,43 @@
   }));
   createWeb3Modal({ wagmiConfig, projectId: WC_PROJECT_ID, themeMode: 'dark' });
   await reconnect(wagmiConfig);
+    window.__state = window.__state || { loggedIn:false, gameStarted:false };
 
-  
-    // === State machine to avoid splash/login loop ===
-    window.__state = { loggedIn: false, gameStarted: false };
-    const $ = (s) => document.querySelector(s);
-    const loginScreen = $("#login-screen");
-    const gameScreen  = $("#game-screen");
-    const splash      = $("#splash");
-    const wldBtn      = $("#wldSignIn");   // existing button
-    const wldState    = $("#wldState");
+  function gotoLogin(){
+    const splash = document.getElementById("splash");
+    const gameScreen = document.getElementById("game-screen");
+    if (splash) splash.style.display = "flex";
+    if (gameScreen) gameScreen.style.display = "none";
+    document.body.dataset.view = "login";
+  }
 
-    function setBusy(on){
-      const btn = $("#wldSignIn") || $("#siweBtn");
-      if (btn){ btn.disabled = !!on; btn.style.opacity = on ? "0.6":"1"; }
-      if (wldState){ wldState.style.display = on ? "block" : "none"; }
+  function gotoGame(){
+    const splash = document.getElementById("splash");
+    const gameScreen = document.getElementById("game-screen");
+
+    if (splash) splash.style.display = "none";
+    if (gameScreen) gameScreen.style.display = "block";
+    document.body.dataset.view = "game";
+
+    // Arranca el juego SOLO una vez
+    if (!window.__state.gameStarted && window.__runGame){
+      window.__state.gameStarted = true;
+      try { window.__runGame(); } catch(e){ console.error(e); }
     }
+  }
 
-    function gotoLogin(){
-      if (gameScreen) gameScreen.style.display = "none";
-      if (loginScreen) loginScreen.style.display = "flex";
-      if (splash) splash.style.display = "block";
-      document.body.dataset.view = "login";
+  // Anti-loop: si algo intenta re-mostrar el splash estando en "game", lo escondemos
+  const mo = new MutationObserver(() => {
+    if (document.body.dataset.view === "game") {
+      const ids = ["splash","loading","loader","preloader","wldstate"];
+      ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+      document.querySelectorAll(".splash,.splash_screen,.splash-container,.loading,.loader,.preloader")
+        .forEach(el => el.style.display = "none");
     }
+  });
+  mo.observe(document.body, { attributes:true, childList:true, subtree:true });
 
-    function gotoGame(){
-      window.__state.loggedIn = true;
-      if (loginScreen) loginScreen.style.display = "none";
-      if (splash) splash.style.display = "none"; // ⛔ oculta splash en juego
-      if (gameScreen) gameScreen.style.display = "block";
-      document.body.dataset.view = "game";
-      // Ocultar cualquier splash conocido
-      try {
-        const hideSplashEls = () => {
-          const ids = ["splash", "loading", "loader", "preloader", "wldstate"];
-          ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
-          document.querySelectorAll(".splash,.splash_screen,.splash-container,.loading,.loader,.preloader").forEach(el => {
-            el.style.display = "none";
-            el.setAttribute("aria-busy","false");
-          });
-        };
-        hideSplashEls();
-      } catch(e){ console.warn("hideSplashEls error", e); }
-      // Lanza el juego solo una vez
-      if (!window.__state.gameStarted && window.__runGame){
-        window.__state.gameStarted = true;
-        try { window.__runGame(); } catch(e){ console.error("Game start error:", e); }
-      }
-    }
-async function api(path, opts) {
+  async function api(path, opts) {
     const res = await fetch(API_BASE + path, { credentials: "include", ...opts });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
@@ -573,24 +540,44 @@ async function api(path, opts) {
     });
     if (ver.ok) {
       gotoGame();
-      if (window.__runGame) { try { await window.__runGame(); } catch(e){ console.error(e); } }
+
     } else {
       throw new Error("Verificación SIWE falló");
     }
   }
 
-  document.getElementById("siweBtn").addEventListener("click", () => {
+ const siweBtn = document.getElementById("siweBtn");
+if (siweBtn) {
+  siweBtn.addEventListener("click", () => {
     loginSiwe().catch(err => alert("Error SIWE: " + (err?.message || err)));
   });
+}
+    const wldBtn = document.getElementById("wldSignIn");
+  const wldState = document.getElementById("wldState");
+  function setBusy(on){
+    if (wldBtn) { wldBtn.disabled = !!on; wldBtn.style.opacity = on ? "0.6" : "1"; }
+    if (wldState) wldState.style.display = on ? "block" : "none";
+  }
+  if (wldBtn) {
+    wldBtn.addEventListener("click", async () => {
+      try { setBusy(true); await loginSiwe(); }
+      catch (err) { alert("Error SIWE: " + (err?.message || err)); }
+      finally { setBusy(false); }
+    });
+  }
 
   // Si ya hay sesión valida, entra directo
-  try {
-    const me = await api("/me", { method: "GET" });
-    if (me.ok) {
-      gotoGame();
-      if (window.__runGame) { try { await window.__runGame(); } catch(e){ console.error(e); } }
-    }
-  } catch {};
+ try {
+  const me = await api("/me", { method: "GET" });
+  if (me.ok) {
+    gotoGame();
+  } else {
+    gotoLogin();
+  }
+} catch {
+  gotoLogin();
+}
+
 
   // MiniKit Pay helpers
   function ensureMiniKit() {
@@ -640,143 +627,6 @@ async function api(path, opts) {
   });
 })();
 </script>
-<script>
-window.__runGame = async function(){
-
-  await new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = "js/game-logic.js";
-    el.async = false;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('No se pudo cargar ' + el.src));
-    document.body.appendChild(el);
-  });
-
-
-  await new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = "js/payments.js";
-    el.async = false;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('No se pudo cargar ' + el.src));
-    document.body.appendChild(el);
-  });
-
-
-  await new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = "js/minikit-config.js";
-    el.async = false;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('No se pudo cargar ' + el.src));
-    document.body.appendChild(el);
-  });
-
-
-  await new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = "js/worldcoin-auth.js";
-    el.async = false;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('No se pudo cargar ' + el.src));
-    document.body.appendChild(el);
-  });
-
-
-  await new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js";
-    el.async = false;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('No se pudo cargar ' + el.src));
-    document.body.appendChild(el);
-  });
-
-
-  // Inline del juego
-  try {
-    (function(){
-      if (window.__RG_bootstrap_lite) return; window.__RG_bootstrap_lite=true;
-    
-      // WLD.login simple
-      window.WLD = window.WLD || {};
-      window.WLD.login = function(){
-        try{
-          var base = location.origin + location.pathname + (location.hash || '#play');
-          location.href = '/auth/login?returnTo=' + encodeURIComponent(base);
-        }catch(_){ location.href='/auth/login'; }
-      };
-    
-      // Enlazar botón si existe (una vez)
-      document.addEventListener('DOMContentLoaded', function(){
-        var b = document.getElementById('wldSignIn');
-        if (b) b.addEventListener('click', function(){ if(window.WLD&&WLD.login) WLD.login(); }, { once:false });
-      });
-    
-      // Enter game (try once)
-      function enterGameOnce(){
-        if (window.__RG_gate_done) return; window.__RG_gate_done = true;
-        try { if (typeof setVerifiedUI === 'function') setVerifiedUI(true); } catch(_){}
-        var fns=['startRainbowGold','startGame','initGame','beginGame','bootGame','start','main','gameStart'];
-        for (var i=0;i<fns.length;i++){ try{ if (typeof window[fns[i]]==='function'){ window[fns[i]](); break; } }catch(_){ } }
-        try{ var pb=document.querySelector('#play,#playBtn,.btn-play,[data-play]'); if(pb) pb.click(); }catch(_){}
-        try{ var cv=document.querySelector('canvas'); if(cv){ cv.focus(); cv.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window})); } }catch(_){}
-      }
-    
-      function isVerified(){
-        try { if (new URLSearchParams(location.search).get('verified')==='1') return true; } catch(_){}
-        try { if (localStorage.getItem('wld_verified')==='1') return true; } catch(_){}
-        try { if (sessionStorage.getItem('wld_verified')==='1') return true; } catch(_){}
-        return false;
-      }
-      function clearVerified(){
-        try { localStorage.removeItem('wld_verified'); } catch(_){}
-        try { sessionStorage.removeItem('wld_verified'); } catch(_){}
-        try { document.cookie='wld_verified=; Max-Age=0; Path=/; SameSite=Lax'; } catch(_){}
-        try { var u=new URL(location.href); if(u.searchParams.get('verified')==='1'){ u.searchParams.delete('verified'); history.replaceState(null,'',u.toString()); } }catch(_){}
-      }
-    
-      // Touch→Mouse + Audio resume
-      (function(){
-        var resumed=false;
-        function resumeAudio(){
-          if(resumed) return; resumed=true;
-          try{ if(window.audioCtx && typeof audioCtx.resume==='function') audioCtx.resume(); }catch(_){}
-          try{ if(window.AudioContext){ var ctx=new AudioContext(); if (ctx.state==='suspended') ctx.resume(); } }catch(_){}
-        }
-        function mapTouchToMouse(el){
-          function conv(type,t){ return new MouseEvent(type,{bubbles:true,cancelable:true,clientX:t.clientX,clientY:t.clientY}); }
-          el.addEventListener('touchstart',function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousedown',t)); resumeAudio(); },{passive:false});
-          el.addEventListener('touchmove', function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mousemove',t)); },{passive:false});
-          el.addEventListener('touchend',  function(e){ var t=e.changedTouches[0]; el.dispatchEvent(conv('mouseup',t));   },{passive:false});
-        }
-        document.addEventListener('DOMContentLoaded',function(){
-          var c=document.querySelector('canvas'); if (c){ mapTouchToMouse(c); c.addEventListener('touchstart', resumeAudio, {passive:true}); }
-          document.addEventListener('touchstart', resumeAudio, {once:true, passive:true});
-        });
-      })();
-    
-      // Auto: si venimos verificados -> entrar y limpiar marca
-      document.addEventListener('DOMContentLoaded', function(){
-        if (isVerified()) { enterGameOnce(); clearVerified(); }
-      });
-      window.addEventListener('message', function(ev){ if(ev&&ev.data&&ev.data.type==='wld:verified'){ enterGameOnce(); } });
-    
-    })();
-  } catch(e) { console.error('Error en script del juego:', e); }
-};
-
-  // Guard: keep splash (and lookalikes) hidden once in game
-  const mo = new MutationObserver(() => {
-    if (document.body.dataset.view === "game") {
-      const ids = ["splash", "loading", "loader", "preloader", "wldstate"];
-      ids.forEach(id => { const el = document.getElementById(id); if (el && el.style.display !== "none") el.style.display = "none"; });
-      document.querySelectorAll(".splash,.splash_screen,.splash-container,.loading,.loader,.preloader").forEach(el => {
-        if (el.style.display !== "none") el.style.display = "none";
-      });
-    }
-  });
-  mo.observe(document.body, { attributes:true, childList:true, subtree:true });</script>
 
 </body>
 </html>
