@@ -26,7 +26,7 @@
 
   <div id="login-screen" class="card">
     <h2>RainbowGold Tap</h2>
-    <button id="siweBtn" class="btn btn-primary">Login con SIWE (World App)</button>
+    <button id="siweBtn" style="display:none" class="btn btn-primary">Login con SIWE (World App)</button>
     <small>Solo World App (WalletConnect). No se permiten otras wallets.</small>
   </div>
 
@@ -485,7 +485,54 @@
   createWeb3Modal({ wagmiConfig, projectId: WC_PROJECT_ID, themeMode: 'dark' });
   await reconnect(wagmiConfig);
 
-  async function api(path, opts) {
+  
+    // === State machine to avoid splash/login loop ===
+    window.__state = { loggedIn: false, gameStarted: false };
+    const $ = (s) => document.querySelector(s);
+    const loginScreen = $("#login-screen");
+    const gameScreen  = $("#game-screen");
+    const splash      = $("#splash");
+    const wldBtn      = $("#wldSignIn");   // existing button
+    const wldState    = $("#wldState");
+
+    function setBusy(on){
+      const btn = $("#wldSignIn") || $("#siweBtn");
+      if (btn){ btn.disabled = !!on; btn.style.opacity = on ? "0.6":"1"; }
+      if (wldState){ wldState.style.display = on ? "block" : "none"; }
+    }
+
+    function gotoLogin(){
+      if (gameScreen) gameScreen.style.display = "none";
+      if (loginScreen) loginScreen.style.display = "flex";
+      if (splash) splash.style.display = "block";
+      document.body.dataset.view = "login";
+    }
+
+    function gotoGame(){
+      window.__state.loggedIn = true;
+      if (loginScreen) loginScreen.style.display = "none";
+      if (splash) splash.style.display = "none"; // ⛔ oculta splash en juego
+      if (gameScreen) gameScreen.style.display = "block";
+      document.body.dataset.view = "game";
+      // Ocultar cualquier splash conocido
+      try {
+        const hideSplashEls = () => {
+          const ids = ["splash", "loading", "loader", "preloader", "wldstate"];
+          ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+          document.querySelectorAll(".splash,.splash_screen,.splash-container,.loading,.loader,.preloader").forEach(el => {
+            el.style.display = "none";
+            el.setAttribute("aria-busy","false");
+          });
+        };
+        hideSplashEls();
+      } catch(e){ console.warn("hideSplashEls error", e); }
+      // Lanza el juego solo una vez
+      if (!window.__state.gameStarted && window.__runGame){
+        window.__state.gameStarted = true;
+        try { window.__runGame(); } catch(e){ console.error("Game start error:", e); }
+      }
+    }
+async function api(path, opts) {
     const res = await fetch(API_BASE + path, { credentials: "include", ...opts });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
@@ -525,8 +572,7 @@
       body: JSON.stringify({ message, signature })
     });
     if (ver.ok) {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("game-screen").style.display = "block";
+      gotoGame();
       if (window.__runGame) { try { await window.__runGame(); } catch(e){ console.error(e); } }
     } else {
       throw new Error("Verificación SIWE falló");
@@ -541,8 +587,7 @@
   try {
     const me = await api("/me", { method: "GET" });
     if (me.ok) {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("game-screen").style.display = "block";
+      gotoGame();
       if (window.__runGame) { try { await window.__runGame(); } catch(e){ console.error(e); } }
     }
   } catch {};
@@ -720,7 +765,18 @@ window.__runGame = async function(){
     })();
   } catch(e) { console.error('Error en script del juego:', e); }
 };
-</script>
+
+  // Guard: keep splash (and lookalikes) hidden once in game
+  const mo = new MutationObserver(() => {
+    if (document.body.dataset.view === "game") {
+      const ids = ["splash", "loading", "loader", "preloader", "wldstate"];
+      ids.forEach(id => { const el = document.getElementById(id); if (el && el.style.display !== "none") el.style.display = "none"; });
+      document.querySelectorAll(".splash,.splash_screen,.splash-container,.loading,.loader,.preloader").forEach(el => {
+        if (el.style.display !== "none") el.style.display = "none";
+      });
+    }
+  });
+  mo.observe(document.body, { attributes:true, childList:true, subtree:true });</script>
 
 </body>
 </html>
