@@ -23,7 +23,7 @@ app.get("/api/nonce", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("hex");
   const sid = newSid();
   sessions.set(sid, { nonce, createdAt: Date.now() });
-  res.cookie("sid", sid, { httpOnly: true, sameSite: "lax", secure: false });
+  res.cookie("sid", sid, { httpOnly: true, path: "/", sameSite: "lax", secure: false });
   res.json({ nonce });
 });
 
