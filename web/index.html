@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", function(){
   </div>
 
   <script>
-// Helpers mínimos
+// Helpers
 const API_BASE = "/api";
 async function api(path, opts) {
   const res = await fetch(API_BASE + path, { credentials: "include", ...opts });
@@ -418,12 +418,28 @@ async function api(path, opts) {
   return res.json();
 }
 
-// SIWE nativo dentro de World App usando MiniKit
+// Espera a que MiniKit y walletAuth estén listos (solo dentro de World App)
+function waitForWalletAuth(maxTries = 40, delay = 150) {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      const ok = !!(window.MiniKit && MiniKit.commandsAsync && MiniKit.commandsAsync.walletAuth);
+      if (ok) { clearInterval(t); resolve(true); }
+      if (tries >= maxTries) { clearInterval(t); resolve(false); }
+    }, delay);
+  });
+}
+
+// SIWE nativo con MiniKit (World App)
 async function loginSiwe() {
-  if (!window.MiniKit || !MiniKit.commandsAsync?.walletAuth) {
-    throw new Error("MiniKit walletAuth no disponible");
+  // 0) Esperar a que el bridge esté listo
+  const ready = await waitForWalletAuth();
+  if (!ready) {
+    throw new Error("Abre esta miniapp dentro de la World App (walletAuth no disponible en navegador normal).");
   }
-  // 1) nonce del backend (guarda cookie sid)
+
+  // 1) nonce del backend
   const { nonce } = await api("/nonce", { method: "GET" });
 
   // 2) pedir firma SIWE a World App
@@ -432,17 +448,20 @@ async function loginSiwe() {
   if (!resp || resp.success === false) {
     throw new Error(resp?.error || "walletAuth cancelado o falló");
   }
+
+  // 3) compat: distintas formas de retorno
   const data = resp.data || resp;
   const message   = data.message   || data.siwe?.message   || data.siweMessage;
   const signature = data.signature || data.siwe?.signature || data.siweSignature;
   if (!message || !signature) throw new Error("Respuesta SIWE incompleta");
 
-  // 3) verificar en backend
+  // 4) verificar en backend
   const ver = await api("/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, signature })
   });
+
   if (ver?.ok) {
     if (typeof gotoGame === "function") gotoGame();
     return;
@@ -450,21 +469,22 @@ async function loginSiwe() {
   throw new Error(ver?.error || "Verificación SIWE falló");
 }
 
-// Botón
-document.addEventListener("DOMContentLoaded", () => {
-  const wldBtn = document.getElementById("wldSignIn");
-  const wldState = document.getElementById("wldState");
-  function setBusy(on){
-    if (wldBtn) { wldBtn.disabled = !!on; wldBtn.style.opacity = on ? "0.6" : "1"; }
-    if (wldState) wldState.style.display = on ? "block" : "none";
+// Deshabilitar botón si no estás en World App (evita errores feos)
+document.addEventListener("DOMContentLoaded", async () => {
+  const btn = document.getElementById("wldSignIn");
+  const hint = document.getElementById("wldState"); // tu texto “Preparando tu sesión...”
+  if (!btn) return;
+
+  const ready = await waitForWalletAuth();
+  if (!ready) {
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+    if (hint) hint.textContent = "Ábrelo dentro de la World App para iniciar sesión.";
+    return;
   }
-  if (wldBtn) {
-    wldBtn.addEventListener("click", async () => {
-      try { setBusy(true); await loginSiwe(); }
-      catch (err) { alert("Error SIWE: " + (err?.message || err)); }
-      finally { setBusy(false); }
-    });
-  }
+  // Si está listo, habilitamos el botón normalmente
+  btn.disabled = false;
+  btn.style.opacity = "1";
 });
 </script>
 
