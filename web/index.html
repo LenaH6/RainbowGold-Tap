@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RainbowGold Tap</title>
 
-  <!-- WalletConnect + wagmi (SOLO World App) -->
-  <script src="https://unpkg.com/viem@2/dist/viem.min.js"></script>
-  <script src="https://unpkg.com/@wagmi/core@2/dist/wagmi-core.min.js"></script>
-  <script src="https://unpkg.com/@web3modal/wagmi@5/dist/index.umd.js"></script>
-  <!-- MiniKit Pay (consulta doc oficial para bundlers) -->
-  <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit/dist/browser.min.js"></script>
-  <style>
+  
+
+
+<!-- MiniKit Pay (consulta doc oficial para bundlers) -->
+<style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; }
     #login-screen { display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
     #game-screen { display:none; padding: 0; }
@@ -22,7 +20,19 @@
   </style>
   <link rel="stylesheet" href="css/styles.css">
 
-    <script src="https://unpkg.com/@wagmi/connectors@4.3.1/dist/wagmi-connectors.umd.js"></script>
+<script>
+  // MiniKit init con tu APP_ID
+  window.APP_ID = "app_33bb8068826b85d4cd56d2ec2caba7cc";
+  (function initMiniKit(){
+    if (window.MiniKit && typeof MiniKit.init === "function") {
+      try { MiniKit.init({ app_id: window.APP_ID }); } catch (e) { console.warn("MiniKit.init:", e); }
+    } else {
+      // reintentar breve
+      setTimeout(initMiniKit, 200);
+    }
+  })();
+</script>
+
 </head>
 <body>
 <!-- === SPLASH / CARGA INICIAL === -->
@@ -415,23 +425,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <script>
 (async () => {
-  const WC_PROJECT_ID = "ddfa618a5dda216e266d0659744df365";
   const API_BASE = "/api";
-
-  const { createConfig, reconnect, getAccount, connect, getChainId, signMessage } = window.wagmiCore;
-  const { defaultWagmiConfig, createWeb3Modal } = window.WEB3MODAL_WAGMI;
-  const chains = [{ id: 8453, name: 'Base', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: ['https://mainnet.base.org'] } } }];
-
-  const wagmiConfig = createConfig(defaultWagmiConfig({
-    chains,
-    projectId: WC_PROJECT_ID,
-    enableInjected: false,
-    enableWalletConnect: true,
-    enableCoinbase: false
-  }));
-  createWeb3Modal({ wagmiConfig, projectId: WC_PROJECT_ID, themeMode: 'dark' });
-  await reconnect(wagmiConfig);
-    window.__state = window.__state || { loggedIn:false, gameStarted:false };
 
   function gotoLogin(){
     const splash = document.getElementById("splash");
@@ -473,46 +467,11 @@ document.addEventListener("DOMContentLoaded", function(){
     return res.json();
   }
 
-  async function ensureConnected() {
-    const acc = getAccount(wagmiConfig);
-    if (!acc.isConnected) {
-      await connect(wagmiConfig, { connector: wagmiConfig.connectors[0] });
-    }
-    const a = getAccount(wagmiConfig);
     if (!a.address) throw new Error("No hay address de World App");
     return a.address;
   }
 
-  async function loginSiwe() {
-    const address = await ensureConnected();
-    const { nonce } = await api("/nonce", { method: "GET" });
-
-    const statement = "Iniciar sesión en RainbowGold Tap";
-    const chainId = getChainId(wagmiConfig) || 1;
-    const message = [
-      `${address} quiere iniciar sesión`,
-      ``,
-      `URI: ${location.origin}`,
-      `Version: 1`,
-      `Chain ID: ${chainId}`,
-      `Nonce: ${nonce}`,
-      `Issued At: ${new Date().toISOString()}`,
-      `Statement: ${statement}`
-    ].join("\n");
-
-    const signature = await signMessage(wagmiConfig, { message });
-    const ver = await api("/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, signature })
-    });
-    if (ver.ok) {
-      gotoGame();
-
-    } else {
-      throw new Error("Verificación SIWE falló");
-    }
-  }
+  async   }
 
  const siweBtn = document.getElementById("siweBtn");
 if (siweBtn) {
@@ -554,8 +513,6 @@ if (siweBtn) {
   }
 
   async function payWLD(amountWLD, description) {
-    await ensureConnected();
-    const order = await api("/pay/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amountWLD, description })
@@ -604,32 +561,8 @@ if (siweBtn) {
 (function(){
   var WC_ID = window.WC_PROJECT_ID || "ddfa618a5dda216e266d0659744df365";
   var CHAIN_ID = 8453;
-  function ready(){ return !!(window.w3m && window.wagmiCore && window.wagmiActions); }
   async function ensureCfg(){
-    if (window.wagmiConfig) return window.wagmiConfig;
     try{
-      var createConfig = window.wagmiCore.createConfig;
-      var http = window.wagmiCore.http;
-      var base = (window.viemChains && window.viemChains.base) || (window.viem && window.viem.chains && window.viem.chains.base);
-      var defaultWagmiConfig = window.w3m.defaultWagmiConfig;
-      var createWeb3Modal = window.w3m.createWeb3Modal;
-      var meta = { name: (document.title||'App'), url: location.origin, icons: [location.origin + '/favicon.ico'] };
-      var cfg = createConfig(defaultWagmiConfig({ chains:[base], projectId: WC_ID, metadata: meta, transports: (function(o){ o[base.id]=http(); return o; })({}), enableAnalytics:false }));
-      window.wagmiConfig = cfg; createWeb3Modal({ wagmiConfig: cfg, projectId: WC_ID });
-      return cfg;
-    }catch(e){ console.error('wagmiConfig error', e); return null; }
-  }
-  async function siwe(){
-    var cfg = await ensureCfg(); if (!cfg) throw new Error('wagmiConfig no disponible');
-    var getAccount = window.wagmiCore.getAccount;
-    var connect = window.wagmiCore.connect;
-    var a = getAccount(cfg);
-    if (!a.isConnected){
-      var wc = cfg.connectors.find(function(c){ return (c.id==='walletConnect') || ((c.name||'').toLowerCase().indexOf('walletconnect')>=0); }) || cfg.connectors[0];
-      await connect(cfg, { connector: wc });
-      a = getAccount(cfg);
-    }
-    if (!a.address) throw new Error('Sin address tras conectar');
     var nr = await fetch('/api/nonce', { credentials:'include' });
     var nj = await nr.json();
     var msg = [
@@ -642,7 +575,6 @@ if (siweBtn) {
       'Nonce: ' + nj.nonce,
       'Issued At: ' + new Date().toISOString()
     ].join('\n');
-    var sig = await window.wagmiActions.signMessage(cfg, { message: msg });
     var vr = await fetch('/api/verify', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ message: msg, signature: sig }) });
     var v = await vr.json();
     if (!v.ok) throw new Error(v.error || 'Verificación falló');
@@ -655,6 +587,47 @@ if (siweBtn) {
   function wait(i){ if (i>40) return; if (ready()) return attach(); setTimeout(function(){ wait((i||0)+1); }, 100); }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ wait(0); }); else wait(0);
 })();
+</script>
+
+
+<script>
+// Implementación SIWE nativa con MiniKit dentro de World App
+async function loginSiwe() {
+  if (!window.MiniKit || !MiniKit.commandsAsync || !MiniKit.commandsAsync.walletAuth) {
+    throw new Error("MiniKit walletAuth no disponible");
+  }
+  // 1) Obtener nonce del backend (mantiene sesión por cookie)
+  const nres = await fetch("/api/nonce", { credentials: "include" });
+  const { nonce } = await nres.json();
+
+  // 2) Solicitar Wallet Authentication (SIWE) a World App
+  const statement = "Iniciar sesión en RainbowGold Tap";
+  const result = await MiniKit.commandsAsync.walletAuth({ nonce, statement });
+
+  if (!result || result.success === false) {
+    throw new Error(result?.error || "walletAuth cancelado o falló");
+  }
+  const data = result.data || result; // compatibilidad
+  const message = data.message || data.siwe?.message || data.siweMessage;
+  const signature = data.signature || data.siwe?.signature || data.siweSignature;
+
+  if (!message || !signature) throw new Error("Respuesta SIWE incompleta");
+
+  // 3) Verificar firma en backend
+  const vres = await fetch("/api/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ message, signature })
+  });
+  const ver = await vres.json();
+  if (ver && ver.ok) {
+    // éxito: pasar al juego
+    if (typeof gotoGame === "function") gotoGame();
+    return true;
+  }
+  throw new Error(ver?.error || "Verificación SIWE falló");
+}
 </script>
 
 </body>
