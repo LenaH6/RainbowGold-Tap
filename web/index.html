@@ -20,30 +20,6 @@
     .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
     .card { border:1px solid #e5e5e5; border-radius:14px; padding:12px 14px; }
   </style>
-<style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000; /* color de fondo del splash */
-    }
-    #splash {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #000; /* o imagen si quieres */
-      z-index: 999;
-    }
-    #game-screen {
-      display: none;
-    }
-  </style>
-
-    <script src="https://unpkg.com/@wagmi/core@2.13.4/dist/wagmi-core.umd.js"></script>
-    <script src="https://unpkg.com/@wagmi/connectors@4.3.1/dist/wagmi-connectors.umd.js"></script>
-    <script src="https://unpkg.com/@web3modal/wagmi@5.1.9/dist/web3modal-wagmi.js"></script>
 </head>
 <body>
 <!-- === SPLASH / CARGA INICIAL === -->
@@ -59,8 +35,6 @@
          color:#fff;font-weight:700;cursor:pointer">
   Entrar con World ID
 </button>
-        <w3m-button id="w3mBtn" balance="hide"></w3m-button>
-
 
  <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
   <span data-i18n="preparing_session">Preparando tu sesión</span>
@@ -383,19 +357,10 @@
 </aside>
 
 
-
-
-
-
-
-
-
-
-
 <script src="js/game-logic.js"></script>
 <script src="js/payments.js"></script>
 <script type="module" src="js/minikit-config.js"></script>
-<!-- <script type="module" src="js/worldcoin-auth.js"></script> (removido: AUTH no usado) -->
+<script type="module" src="js/worldcoin-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
 <script>
 // === Conectar tu botón #wldSignIn al login SIWE (World App) ===
@@ -630,101 +595,6 @@ if (siweBtn) {
     try { await payWLD(1, "Ticket de Ideas"); if (s) s.textContent = "Pago OK. Ticket otorgado."; }
     catch (e) { if (s) s.textContent = "Pago fallido: " + (e?.message || e); }
   });
-})();
-</script>
-
-
-<script>
-(function(){
-  const WC_ID = "ddfa618a5dda216e266d0659744df365";
-  const CHAIN_ID = 8453; // Base mainnet
-
-  function ready(){
-    return !!(window.w3m && window.wagmiCore && window.wagmiActions);
-  }
-
-  async function ensureWagmiConfig(){
-    if (window.wagmiConfig) return window.wagmiConfig;
-    try {
-      const { createConfig, http, getAccount } = window.wagmiCore;
-      const { base } = window.viemChains || window.viem?.chains || { base: { id: CHAIN_ID } };
-      const { defaultWagmiConfig } = window.w3m;
-      const meta = {
-        name: document.title || 'App',
-        description: 'WorldApp SIWE',
-        url: location.origin,
-        icons: [location.origin + '/favicon.ico']
-      };
-      const cfg = createConfig(defaultWagmiConfig({
-        chains: [base],
-        projectId: WC_ID,
-        metadata: meta,
-        transports: { [CHAIN_ID]: http() },
-        enableAnalytics: false
-      }));
-      window.wagmiConfig = cfg;
-      window.w3m.createWeb3Modal({ wagmiConfig: cfg, projectId: WC_ID });
-      return cfg;
-    } catch(err){ console.warn('No pude crear wagmiConfig:', err); }
-    return null;
-  }
-
-  async function siweFlow(){
-    const cfg = await ensureWagmiConfig();
-    if (!cfg) throw new Error('wagmiConfig no disponible');
-    const { getAccount, connect } = window.wagmiCore;
-    let acc = getAccount(cfg);
-    if (!acc.isConnected) {
-      const wc = cfg.connectors.find(c => (c.id === 'walletConnect') || (c.name && c.name.toLowerCase().includes('walletconnect'))) || cfg.connectors[0];
-      await connect(cfg, { connector: wc });
-      acc = getAccount(cfg);
-    }
-    if (!acc.address) throw new Error('Sin address tras conectar');
-    const nonceRes = await fetch('/api/nonce', { credentials: 'include' });
-    const { nonce } = await nonceRes.json();
-    const msg = [ 
-      location.hostname + ' wants you to sign in with your Ethereum account:',
-      acc.address,
-      '',
-      'URI: ' + location.origin,
-      'Version: 1',
-      'Chain ID: ' + (acc.chainId || CHAIN_ID),
-      'Nonce: ' + nonce,
-      'Issued At: ' + new Date().toISOString()
-    ].join('\n');
-    const sig = await window.wagmiActions.signMessage(cfg, { message: msg });
-    const ver = await fetch('/api/verify', {
-      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
-      body: JSON.stringify({ message: msg, signature: sig })
-    }).then(r=>r.json());
-    if (!ver.ok) throw new Error(ver.error || 'Verificación SIWE falló');
-    if (window.gotoGame) window.gotoGame();
-    else if (window.__app__?.gotoGame) window.__app__.gotoGame();
-    else {
-      // Fallback minimal
-      const s = document.getElementById('splash'); if (s) s.style.display='none';
-      const g = document.getElementById('game-screen') || document.getElementById('game'); if (g) g.style.display='block';
-    }
-  }
-
-  function attach(){
-    // Prioriza id="wldSignIn"
-    const btn = document.getElementById('wldSignIn') || Array.from(document.querySelectorAll('button')).find(b => /conectar/i.test(b.textContent));
-    if (btn) {
-      btn.addEventListener('click', function(){
-        siweFlow().catch(e => { alert('Error SIWE: ' + (e?.message||e)); console.error(e); });
-      }, { passive: true });
-    }
-  }
-
-  function waitAndAttach(tries=0){
-    if (ready()) { attach(); return; }
-    if (tries > 40) { console.error('No cargaron libs wagmi/web3modal'); return; }
-    setTimeout(() => waitAndAttach(tries+1), 100);
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => waitAndAttach());
-  else waitAndAttach();
 })();
 </script>
 
