@@ -55,6 +55,7 @@
          color:#fff;font-weight:700;cursor:pointer">
   Entrar con World ID
 </button>
+        <w3m-button id="w3mBtn" balance="hide"></w3m-button>
 
 
  <div id="wldState" class="splash__hint" style="margin-top:10px;opacity:1;transform:translateY(0)">
@@ -625,6 +626,76 @@ if (siweBtn) {
     try { await payWLD(1, "Ticket de Ideas"); if (s) s.textContent = "Pago OK. Ticket otorgado."; }
     catch (e) { if (s) s.textContent = "Pago fallido: " + (e?.message || e); }
   });
+})();
+</script>
+
+
+<script>
+// Adjunta SIWE al botón "Conectar con WorldID" (móvil/World App)
+(function(){
+  if (!window.w3m || !window.wagmiCore) return;
+  const { getAccount, watchAccount, connect } = window.wagmiCore;
+  // Reutiliza wagmiConfig creado por tu setup existente si existe
+  const getWagmiConfig = () => window.wagmiConfig || window.__wagmiConfig || window.w3m?.getWagmiConfig?.() || null;
+
+  async function signSiweMessage(wagmiConfig, address, chainId){
+    try {
+      const res = await fetch('/api/nonce', { credentials:'include' });
+      const { nonce } = await res.json();
+      const domain = location.hostname;
+      const uri = location.origin;
+      const msg = [
+        `${domain} wants you to sign in with your Ethereum account:`,
+        `${address}`,
+        ``,
+        `URI: ${uri}`,
+        `Version: 1`,
+        `Chain ID: ${chainId || 8453}`,
+        `Nonce: ${nonce}`,
+        `Issued At: ${new Date().toISOString()}`
+      ].join('\n');
+      const sig = await window.wagmiActions.signMessage(wagmiConfig, { message: msg });
+      const out = await fetch('/api/verify', {
+        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+        body: JSON.stringify({ message: msg, signature: sig })
+      }).then(r=>r.json());
+      if (!out.ok) throw new Error(out.error || 'SIWE falló');
+      // Éxito: intenta pasar al juego si existe gotoGame
+      if (window.gotoGame) window.gotoGame();
+      else if (window.__app__?.gotoGame) window.__app__.gotoGame();
+    } catch(e){
+      alert('Error SIWE: ' + (e?.message||e));
+      console.error(e);
+    }
+  }
+
+  window.__attachSiweHandler = function(){
+    const btn = document.getElementById('wldSignIn');
+    if (!btn) return;
+    btn.addEventListener('click', async function(){
+      try{
+        const wagmiConfig = getWagmiConfig();
+        if (!wagmiConfig) throw new Error('wagmiConfig no disponible');
+        const acc = getAccount(wagmiConfig);
+        if (!acc.isConnected) {
+          const wc = wagmiConfig.connectors.find(c => (c.id === 'walletConnect') || (c.name && c.name.toLowerCase().includes('walletconnect'))) || wagmiConfig.connectors[0];
+          await connect(wagmiConfig, { connector: wc });
+        }
+        const a = getAccount(wagmiConfig);
+        if (!a.address) throw new Error('No hay address luego de conectar');
+        await signSiweMessage(wagmiConfig, a.address, a.chainId || 8453);
+      }catch(e){
+        alert('Error al conectar: ' + (e?.message||e));
+        console.error(e);
+      }
+    }, { passive: true });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.__attachSiweHandler);
+  } else {
+    window.__attachSiweHandler();
+  }
 })();
 </script>
 

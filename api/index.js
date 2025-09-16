@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET || "dev_secret"));
 
 const ORIGIN = process.env.ORIGIN || "*"; // allow your Vercel domain via env
-app.use(cors({ origin: ORIGIN, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 
 // In-memory stores (replace with Redis/DB in production)
 const sessions = new Map();
