@@ -1,12 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/RainbowGold Tap/api/[[...all]].js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/RainbowGold Tap/web/$1"
-    }
+    { "source": "/api/(.*)", "destination": "/api/[[...all]].js" },
+    { "source": "/(.*)", "destination": "/web/$1" }
   ]
 }
