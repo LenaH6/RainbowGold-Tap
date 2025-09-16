@@ -28,7 +28,7 @@
 <!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
-    <img src=".img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
+    <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
 
   </div>
 
@@ -613,7 +613,6 @@ if (siweBtn) {
       var base = (window.viemChains && window.viemChains.base) || (window.viem && window.viem.chains && window.viem.chains.base);
       var defaultWagmiConfig = window.w3m.defaultWagmiConfig;
       var createWeb3Modal = window.w3m.createWeb3Modal;
-      var meta = { name: (document.title||'App'), url: location.origin, icons: [location.origin + '/favicon.ico'] };
       var cfg = createConfig(defaultWagmiConfig({ chains:[base], projectId: WC_ID, metadata: meta, transports: (function(o){ o[base.id]=http(); return o; })({}), enableAnalytics:false }));
       window.wagmiConfig = cfg; createWeb3Modal({ wagmiConfig: cfg, projectId: WC_ID });
       return cfg;
