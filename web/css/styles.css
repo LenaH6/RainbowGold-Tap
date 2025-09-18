@@ -869,3 +869,11 @@ body.has-drawer{
     z-index: 9;
   }
 }
+
+
+#wldSignIn {
+  margin-top:18px; padding:12px 16px; border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  color:#fff; font-weight:700; cursor:pointer; border:none;
+}
+#wldSignIn[disabled]{ opacity:.6; cursor:not-allowed; }

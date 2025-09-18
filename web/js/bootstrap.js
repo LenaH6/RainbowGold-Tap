@@ -12,12 +12,9 @@
 
   // WLD login helper with safe returnTo (no query duplication)
   window.WLD = window.WLD || {};
-  window.WLD.login = function(){
-    try{
-      var base = location.origin + location.pathname + '#play';
-      location.href = '/auth/login?returnTo=' + encodeURIComponent(base);
-    }catch(_){ location.href='/auth/login'; }
-  };
+if (typeof window.WLD.login !== 'function') {
+  window.WLD.login = function(){ try{ var base = location.origin + location.pathname + '#play'; location.href = '/auth/login?returnTo=' + encodeURIComponent(base); }catch(_){ location.href='/auth/login'; } };
+}
 
   // Single-run gate
   function enterGameOnce(){
