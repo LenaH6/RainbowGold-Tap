@@ -19,7 +19,7 @@
   })();
 </script>
 
-
+<link rel="icon" href="/favicon.ico" sizes="any">
 </head>
 <body>
 <!-- === SPLASH / CARGA INICIAL === -->
@@ -352,11 +352,8 @@
   <a class="legal-link" href="/terminos" target="_blank" rel="noopener">Términos</a> ·
   <a class="legal-link" href="/privacidad" target="_blank" rel="noopener">Privacidad</a>
 </div>
-
-
-
 </aside>
-<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.js"></script>
+
 <script>
 // === Conectar tu botón #wldSignIn al login SIWE (World App) ===
 // (Reemplaza por completo el bloque viejo que redirigía a /auth/login)
@@ -397,18 +394,6 @@ document.addEventListener("DOMContentLoaded", function(){
   }
 })();
 </script>
-
-
-    <!-- MiniKit Pay botones de ejemplo (puedes quitar si no los usas aquí) -->
-    <div style="padding:12px;">
-      <div class="row">
-        <button id="pay-refill" class="btn">Comprar Refill (0.1 WLD)</button>
-        <button id="pay-idea" class="btn">Ticket de Ideas (1 WLD)</button>
-      </div>
-      <div id="status" style="margin-top:10px;"></div>
-    </div>
-  </div>
-
   <script>
 // Helpers
 const API_BASE = "/api";
@@ -494,7 +479,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   <script src="js/bootstrap.js"></script>
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
-
+  <script src="js/auth.js"></script>
 
 
 </body>
