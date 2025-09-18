@@ -472,15 +472,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   btn.style.opacity = "1";
 });
 </script>
-
-
-
-
-  <script src="js/bootstrap.js"></script>
-  <script src="js/core.js"></script>
+<script src="js/core.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
 
+
+
+<script>
+function gotoGame(){
+  try {
+    // Hide splash
+    var sp = document.getElementById('splash');
+    if (sp) sp.style.display = 'none';
+    // Show game
+    var gs = document.getElementById('game-screen');
+    if (gs) gs.style.display = 'block';
+    // Mark verified UI (enables buttons)
+    window.VERIFIED = true;
+    if (typeof setVerifiedUI === 'function') setVerifiedUI(true);
+  } catch(e){
+    console.warn('gotoGame error', e);
+  }
+}
+</script>
+
+
+<script>
+(function(){
+  const b = document.getElementById("wldSignIn");
+  if (b){
+    b.addEventListener("click", () => loginSiwe().catch(e => alert("Error SIWE: " + (e?.message || e))));
+  }
+})();
+</script>
 
 </body>
 </html>
