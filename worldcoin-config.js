@@ -1,10 +1,8 @@
-// Worldcoin OIDC Configuration
+// Usar variables de entorno en producción, fallback para desarrollo
 const WORLDCOIN_CONFIG = {
-    app_id: 'app_33bb8068826b85d4cd56d2ec2caba7cc',
-    action: 'rainbow-gold-tap',
-    signal: '',
-    // Configuración OIDC
-    client_id: 'app_33bb8068826b85d4cd56d2ec2caba7cc',
+    app_id: process.env.NEXT_PUBLIC_APP_ID || 'app_33bb8068826b85d4cd56d2ec2caba7cc',
+    action: process.env.NEXT_PUBLIC_ACTION_NAME || 'rainbow-gold-tap',
+    client_id: process.env.NEXT_PUBLIC_WLD_CLIENT_ID || 'app_33bb8068826b85d4cd56d2ec2caba7cc',
     redirect_uri: window.location.origin,
     response_type: 'code',
     scope: 'openid profile',
@@ -12,8 +10,7 @@ const WORLDCOIN_CONFIG = {
     state: generateState()
 };
 
-// Dirección de destino para pagos
-const PAYMENT_ADDRESS = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+const PAYMENT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_ADDRESS || '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
 
 // Generar nonce aleatorio
 function generateNonce() {
