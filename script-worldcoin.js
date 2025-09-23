@@ -10,19 +10,21 @@ function setTickModeMp3(enabled) {
 
 // Manejar login con Worldcoin
 async function handleWorldcoinLogin() {
-    const loginBtn = document.getElementById('worldcoin-login-btn');
+    const loginBtn = document.getElementById('wldSignIn') || document.getElementById('worldcoin-login-btn');
+    if (!loginBtn) return;
+    
     const originalText = loginBtn.innerHTML;
     
     try {
         // Cambiar texto del botón
-        loginBtn.innerHTML = '<span>Conectando...</span>';
+        loginBtn.innerHTML = '<span>🔄 Conectando...</span>';
         loginBtn.disabled = true;
         
         // Iniciar proceso OIDC
         await worldcoinAuth.startOIDCLogin();
         
         // Si llegamos aquí, el login fue exitoso
-        showNotification('¡Autenticación exitosa!', '#4CAF50');
+        showNotification('¡Autenticación exitosa! 🎉', '#4CAF50');
         
     } catch (error) {
         console.error('Error en Worldcoin login:', error);
@@ -32,6 +34,90 @@ async function handleWorldcoinLogin() {
         loginBtn.innerHTML = originalText;
         loginBtn.disabled = false;
     }
+}
+
+// Función para activar ticket de ideas (llamada desde payments.js)
+window.activateIdeasTicket = function() {
+    if (typeof window.ideasTicketActive !== 'undefined') {
+        window.ideasTicketActive = true;
+    }
+    
+    // Si existe el sistema de ideas del juego, activarlo
+    const ideasPayView = document.getElementById('ideasPayView');
+    const ideasOptionsView = document.getElementById('ideasOptionsView');
+    
+    if (ideasPayView && ideasOptionsView) {
+        ideasPayView.style.display = 'none';
+        ideasOptionsView.style.display = 'block';
+    }
+};
+
+// Auto-guardar progreso cada vez que cambia RBGp
+function autoSaveProgress() {
+    if (!worldcoinAuth.isAuthenticated || !worldcoinAuth.walletAddress) return;
+    
+    const progress = worldcoinAuth.getCurrentProgress();
+    worldcoinAuth.saveUserProgress(worldcoinAuth.walletAddress, progress);
+}
+
+// Interceptar cambios de RBGp para auto-guardar
+const originalAddTapAmount = window.addTapAmount;
+if (originalAddTapAmount) {
+    window.addTapAmount = function(amount) {
+        originalAddTapAmount(amount);
+        
+        // Actualizar estadísticas
+        if (worldcoinAuth.isAuthenticated) {
+            const currentStats = worldcoinAuth.getStats();
+            worldcoinAuth.updateStats({
+                totalTaps: currentStats.totalTaps + 1,
+                totalEarned: currentStats.totalEarned + amount
+            });
+        }
+        
+        // Auto-guardar progreso (throttled)
+        clearTimeout(window.__saveTimeout);
+        window.__saveTimeout = setTimeout(autoSaveProgress, 2000);
+    };
+}
+
+// Mostrar notificación compatible con el juego
+function showNotification(message, color = '#2196F3') {
+    // Usar la función existente del juego si está disponible
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, color);
+        return;
+    }
+    
+    // Fallback: crear notificación propia
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${color};
+        color: white;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
 }
 
 // Manejar pago de refill
