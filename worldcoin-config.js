@@ -1,89 +1,105 @@
-// worldcoin-config.js - VERSIÓN CORREGIDA para tu app
+// worldcoin-config.js - VERSIÓN CORREGIDA
+// Usa variables de entorno de Vercel cuando están disponibles
 
-// Configuración que SÍ funciona para tu proyecto
-const WORLDCOIN_CONFIG = {
-    app_id: 'app_33bb8068826b85d4cd56d2ec2caba7cc',
-    action: 'rainbow-gold-tap',
-    signal: 'user_login_' + Date.now(), // Signal único
+// Función para obtener variables de entorno (compatible browser/server)
+function getEnvVar(name, fallback) {
+    // En Vercel, las variables NEXT_PUBLIC_ están disponibles en el browser
+    if (typeof window !== 'undefined') {
+        // Browser: usar window.__env si está definido (opcional)
+        if (window.__env && window.__env[name]) {
+            return window.__env[name];
+        }
+    }
     
-    // OIDC Configuration (corregido)
-    client_id: 'app_33bb8068826b85d4cd56d2ec2caba7cc',
-    redirect_uri: window.location.origin + '/callback.html', // ← CLAVE: debe ser exacta
+    // Fallback a variables hardcodeadas si no hay env vars
+    return fallback;
+}
+
+// Tu App ID real del Developer Portal
+const APP_ID = getEnvVar('NEXT_PUBLIC_APP_ID', 'app_33bb8068826b85d4cd56d2ec2caba7cc');
+
+// Configuración principal de Worldcoin
+const WORLDCOIN_CONFIG = {
+    app_id: APP_ID,
+    action: getEnvVar('NEXT_PUBLIC_ACTION_NAME', 'rainbow-gold-tap'),
+    signal: '', // Vacío está bien para login básico
+    
+    // OIDC Configuration - CORREGIDA
+    client_id: APP_ID, // Mismo que app_id
+    redirect_uri: window.location.origin + '/callback.html', // SIN /api/auth/
     response_type: 'code',
     scope: 'openid profile',
     nonce: generateNonce(),
     state: generateState()
 };
 
-// Dirección de destino para pagos (tu wallet real)
-const PAYMENT_ADDRESS = '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a';
+// Tu dirección de pago
+const PAYMENT_ADDRESS = getEnvVar('NEXT_PUBLIC_PAYMENT_ADDRESS', '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a');
 
-// URL base de Worldcoin (corregida)
-const WORLDCOIN_BASE_URL = 'https://id.worldcoin.org';
+// URL base de Worldcoin
+const WORLDCOIN_BASE_URL = getEnvVar('NEXT_PUBLIC_WLD_BASE_URL', 'https://id.worldcoin.org');
 
-// Generar nonce aleatorio (mejorado)
+// Client Secret (solo para backend si lo implementas después)
+const CLIENT_SECRET = 'sk_5d537d497ccc515d8c14843855feb0132f84b408977ed3b1';
+
+// Generar nonce seguro
 function generateNonce() {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    if (crypto && crypto.getRandomValues) {
+        const array = new Uint8Array(16);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    // Fallback para browsers viejos
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// Generar state aleatorio (mejorado)
+// Generar state seguro
 function generateState() {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    if (crypto && crypto.getRandomValues) {
+        const array = new Uint8Array(16);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    // Fallback para browsers viejos
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// 🔥 VERIFICACIÓN DE CONFIGURACIÓN EN CONSOLA
-console.log('🔧 Worldcoin Config:', {
-    app_id: WORLDCOIN_CONFIG.app_id,
-    redirect_uri: WORLDCOIN_CONFIG.redirect_uri,
-    origin: window.location.origin,
-    full_url: `${WORLDCOIN_BASE_URL}/authorize?client_id=${WORLDCOIN_CONFIG.client_id}&redirect_uri=${encodeURIComponent(WORLDCOIN_CONFIG.redirect_uri)}&response_type=${WORLDCOIN_CONFIG.response_type}&scope=${encodeURIComponent(WORLDCOIN_CONFIG.scope)}`
-});
-
-// 🚨 VERIFICAR QUE TODO ESTÉ BIEN CONFIGURADO
-if (typeof window !== 'undefined') {
-    // Solo ejecutar en browser
-    console.log('✅ Checking Worldcoin setup...');
-    
-    // Verificar que los elementos existan
-    const requiredElements = ['wldSignIn', 'splash'];
-    requiredElements.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) {
-            console.warn(`⚠️ Element #${id} not found`);
-        } else {
-            console.log(`✅ Element #${id} found`);
-        }
+// 🔍 DEBUG: Mostrar configuración en consola (solo en desarrollo)
+if (typeof window !== 'undefined' && window.location.hostname.includes('localhost')) {
+    console.log('🔧 Worldcoin Config Debug:', {
+        app_id: WORLDCOIN_CONFIG.app_id,
+        redirect_uri: WORLDCOIN_CONFIG.redirect_uri,
+        current_origin: window.location.origin,
+        auth_url: `${WORLDCOIN_BASE_URL}/authorize?client_id=${WORLDCOIN_CONFIG.client_id}&redirect_uri=${encodeURIComponent(WORLDCOIN_CONFIG.redirect_uri)}&response_type=${WORLDCOIN_CONFIG.response_type}&scope=${encodeURIComponent(WORLDCOIN_CONFIG.scope)}&nonce=${WORLDCOIN_CONFIG.nonce}&state=${WORLDCOIN_CONFIG.state}`
     });
-    
-    // Verificar configuración
-    if (!WORLDCOIN_CONFIG.app_id.startsWith('app_')) {
-        console.error('❌ Invalid app_id format');
-    }
-    
-    if (!WORLDCOIN_CONFIG.redirect_uri.startsWith('http')) {
-        console.error('❌ Invalid redirect_uri format');
-    }
 }
 
-// 🔧 Helper para debuggear en desarrollo
-window.__worldcoin_debug = {
-    config: WORLDCOIN_CONFIG,
-    payment_address: PAYMENT_ADDRESS,
-    test_auth_url: function() {
-        const params = new URLSearchParams({
-            client_id: WORLDCOIN_CONFIG.client_id,
-            redirect_uri: WORLDCOIN_CONFIG.redirect_uri,
-            response_type: WORLDCOIN_CONFIG.response_type,
-            scope: WORLDCOIN_CONFIG.scope,
-            nonce: WORLDCOIN_CONFIG.nonce,
-            state: WORLDCOIN_CONFIG.state
-        });
-        const url = `${WORLDCOIN_BASE_URL}/authorize?${params.toString()}`;
-        console.log('🔗 Auth URL:', url);
-        return url;
+// 🚨 VALIDACIONES DE CONFIGURACIÓN
+function validateConfig() {
+    const errors = [];
+    
+    if (!WORLDCOIN_CONFIG.app_id.startsWith('app_')) {
+        errors.push('Invalid app_id format');
     }
-};
+    
+    if (!WORLDCOIN_CONFIG.redirect_uri.startsWith('https://')) {
+        errors.push('redirect_uri must be HTTPS');
+    }
+    
+    if (!WORLDCOIN_CONFIG.redirect_uri.endsWith('/callback.html')) {
+        errors.push('redirect_uri must end with /callback.html');
+    }
+    
+    if (errors.length > 0) {
+        console.error('❌ Worldcoin Config Errors:', errors);
+    } else {
+        console.log('✅ Worldcoin Config is valid');
+    }
+    
+    return errors.length === 0;
+}
+
+// Validar al cargar
+if (typeof window !== 'undefined') {
+    setTimeout(validateConfig, 100);
+}
