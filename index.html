@@ -265,31 +265,22 @@ body{
 
 .splash--hide {
   opacity: 0;
-  pointer-events: none;                                /* libera la UI al ocultar */
+  pointer-events: none;                              
 }
-
-.splash__logo {
-  box-shadow:
-    0 12px 28px rgba(0,0,0,.45),
-    0 0 20px rgba(255, 220, 120, .12); /* menos coste que antes */
+.splash__logo img {
+  max-width: 80%;        /* ocupa hasta el 80% del ancho del contenedor */
+  height: auto;           /* se adapta en alto */
+  object-fit: contain;    /* nunca se deforma */
+  display: block;
+  margin: 0 auto;         /* centrado */
+  filter: drop-shadow(0 0 6px rgba(255, 223, 120, .25));
+  animation: breathe 4s ease-in-out infinite;
 }
-.splash__logo img { width: 100%; height: 100%; object-fit: contain;
-   filter: drop-shadow(0 0 10px rgba(255, 223, 120, .35)); animation: breathe 3s ease-in-out infinite; }
 
 @keyframes zoom-in {
   0%   { transform: scale(1.3); opacity: 0; }
   60%  { transform: scale(1.05); opacity: 1; }
   100% { transform: scale(1);   opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .splash__logo img { animation: none !important; }
-}
-
-/* Fallback menos costoso: sombra en el contenedor */
-.splash__logo {
-  box-shadow:
-    0 16px 40px rgba(0,0,0,.55),
-    0 0 28px rgba(255, 220, 120, .12); /* menos intensidad que antes */
 }
 
 /* Animaciones suaves */
