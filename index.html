@@ -736,7 +736,8 @@ body.has-drawer{
 
   </div>
 
-  <button id="wldSignIn" data-i18n="signin_wld"
+ <button id="wldSignIn" data-i18n="signin_wld"
+  onclick="handleWorldcoinLogin()"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
          color:#fff;font-weight:700;cursor:pointer">
@@ -748,6 +749,9 @@ body.has-drawer{
   <span data-i18n="preparing_session">Preparando tu sesión</span>
   <span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
+
+
+
 </div>
 
 <!-- Left FABs -->
@@ -843,17 +847,17 @@ body.has-drawer{
       </div>
 
     <!-- Botón Ideas anclado a la moneda -->
-    <button id="ideasBtn" class="idea-btn" aria-label="Ideas">
-      <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
-    </button>
+  <button id="ideasBtn" class="idea-btn" aria-label="Ideas" onclick="handleIdeaPayment()">
+  <img src="img/icon-idea.png" alt="Ideas" onerror="this.style.display='none'">
+</button>
   </div>
 
   <!-- DOCK bajo la moneda -->
   <div class="action-dock" aria-label="acciones rápidas">
-    <button id="refillBtn" class="btn-icon" aria-label="Refill">
-      <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
-      <span id="refillPrice" class="price-pill">0.10 WLD</span>
-    </button>
+  <button id="refillBtn" class="btn-icon" aria-label="Refill" onclick="handleRefillPayment()">
+  <img src="img/ico-refill.png" alt="Perfil" style="width:40px;height:40px;">
+  <span id="refillPrice" class="price-pill">0.10 WLD</span>
+</button>
     <button id="openUp" class="btn-icon" aria-label="Boosters">
       <img src="img/icon-gear.png" alt="Perfil" style="width:40px;height:35px;">
     </button>
@@ -897,7 +901,7 @@ body.has-drawer{
   <!-- Vista inicial: pagar -->
   <div id="ideasPayView" class="cardPro"> 
    <p data-i18n="ideas_pay_intro">¡Sé parte de los desarrolladores y carrera con la comunidad PARTICIPA!</p>
-  <button id="payIdeasBtn" class="btn-icon">
+ <button id="payIdeasBtn" class="btn-icon" onclick="handleIdeaPayment()">
   <img src="img/icon-idea.png" alt="pagar" style="width:28px;height:28px;">
   <span data-i18n="ideas_pay_btn">Comprar ticket</span>
   <span class="price-pill"><b>1 WLD 🎟️</b></span>
@@ -3140,5 +3144,9 @@ document.addEventListener('visibilitychange', () => {
   });
 })();
 </script>
+<script src="worldcoin-config.js"></script>
+<script src="worldcoin-auth.js"></script>
+<script src="payments.js"></script>
+<script src="script-worldcoin.js"></script>
 </body>
 </html>
