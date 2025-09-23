@@ -268,20 +268,24 @@ body{
   pointer-events: none;                              
 }
 .splash__logo img {
-  max-width: 80%;        /* ocupa hasta el 80% del ancho del contenedor */
-  height: auto;           /* se adapta en alto */
-  object-fit: contain;    /* nunca se deforma */
+  max-width: 84%;          /* un poco más flexible */
+  max-height: 84%;         /* evita que se corte en pantallas altas */
+  width: auto;
+  height: auto;
+  object-fit: contain;     /* nunca se deforma */
   display: block;
-  margin: 0 auto;         /* centrado */
-  filter: drop-shadow(0 0 6px rgba(255, 223, 120, .25));
-  animation: breathe 4s ease-in-out infinite;
+  margin: 0 auto;          /* centrado */
+  box-shadow: 0 0 10px rgba(255, 223, 120, .20); /* glow ligero */
+  animation: breathe 4.5s ease-in-out infinite;  /* más suave y profesional */
+  backface-visibility: hidden; /* evita glitches en móviles */
 }
 
-@keyframes zoom-in {
-  0%   { transform: scale(1.3); opacity: 0; }
-  60%  { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1);   opacity: 1; }
+/* Animación respirar, más sutil */
+@keyframes breathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.02); } /* solo 2% para que no canse */
 }
+
 
 /* Animaciones suaves */
 @keyframes pop-in { from{ transform: scale(.9); opacity:.0 } to{ transform: scale(1); opacity:1 } }
@@ -318,6 +322,8 @@ body{
   50%  { opacity: 1; }  /* se muestra */
   100% { opacity: 1; }
 }
+
+/*otro*/
 #devBanner {
   position: fixed;
   bottom: 10px;
@@ -742,9 +748,6 @@ body.has-drawer{
   <span data-i18n="preparing_session">Preparando tu sesión</span>
   <span class="dots"><span>.</span><span>.</span><span>.</span></span>
 </div>
-
-
-
 </div>
 
 <!-- Left FABs -->
