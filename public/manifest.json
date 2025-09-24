@@ -1,0 +1,549 @@
+{
+  "name": "RainbowGold Tap",
+  "short_name": "RG Tap",
+  "description": "Tap to earn RainbowGold Points in this addictive clicker game with World ID integration and real WLD rewards",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1b103a",
+  "background_color": "#000000",
+  "scope": "/",
+  
+  "categories": ["games", "entertainment", "utilities"],
+  "lang": "es",
+  
+  "icons": [
+    {
+      "src": "img/icon-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-32.png", 
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-48.png",
+      "sizes": "48x48", 
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png", 
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/icon-384.png",
+      "sizes": "384x384", 
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/logo-splash.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "img/screenshots/screenshot-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Main game screen with coin tapping interface"
+    },
+    {
+      "src": "img/screenshots/screenshot-2.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Combo system and energy management"
+    },
+    {
+      "src": "img/screenshots/screenshot-3.png",
+      "sizes": "390x844", 
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Rainbow Challenge mode"
+    },
+    {
+      "src": "img/screenshots/screenshot-4.png",
+      "sizes": "390x844",
+      "type": "image/png", 
+      "platform": "narrow",
+      "label": "Ideas voting system"
+    },
+    {
+      "src": "img/screenshots/screenshot-wide-1.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "platform": "wide", 
+      "label": "Desktop view of the game"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Quick Play",
+      "short_name": "Play",
+      "description": "Jump straight into tapping",
+      "url": "/?quickplay=true",
+      "icons": [
+        {
+          "src": "img/shortcut-play.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard", 
+      "short_name": "Rankings",
+      "description": "Check your ranking",
+      "url": "/?view=leaderboard",
+      "icons": [
+        {
+          "src": "img/shortcut-trophy.png",
+          "sizes": "96x96", 
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ideas",
+      "short_name": "Vote",
+      "description": "Vote on community ideas",
+      "url": "/?view=ideas",
+      "icons": [
+        {
+          "src": "img/shortcut-idea.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "worldcoin",
+      "url": "/auth/worldcoin-callback?%s"
+    }
+  ],
+
+  "permissions": [
+    "storage",
+    "notifications"
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "img/*.png",
+        "img/*.jpg", 
+        "img/*.svg",
+        "snd/*.mp3",
+        "snd/*.wav",
+        "snd/*.ogg"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; object-src 'self'; connect-src 'self' https: wss: ws:; img-src 'self' data: https: blob:; media-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https:;"
+  },
+
+  "file_handlers": [
+    {
+      "action": "/save-game",
+      "accept": {
+        "application/json": [".rgt", ".json"]
+      },
+      "icons": [
+        {
+          "src": "img/file-handler.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.rainbowgold.tap",
+      "id": "com.rainbowgold.tap"
+    },
+    {
+      "platform": "itunes", 
+      "url": "https://apps.apple.com/app/rainbowgold-tap/id123456789"
+    }
+  ],
+
+  "prefer_related_applications": false,
+
+  "share_target": {
+    "action": "/share-score",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "screenshot",
+          "accept": ["image/png", "image/jpeg"]
+        }
+      ]
+    }
+  },
+
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+
+  "display_override": [
+    "window-controls-overlay",
+    "minimal-ui",
+    "standalone",
+    "browser"
+  ],
+
+  "worldcoin": {
+    "app_id": "app_staging_c8e24bc1de7bc2c3d2b6de7d2e8cf922",
+    "supported_actions": ["login", "payment"],
+    "verification_level": "orb",
+    "payment_methods": ["WLD"]
+  },
+
+  "features": {
+    "worldid_integration": true,
+    "siwe_support": true,
+    "wld_payments": true,
+    "offline_play": true,
+    "push_notifications": true,
+    "background_sync": true
+  },
+
+  "game_config": {
+    "min_tap_interval": 50,
+    "max_session_duration": 7200000,
+    "energy_system": true,
+    "combo_system": true,
+    "rainbow_challenge": true,
+    "ideas_voting": true
+  },
+
+  "audio_files": {
+    "effects": [
+      {
+        "name": "tick",
+        "src": "snd/tick.mp3",
+        "preload": true,
+        "volume": 0.7,
+        "description": "Tap sound effect"
+      },
+      {
+        "name": "nice", 
+        "src": "snd/nice.mp3",
+        "preload": true,
+        "volume": 0.95,
+        "description": "Success/combo sound"
+      },
+      {
+        "name": "rainbow_race",
+        "src": "snd/rainbow_race.mp3", 
+        "preload": false,
+        "volume": 1.0,
+        "description": "Rainbow challenge start"
+      },
+      {
+        "name": "freeze",
+        "src": "snd/freeze.mp3",
+        "preload": false,
+        "volume": 1.0,
+        "description": "Challenge success"
+      },
+      {
+        "name": "laugh",
+        "src": "snd/laugh.mp3",
+        "preload": false, 
+        "volume": 0.9,
+        "description": "Miss/fail sound"
+      },
+      {
+        "name": "slot",
+        "src": "snd/slot_loop.mp3",
+        "preload": false,
+        "volume": 0.9,
+        "loop": true,
+        "description": "Frenzy mode loop"
+      },
+      {
+        "name": "tension",
+        "src": "snd/tension_loop.mp3",
+        "preload": false,
+        "volume": 0.7, 
+        "loop": true,
+        "description": "Challenge tension music"
+      },
+      {
+        "name": "join",
+        "src": "snd/join.mp3",
+        "preload": false,
+        "volume": 1.0,
+        "description": "User join/welcome sound"
+      }
+    ]
+  },
+
+  "image_assets": {
+    "ui": [
+      {
+        "name": "coin",
+        "src": "img/Coin.png",
+        "critical": true,
+        "sizes": "512x512",
+        "description": "Main tappable coin"
+      },
+      {
+        "name": "logo_splash",
+        "src": "img/logo-splash.png", 
+        "critical": true,
+        "sizes": "1024x1024",
+        "description": "Splash screen logo"
+      },
+      {
+        "name": "brand_mark",
+        "src": "img/brand-mark-wg-128.png",
+        "critical": true,
+        "sizes": "128x128",
+        "description": "Brand mark for UI"
+      },
+      {
+        "name": "noise_texture",
+        "src": "img/noise-512.png",
+        "sizes": "512x512",
+        "description": "Background noise texture"
+      }
+    ],
+    "icons": [
+      {
+        "name": "profile",
+        "src": "img/icon-profile.png",
+        "sizes": "64x64",
+        "description": "Profile button icon"
+      },
+      {
+        "name": "inbox",
+        "src": "img/icon-inbox.png",
+        "sizes": "64x64", 
+        "description": "Inbox button icon"
+      },
+      {
+        "name": "trophy", 
+        "src": "img/icon-trophy.png",
+        "sizes": "64x64",
+        "description": "Leaderboard/trophy icon"
+      },
+      {
+        "name": "gear",
+        "src": "img/icon-gear.png",
+        "sizes": "64x64",
+        "description": "Settings/boosters icon"
+      },
+      {
+        "name": "idea",
+        "src": "img/icon-idea.png", 
+        "sizes": "64x64",
+        "description": "Ideas/suggestions icon"
+      },
+      {
+        "name": "refill",
+        "src": "img/ico-refill.png",
+        "sizes": "64x64",
+        "description": "Energy refill icon"
+      }
+    ]
+  },
+
+  "localization": {
+    "supported_locales": ["es", "en"],
+    "default_locale": "es",
+    "translations": {
+      "es": {
+        "name": "RainbowGold Tap",
+        "description": "Juego de tapping con recompensas WLD reales"
+      },
+      "en": {
+        "name": "RainbowGold Tap", 
+        "description": "Tap-to-earn game with real WLD rewards"
+      }
+    }
+  },
+
+  "offline": {
+    "enabled": true,
+    "cache_strategy": "network_first",
+    "cached_resources": [
+      "/",
+      "/offline.html",
+      "img/Coin.png",
+      "img/logo-splash.png",
+      "img/brand-mark-wg-128.png",
+      "snd/tick.mp3",
+      "snd/nice.mp3",
+      "src/js/storage/local-storage.js",
+      "src/css/main.css"
+    ]
+  },
+
+  "push_messaging": {
+    "gcm_sender_id": "103953800507",
+    "supported_features": [
+      "energy_full",
+      "daily_reward",
+      "combo_reminder", 
+      "ideas_poll_active",
+      "leaderboard_position"
+    ]
+  },
+
+  "background_sync": {
+    "enabled": true,
+    "sync_events": [
+      "game_state_sync",
+      "payment_confirmation",
+      "leaderboard_update",
+      "message_delivery"
+    ]
+  },
+
+  "monetization": {
+    "payment_methods": ["WLD"],
+    "in_app_purchases": [
+      {
+        "id": "energy_refill",
+        "name": "Energy Refill",
+        "description": "Instantly refill your energy to maximum",
+        "price": "0.1",
+        "currency": "WLD"
+      },
+      {
+        "id": "ideas_ticket",
+        "name": "Ideas Ticket", 
+        "description": "Participate in community voting and suggestions",
+        "price": "1.0",
+        "currency": "WLD"
+      }
+    ]
+  },
+
+  "analytics": {
+    "enabled": true,
+    "events": [
+      "game_start",
+      "game_end", 
+      "tap_action",
+      "combo_achieved",
+      "challenge_completed",
+      "payment_made",
+      "idea_voted"
+    ],
+    "privacy_compliant": true
+  },
+
+  "security": {
+    "content_security_policy": {
+      "default-src": "'self'",
+      "script-src": "'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+      "connect-src": "'self' https: wss:",
+      "img-src": "'self' data: https: blob:",
+      "media-src": "'self' data: https: blob:",
+      "style-src": "'self' 'unsafe-inline' https:"
+    },
+    "permissions_policy": {
+      "accelerometer": "self",
+      "ambient-light-sensor": "self",
+      "autoplay": "self",
+      "battery": "self",
+      "camera": "none",
+      "display-capture": "none",
+      "document-domain": "none",
+      "encrypted-media": "none",
+      "fullscreen": "self",
+      "geolocation": "none",
+      "gyroscope": "self",
+      "layout-animations": "self",
+      "legacy-image-formats": "self",
+      "magnetometer": "self",
+      "microphone": "none",
+      "midi": "none",
+      "oversized-images": "self",
+      "payment": "self",
+      "picture-in-picture": "none",
+      "publickey-credentials-get": "self",
+      "speaker-selection": "none",
+      "sync-xhr": "none",
+      "unoptimized-images": "self",
+      "unsized-media": "self",
+      "usb": "none",
+      "screen-wake-lock": "self",
+      "web-share": "self",
+      "xr-spatial-tracking": "none"
+    }
+  }
+}
