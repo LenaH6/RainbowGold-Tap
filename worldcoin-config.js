@@ -26,7 +26,7 @@ const WORLDCOIN_CONFIG = {
     
     // OIDC Configuration - CORREGIDA
     client_id: APP_ID, // Mismo que app_id
-    redirect_uri: window.location.origin + '/callback.html', // SIN /api/auth/
+    redirect_uri: window.location.origin + '/callback.html', 
     response_type: 'code',
     scope: 'openid profile',
     nonce: generateNonce(),
