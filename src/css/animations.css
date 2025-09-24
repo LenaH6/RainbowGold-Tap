@@ -1,0 +1,493 @@
+/**
+ * ANIMATIONS CSS - RainbowGold Tap
+ * Todas las animaciones, transiciones y efectos visuales
+ */
+
+/* ===== CORE ANIMATIONS ===== */
+
+/* Flotación suave para logos y elementos principales */
+@keyframes breathe {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.02); /* Solo 2% para que no canse */
+  }
+}
+
+/* Aparición suave de elementos */
+@keyframes pop-in {
+  from { 
+    transform: scale(.9); 
+    opacity: 0; 
+  }
+  to { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+/* Flotado de números de ganancia */
+@keyframes float {
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -4px) scale(.96); 
+  }
+  45% { 
+    opacity: 1;  
+    transform: translate(-50%, -12px) scale(1.00); 
+  }
+  to { 
+    opacity: 0;  
+    transform: translate(-50%, -26px) scale(1.02); 
+  }
+}
+
+/* ===== BUTTON & INTERACTION ANIMATIONS ===== */
+
+/* Pulso suave para botones importantes */
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.06); 
+  }
+}
+
+/* Shake para errores y rechazos */
+@keyframes shake {
+  0%, 100% { 
+    transform: translateX(0); 
+  }
+  25% { 
+    transform: translateX(-3px); 
+  }
+  50% { 
+    transform: translateX(3px); 
+  }
+  75% { 
+    transform: translateX(-2px); 
+  }
+}
+
+/* ===== ENERGY & REFILL ANIMATIONS ===== */
+
+/* Shimmer para la barra de energía */
+@keyframes shimmer {
+  0% { 
+    background-position: 0 0; 
+  }
+  100% { 
+    background-position: 200% 0; 
+  }
+}
+
+/* Refill: Pulso cuando energía baja */
+@keyframes refillPulse {
+  0% { 
+    transform: scale(1); 
+    filter: brightness(1); 
+  }
+  50% { 
+    transform: scale(1.08); 
+    filter: brightness(1.12); 
+  }
+  100% { 
+    transform: scale(1); 
+    filter: brightness(1); 
+  }
+}
+
+/* Refill: Alarma cuando energía = 0 */
+@keyframes refillAlarmBlink {
+  0% { 
+    filter: brightness(1); 
+  }
+  100% { 
+    filter: brightness(1.35); 
+  }
+}
+
+@keyframes refillAlarmShake {
+  0%, 100% { 
+    transform: translateX(0); 
+  }
+  25% { 
+    transform: translateX(-2px); 
+  }
+  75% { 
+    transform: translateX(2px); 
+  }
+}
+
+/* ===== LOADING & SPLASH ANIMATIONS ===== */
+
+/* Puntos de carga animados */
+@keyframes dotblink {
+  0% { 
+    opacity: 0; 
+  }
+  50% { 
+    opacity: 1; 
+  }
+  100% { 
+    opacity: 1; 
+  }
+}
+
+/* ===== COMBO & WINDOW ANIMATIONS ===== */
+
+/* Flow vertical del activity feed */
+@keyframes flowSlide {
+  0% { 
+    transform: translateY(40px); 
+    opacity: 0; 
+  }
+  20% { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+  40% { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: translateY(0) translateX(-2px); 
+  }
+  58% { 
+    transform: translateY(0) translateX(2px); 
+  }
+  66% { 
+    transform: translateY(0) translateX(-1px); 
+  }
+  74% { 
+    transform: translateY(0) translateX(1px); 
+  }
+  80% { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateY(-60px); 
+    opacity: 0; 
+  }
+}
+
+/* ===== DRAWER ANIMATIONS ===== */
+
+/* Entrada escalonada de elementos del drawer */
+@keyframes drawerItemIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px) scale(.985); 
+  }
+  70% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1.000); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1.000); 
+  }
+}
+
+/* Animación para hijos de tarjetas dentro de drawers */
+@keyframes cardChildIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(6px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* ===== RAINBOW & SPECIAL EFFECTS ===== */
+
+/* Texto arcoíris animado */
+@keyframes rainbow {
+  0% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+  100% { 
+    background-position: 0% 50%; 
+  }
+}
+
+/* Pulso vibrante para elementos especiales */
+@keyframes pulseBeat {
+  0%, 100% { 
+    transform: scale(1); 
+    filter: brightness(1); 
+  }
+  50% { 
+    transform: scale(1.05); 
+    filter: brightness(1.15); 
+  }
+}
+
+/* Vibración intensa para efectos especiales */
+@keyframes vibeX {
+  0%, 100% { 
+    transform: translateX(0); 
+  }
+  10% { 
+    transform: translateX(-2px) rotate(-0.5deg); 
+  }
+  20% { 
+    transform: translateX(2px) rotate(0.5deg); 
+  }
+  30% { 
+    transform: translateX(-1px) rotate(-0.3deg); 
+  }
+  40% { 
+    transform: translateX(1px) rotate(0.3deg); 
+  }
+  50% { 
+    transform: translateX(-2px) rotate(-0.5deg); 
+  }
+  60% { 
+    transform: translateX(2px) rotate(0.5deg); 
+  }
+  70% { 
+    transform: translateX(-1px) rotate(-0.2deg); 
+  }
+  80% { 
+    transform: translateX(1px) rotate(0.2deg); 
+  }
+  90% { 
+    transform: translateX(-0.5px) rotate(-0.1deg); 
+  }
+}
+
+/* ===== APPLIED ANIMATIONS ===== */
+
+/* Logo splash con respiración */
+.splash__logo img {
+  animation: breathe 4.5s ease-in-out infinite;
+  backface-visibility: hidden; /* Evita glitches en móviles */
+}
+
+/* Puntos de carga */
+.dots span {
+  display: inline-block;
+  opacity: 0;
+  animation: dotblink 1.2s infinite steps(1, end);
+}
+
+.dots span:nth-child(1) { animation-delay: 0s; }
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Números flotantes */
+.gain.show { 
+  animation: float 0.50s ease-out forwards; 
+}
+
+/* Barra de energía con shimmer */
+.energyFill {
+  background: linear-gradient(90deg, #7c5cff, #bdb3ff);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Botones con estados animados */
+.btn-icon.pulse {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.btn-icon.shake {
+  animation: shake 0.25s linear;
+}
+
+/* Estados de refill */
+#refillBtn.refillPulse {
+  animation: refillPulse 1.1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+#refillBtn.refillAlarm {
+  animation: refillAlarmBlink 0.7s steps(2, jump-none) infinite,
+             refillAlarmShake 0.28s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Activity feed items */
+.topbar .activity-item {
+  transform: translateY(24px);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.topbar .activity-item.run {
+  animation: flowSlide 3.2s ease-in-out forwards;
+}
+
+/* Drawer content animations */
+.drawer.show > *:not(.close) {
+  animation: drawerItemIn 0.42s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+/* Delays escalonados para elementos del drawer */
+.drawer.show > *:not(.close):nth-child(1) { animation-delay: 0.04s; }
+.drawer.show > *:not(.close):nth-child(2) { animation-delay: 0.08s; }
+.drawer.show > *:not(.close):nth-child(3) { animation-delay: 0.12s; }
+.drawer.show > *:not(.close):nth-child(4) { animation-delay: 0.16s; }
+.drawer.show > *:not(.close):nth-child(5) { animation-delay: 0.20s; }
+.drawer.show > *:not(.close):nth-child(6) { animation-delay: 0.24s; }
+.drawer.show > *:not(.close):nth-child(7) { animation-delay: 0.28s; }
+.drawer.show > *:not(.close):nth-child(8) { animation-delay: 0.32s; }
+.drawer.show > *:not(.close):nth-child(9) { animation-delay: 0.36s; }
+.drawer.show > *:not(.close):nth-child(10) { animation-delay: 0.40s; }
+
+/* Elementos internos de tarjetas */
+.drawer.show .cardPro > * {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: cardChildIn 0.32s ease-out forwards;
+  animation-delay: 0.28s;
+}
+
+/* ===== SPECIAL EFFECTS ===== */
+
+/* Flash dorado en moneda */
+.coin.flash {
+  box-shadow: 
+    0 0 18px rgba(255, 223, 120, 0.7),
+    0 0 36px rgba(255, 200, 80, 0.35);
+  transition: box-shadow 0.22s ease-out;
+}
+
+/* Texto arcoíris */
+.rainbowText {
+  background: linear-gradient(45deg, 
+    #ff0055, #ff9500, #ffee00, #33dd55, #33aaff, #aa66ff, #ff0055);
+  background-size: 200% 200%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: rainbow 2s linear infinite;
+}
+
+/* Pulso vibrante */
+.pulseBeat {
+  animation: pulseBeat 1.8s ease-in-out infinite;
+}
+
+/* Vibración intensa */
+.vibeX {
+  animation: vibeX 0.15s ease-in-out infinite;
+}
+
+/* ===== HOVER EFFECTS ===== */
+
+/* Hover suave para FABs */
+.fab img {
+  transition: transform 0.25s ease, filter 0.3s ease;
+}
+
+.fab:hover img {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(255, 223, 120, 0.8));
+}
+
+/* Hover para botones pro */
+.btnPro {
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btnPro:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+
+.btnPro:active {
+  transform: translateY(0);
+}
+
+/* Drawer buttons hover */
+.drawer .btn, 
+.drawer .btn-icon, 
+.drawer .btnPro {
+  transition: transform 0.12s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+.drawer .btn:hover, 
+.drawer .btn-icon:hover, 
+.drawer .btnPro:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 8px 22px rgba(255,216,114,.10);
+}
+
+/* ===== RESPONSIVE ANIMATIONS ===== */
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  .drawer, 
+  .backdrop { 
+    transition: none !important; 
+  }
+  
+  .splash__logo img {
+    animation: none;
+  }
+  
+  .energyFill {
+    animation: none;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+
+/* Will-change para elementos animados */
+.gain,
+.activity-item,
+.coin,
+.drawer,
+.backdrop {
+  will-change: transform, opacity;
+}
+
+/* Hardware acceleration para elementos clave */
+.coin,
+.drawer,
+.splash__logo img {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Contain para mejorar rendering */
+.drawer {
+  contain: layout paint;
+}
+
+/* ===== MOBILE OPTIMIZATIONS ===== */
+
+@media (max-width: 480px) {
+  /* Animaciones más rápidas en móvil */
+  .drawer {
+    transition-duration: 0.25s;
+  }
+  
+  /* Reducir intensidad de efectos en móviles */
+  .vibeX {
+    animation-duration: 0.2s;
+  }
+  
+  .pulseBeat {
+    animation-duration: 2.2s;
+  }
+}
