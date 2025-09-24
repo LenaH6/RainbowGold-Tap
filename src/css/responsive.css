@@ -1,0 +1,683 @@
+/**
+ * RESPONSIVE CSS - RainbowGold Tap
+ * Media queries, breakpoints y adaptaciones por dispositivo
+ */
+
+/* ===== RESPONSIVE VARIABLES ===== */
+:root {
+  /* Breakpoints como custom properties para JS */
+  --bp-mobile: 768px;
+  --bp-small-mobile: 480px;
+  --bp-narrow: 360px;
+  --bp-tablet: 1024px;
+  --bp-desktop: 1200px;
+  
+  /* Spacing escalado */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+}
+
+/* ===== LARGE SCREENS (Desktop+) ===== */
+@media (min-width: 1200px) {
+  :root {
+    --heroSize: clamp(400px, 45vw, 700px);
+    --coinSize: clamp(400px, 45vw, 700px);
+  }
+  
+  .hero {
+    padding: 12px 20px calc(32px + env(safe-area-inset-bottom));
+    gap: 16px;
+  }
+  
+  .pill {
+    font-size: 20px;
+    padding: 10px 20px;
+  }
+  
+  .btn-icon img {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .action-dock {
+    gap: 18px;
+    margin-top: 16px;
+  }
+  
+  .drawer {
+    width: min(380px, 30vw);
+    height: 85dvh;
+  }
+}
+
+/* ===== TABLET LANDSCAPE ===== */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  :root {
+    --heroSize: clamp(300px, 55vw, 600px);
+    --coinSize: clamp(300px, 55vw, 600px);
+  }
+  
+  .floatCol {
+    left: 16px;
+    gap: 12px;
+  }
+  
+  .fab {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .topbar {
+    height: 64px;
+    padding: 0 16px;
+  }
+  
+  .top-actions {
+    right: 16px;
+    font-size: 13px;
+  }
+}
+
+/* ===== TABLET PORTRAIT ===== */
+@media (min-width: 769px) and (max-width: 1023px) {
+  :root {
+    --heroSize: clamp(280px, 70vw, 520px);
+    --coinSize: clamp(280px, 70vw, 520px);
+  }
+  
+  .hero {
+    min-height: calc(100dvh - 80px - env(safe-area-inset-bottom));
+    padding: 8px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  
+  .pill {
+    font-size: 18px;
+    padding: 8px 18px;
+  }
+  
+  .drawer {
+    width: min(360px, 85vw);
+    height: 90dvh;
+  }
+  
+  .energyWrap {
+    width: min(85%, 480px);
+  }
+}
+
+/* ===== MOBILE STANDARD ===== */
+@media (max-width: 768px) {
+  :root {
+    --heroSize: clamp(240px, 75vw, 480px);
+    --coinSize: clamp(240px, 75vw, 480px);
+  }
+  
+  .hero {
+    min-height: calc(100dvh - 70px - env(safe-area-inset-bottom));
+    padding: 6px 14px calc(24px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+  
+  .topbar h1 {
+    font-size: 24px;
+  }
+  
+  .top-actions {
+    right: 12px;
+    top: calc(6px + env(safe-area-inset-top));
+    font-size: 11px;
+  }
+  
+  .floatCol {
+    left: 10px;
+    top: calc(10px + env(safe-area-inset-top));
+    gap: 8px;
+  }
+  
+  .fab {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .fab img {
+    width: 80%;
+    height: 80%;
+  }
+  
+  .pill {
+    font-size: 16px;
+    padding: 6px 14px;
+    gap: 8px;
+  }
+  
+  .pill img {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .btn-icon {
+    min-height: 40px;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  
+  .btn-icon img {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .price-pill {
+    font-size: 14px;
+    padding: 4px 8px;
+  }
+  
+  .action-dock {
+    gap: 12px;
+    margin-top: 10px;
+  }
+  
+  .energyWrap {
+    width: min(90%, 400px);
+    margin-top: 14px;
+  }
+  
+  .energyBar {
+    height: 14px;
+  }
+  
+  .energyLbl {
+    font-size: 12px;
+    margin-top: 5px;
+  }
+  
+  .drawer {
+    width: min(320px, 90vw);
+    height: 92dvh;
+    top: 4%;
+    right: -340px;
+    border-radius: 28px 0 0 28px;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  
+  .drawer.drawer--open {
+    right: 8px;
+  }
+  
+  .cardPro {
+    padding: 14px 16px;
+    border-radius: 16px;
+  }
+  
+  .btnPro {
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+  
+  .inputPro, 
+  .textareaPro {
+    padding: 9px 11px;
+    font-size: 14px;
+  }
+}
+
+/* ===== SMALL MOBILE ===== */
+@media (max-width: 480px) {
+  :root {
+    --heroSize: clamp(200px, 80vw, 380px);
+    --coinSize: clamp(200px, 80vw, 380px);
+  }
+  
+  .hero {
+    padding: 4px 12px calc(20px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  
+  .topbar {
+    height: 52px;
+    padding: 0 10px;
+  }
+  
+  .topbar h1 {
+    font-size: 22px;
+  }
+  
+  .top-actions {
+    right: 10px;
+    font-size: 10px;
+  }
+  
+  .floatCol {
+    left: 8px;
+    top: calc(8px + env(safe-area-inset-top));
+    gap: 6px;
+  }
+  
+  .fab {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .pill {
+    font-size: 15px;
+    padding: 5px 12px;
+    gap: 6px;
+  }
+  
+  .pill img {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .btn-icon {
+    min-height: 36px;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  
+  .btn-icon img {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .price-pill {
+    font-size: 13px;
+    padding: 3px 6px;
+  }
+  
+  .action-dock {
+    gap: 10px;
+    margin-top: 8px;
+  }
+  
+  .energyWrap {
+    width: min(92%, 320px);
+    margin-top: 12px;
+  }
+  
+  .energyBar {
+    height: 12px;
+  }
+  
+  .energyLbl {
+    font-size: 11px;
+  }
+  
+  .drawer {
+    width: min(300px, 92vw);
+    height: 94dvh;
+    top: 3%;
+    right: -320px;
+    border-radius: 24px 0 0 24px;
+    padding: 14px 14px calc(20px + env(safe-area-inset-bottom));
+  }
+  
+  .drawer.drawer--open {
+    right: 6px;
+  }
+  
+  .drawer .close {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+  
+  .cardPro {
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+  
+  .cardPro h3, 
+  .cardPro h4 {
+    font-size: 15px;
+  }
+  
+  .btn, 
+  .btnPro {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .inputPro, 
+  .textareaPro {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .msg {
+    padding: 8px;
+  }
+  
+  .msg-time {
+    font-size: 11px;
+  }
+}
+
+/* ===== VERY NARROW SCREENS ===== */
+@media (max-width: 360px) {
+  :root {
+    --heroSize: clamp(180px, 85vw, 320px);
+    --coinSize: clamp(180px, 85vw, 320px);
+  }
+  
+  .hero {
+    padding: 4px 10px calc(18px + env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+  
+  .topbar {
+    height: 48px;
+    padding: 0 8px;
+  }
+  
+  .topbar h1 {
+    font-size: 20px;
+  }
+  
+  .top-actions {
+    right: 8px;
+    font-size: 9px;
+  }
+  
+  .floatCol {
+    left: 6px;
+    gap: 4px;
+  }
+  
+  .fab {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .pill {
+    font-size: 14px;
+    padding: 4px 10px;
+    gap: 5px;
+  }
+  
+  .pill img {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .btn-icon {
+    min-height: 34px;
+    padding: 5px 7px;
+    gap: 5px;
+  }
+  
+  .btn-icon img {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .price-pill {
+    font-size: 12px;
+    padding: 2px 5px;
+  }
+  
+  .action-dock {
+    gap: 8px;
+    margin-top: 6px;
+  }
+  
+  .energyWrap {
+    width: min(94%, 280px);
+    margin-top: 10px;
+  }
+  
+  .drawer {
+    width: min(280px, 94vw);
+    right: -300px;
+    border-radius: 20px 0 0 20px;
+    padding: 12px 12px calc(18px + env(safe-area-inset-bottom));
+  }
+  
+  .drawer.drawer--open {
+    right: 4px;
+  }
+}
+
+/* ===== LANDSCAPE ORIENTATION ===== */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero {
+    min-height: calc(100dvh - 50px - env(safe-area-inset-bottom));
+    padding: 2px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  
+  :root {
+    --heroSize: clamp(180px, 40vh, 320px);
+    --coinSize: clamp(180px, 40vh, 320px);
+  }
+  
+  .topbar {
+    height: 46px;
+  }
+  
+  .floatCol {
+    top: calc(6px + env(safe-area-inset-top));
+  }
+  
+  .top-actions {
+    top: calc(4px + env(safe-area-inset-top));
+  }
+  
+  .pill {
+    font-size: 14px;
+    padding: 4px 10px;
+  }
+  
+  .action-dock {
+    margin-top: 4px;
+  }
+  
+  .energyWrap {
+    margin-top: 6px;
+  }
+  
+  .drawer {
+    height: 96dvh;
+    top: 2%;
+  }
+}
+
+/* ===== TOUCH DEVICE OPTIMIZATIONS ===== */
+@media (pointer: coarse) {
+  .fab {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .btn, 
+  .btnPro, 
+  .btn-icon {
+    min-height: 44px;
+  }
+  
+  .drawer .close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .coin {
+    cursor: pointer;
+  }
+  
+  /* Larger touch targets */
+  .idea-btn {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .inputPro, 
+  .textareaPro {
+    min-height: 44px;
+  }
+}
+
+/* ===== HIGH DPI DISPLAYS ===== */
+@media (-webkit-min-device-pixel-ratio: 2),
+       (min-resolution: 192dpi) {
+  .coinImg {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  .pill img,
+  .fab img,
+  .btn-icon img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+@media (prefers-color-scheme: dark) {
+  /* Ya estamos en tema oscuro, pero podemos ajustar contraste */
+  :root {
+    --ink: #ffffff;
+    --mut: #D0CDFF;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  /* Respuesta si el usuario prefiere tema claro */
+  /* Por ahora mantenemos tema oscuro siempre */
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .coin {
+    transition: none;
+  }
+  
+  .btn-icon,
+  .btnPro,
+  .fab {
+    transition: none;
+  }
+  
+  .drawer {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .backdrop {
+    transition: opacity 0.2s ease;
+  }
+  
+  .energyFill {
+    animation: none;
+    background: linear-gradient(90deg, #7c5cff, #bdb3ff);
+  }
+  
+  .splash__logo img {
+    animation: none;
+  }
+  
+  .gain {
+    animation-duration: 0.3s;
+  }
+  
+  .activity-item {
+    animation-duration: 1s;
+  }
+}
+
+/* ===== HIGH CONTRAST ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --ink: #ffffff;
+    --mut: #ffffff;
+    --gold: #FFFF00;
+    --gold-soft: #FFFF88;
+  }
+  
+  .btn-icon,
+  .btnPro,
+  .card,
+  .cardPro {
+    border-width: 2px;
+  }
+  
+  .coin {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+  
+  .energyBar {
+    border-width: 2px;
+    border-color: #ffffff;
+  }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .splash,
+  .drawer,
+  .backdrop,
+  .floatCol,
+  .top-actions,
+  #fx,
+  .noise {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .hero {
+    min-height: auto;
+    padding: 20px;
+  }
+  
+  .coin {
+    background: white !important;
+    border: 2px solid black !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ===== DEBUGGING HELPERS (Development only) ===== */
+@media screen and (max-width: 1px) {
+  /* Never matches, just for organization */
+}
+
+/* Debug breakpoints (solo en desarrollo) */
+body::before {
+  content: "Mobile";
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 2px 6px;
+  font-size: 10px;
+  z-index: 10000;
+  display: none; /* Activar solo en desarrollo */
+}
+
+@media (min-width: 481px) {
+  body::before { content: "Tablet"; }
+}
+
+@media (min-width: 769px) {
+  body::before { content: "Desktop"; }
+}
+
+@media (min-width: 1200px) {
+  body::before { content: "Large"; }
+}
+
+/* Activar debug solo en localhost */
+@media screen and (min-width: 0px) {
+  /* body::before { display: block; } */ /* Descomentar para debug */
+}
