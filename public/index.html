@@ -3150,7 +3150,7 @@ window.authState = {
   user: null,
   wldBalance: 0
 };
-
+const BACKEND_URL = 'https://rainbowgold-app.vercel.app';
 // Esperar a que MiniKit esté disponible
 async function waitForMiniKit(timeout = 10000) {
   const startTime = Date.now();
@@ -3169,7 +3169,7 @@ async function waitForMiniKit(timeout = 10000) {
 // Verificar sesión existente
 async function checkExistingSession() {
   try {
-    const response = await fetch('/api/auth/session', {
+    const response = await fetch('/api/auth/session', {  // ← SIN el dominio
       credentials: 'include'
     });
     const data = await response.json();
@@ -3196,62 +3196,64 @@ async function authenticateWithWorldID() {
     updateAuthStatus('Esperando MiniKit...');
     wldSignInBtn.disabled = true;
     
-    // Esperar a que MiniKit esté disponible
     await waitForMiniKit();
     
-    updateAuthStatus('Verificando World App...');
+    updateAuthStatus('Conectando con World ID...');
     
-    if (!window.MiniKit.isInstalled()) {
-      throw new Error('Esta app debe ejecutarse en World App');
+    // CORRECTO: Verificación World ID primero
+    const verifyResponse = await window.MiniKit.verify({
+      action: 'verify-worldid',
+      signal: 'auth-signal'
+    });
+
+    if (!verifyResponse.success) {
+      throw new Error('Verificación World ID fallida');
     }
 
-    updateAuthStatus('Obteniendo nonce...');
+    updateAuthStatus('Preparando firma digital...');
     
-    // Obtener nonce del servidor
+    // Obtener nonce
     const nonceResponse = await fetch('/api/auth/nonce', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
     
-    if (!nonceResponse.ok) {
-      throw new Error('Error obteniendo nonce');
-    }
-    
     const { nonce } = await nonceResponse.json();
 
-    updateAuthStatus('Autenticando con World ID...');
+    updateAuthStatus('Firmando mensaje...');
     
-    // API CORRECTA para MiniKit 1.9.6
-    const result = await window.MiniKit.siweSign({
-      nonce: nonce,
-      requestId: `auth_${Date.now()}`,
-      expirationTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      notBefore: new Date().toISOString()
+    // CORRECTO: SIWE con MiniKit
+    const siweResponse = await window.MiniKit.siwe({
+      nonce,
+      statement: 'Iniciar sesión en RainbowGold',
+      uri: window.location.origin,
+      version: '1',
+      chainId: '1'
     });
 
-    if (!result.isSuccess) {
-      throw new Error(result.errorMessage || 'Autenticación cancelada');
+    if (!siweResponse.success) {
+      throw new Error('Firma SIWE fallida');
     }
 
     updateAuthStatus('Verificando credenciales...');
     
-    // Verificar en servidor
-    const verifyResponse = await fetch('/api/auth/verify', {
+    // Enviar al backend
+    const backendResponse = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        message: result.message,
-        signature: result.signature,
-        nullifier_hash: result.nullifier_hash || 'demo_hash',
-        username: result.username || `user_${Date.now()}`
+        message: siweResponse.message,
+        signature: siweResponse.signature,
+        nullifier_hash: verifyResponse.nullifier_hash,
+        username: verifyResponse.credential?.username || `user_${Date.now()}`
       })
     });
 
-    const verifyData = await verifyResponse.json();
+    const verifyData = await backendResponse.json();
     
     if (!verifyData.success) {
-      throw new Error('Verificación fallida');
+      throw new Error('Verificación del servidor fallida');
     }
 
     // Éxito
@@ -3274,7 +3276,6 @@ async function authenticateWithWorldID() {
     wldSignInBtn.disabled = false;
   }
 }
-
 // Funciones de UI
 function updateAuthUI() {
   const user = window.authState.user;
@@ -3330,6 +3331,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.__tickUseMp3 = false;
 function setTickModeMp3(enabled) {
   window.__tickUseMp3 = enabled;
+}
+
+
+// === PAGOS WLD ===
+async function payWithWLD(amount, concept) {
+  if (!window.authState.authenticated) {
+    alert('Debes estar autenticado para realizar pagos');
+    return false;
+  }
+
+  try {
+    const paymentResult = await window.MiniKit.pay({
+      to: '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a',
+      tokens: [{
+        symbol: 'WLD',
+        token_amount: amount.toString()
+      }],
+      description: concept
+    });
+
+    if (paymentResult.success) {
+      console.log('✅ Pago exitoso:', paymentResult);
+      return true;
+    } else {
+      console.error('❌ Pago fallido:', paymentResult);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error en pago:', error);
+    return false;
+  }
+}
+
+// Funciones placeholder para los botones
+async function handleRefillPayment() {
+  const success = await payWithWLD(0.1, 'Energy Refill');
+  if (success) {
+    doRefill(); // tu función existente
+  } else {
+    alert('Pago fallido. Verifica tu saldo WLD.');
+  }
+}
+
+async function handleIdeaPayment() {
+  const success = await payWithWLD(1.0, 'Ideas Ticket');
+  if (success) {
+    // Activar ticket
+    window.ideasTicketActive = true;
+    startTicketTimer(5);
+    document.getElementById('ideasPayView').style.display = 'none';
+    document.getElementById('ideasOptionsView').style.display = 'block';
+    alert('✅ Ticket comprado');
+  } else {
+    alert('Pago fallido. Verifica tu saldo WLD.');
+  }
 }
 </script>
 </body>
