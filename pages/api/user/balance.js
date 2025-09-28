@@ -1,31 +1,26 @@
-// pages/api/user/balance.js
-import { jwtVerify } from 'jose';
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Verificar autenticación
-    const token = req.cookies['auth-token'] || req.headers.authorization?.replace('Bearer ', '');
+    const sessionToken = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
     
-    if (!token) {
+    if (!sessionToken) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-
-    // En producción, aquí consultarías el balance real de WLD desde la blockchain
-    // usando la dirección de wallet del usuario (payload.address)
+    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
     
-    // Por ahora, retornamos balances simulados
+    if (Date.now() > sessionData.expires) {
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
     const balances = {
-      wld: parseFloat((Math.random() * 10 + 5).toFixed(2)), // 5-15 WLD simulado
-      rbgp: 0, // Este se maneja localmente en el frontend
-      address: payload.address,
-      chainId: payload.chainId
+      wld: parseFloat((Math.random() * 10 + 5).toFixed(2)),
+      rbgp: 0, 
+      address: sessionData.address,
+      chainId: sessionData.chainId
     };
 
     res.status(200).json({
