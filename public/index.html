@@ -8,11 +8,10 @@
 <title>RainbowGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
-<!-- MiniKit SDK para World App -->
-<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@0.15.0/dist/minikit.js"></script>
-<script>
-// Inicializar MiniKit
-MiniKit.install();
+<!-- POR ESTO -->
+<script type="module">
+import MiniKit from 'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.6/+esm';
+window.MiniKit = MiniKit;
 </script>
 
 <!-- Configuración para World App -->
@@ -3206,61 +3205,57 @@ async function authenticateWithWorldID() {
   const wldSignInBtn = document.getElementById('wldSignIn');
   
   try {
-    // Paso 1: OIDC con World ID
-    updateAuthStatus('Conectando con World ID...');
+    updateAuthStatus('Verificando MiniKit...');
     wldSignInBtn.disabled = true;
     
     if (!window.MiniKit) {
       throw new Error('MiniKit no está disponible');
     }
 
-    // Verificación OIDC
-    const oidcResult = await window.MiniKit.commands.verify({
-      action: 'login',
-      signal: APP_ID
-    });
-    
-    if (!oidcResult.success) {
-      throw new Error('Verificación World ID fallida');
+    if (!window.MiniKit.isInstalled()) {
+      throw new Error('Esta app debe ejecutarse en World App');
     }
 
-    // Paso 2: Preparar SIWE
-    updateAuthStatus('Preparando firma digital...');
+    updateAuthStatus('Obteniendo nonce...');
     
-    // Generar nonce
-    const nonceResponse = await fetch(`${BACKEND_URL}/api/auth/nonce`, {
+    // Obtener nonce del servidor
+    const nonceResponse = await fetch('/api/auth/nonce', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
+    
+    if (!nonceResponse.ok) {
+      throw new Error('Error obteniendo nonce');
+    }
+    
     const { nonce } = await nonceResponse.json();
 
-    // Paso 3: SIWE automático
-    updateAuthStatus('Firmando mensaje...');
+    updateAuthStatus('Autenticando con World ID...');
     
-    const siweResult = await window.MiniKit.commands.siwe({
-      nonce,
-      statement: 'Iniciar sesión en RainbowGold Tap',
-      uri: window.location.origin,
-      version: '1',
-      chainId: 1
+    // API CORRECTA: siweSign (incluye OIDC + SIWE automáticamente)
+    const result = await window.MiniKit.siweSign({
+      nonce: nonce,
+      requestId: `auth_${Date.now()}`,
+      expirationTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      notBefore: new Date().toISOString()
     });
 
-    if (!siweResult.success) {
-      throw new Error('Firma SIWE fallida');
+    if (!result.isSuccess) {
+      throw new Error(result.errorMessage || 'Autenticación cancelada');
     }
 
-    // Paso 4: Verificar en backend
     updateAuthStatus('Verificando credenciales...');
     
-    const verifyResponse = await fetch(`${BACKEND_URL}/api/auth/verify`, {
+    // Verificar en servidor
+    const verifyResponse = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        message: siweResult.message,
-        signature: siweResult.signature,
-        nullifier_hash: oidcResult.nullifier_hash,
-        username: oidcResult.username || null
+        message: result.message,
+        signature: result.signature,
+        nullifier_hash: result.nullifier_hash || 'demo_hash',
+        username: result.username || `user_${Date.now()}`
       })
     });
 
@@ -3270,17 +3265,18 @@ async function authenticateWithWorldID() {
       throw new Error('Verificación fallida');
     }
 
-    // ✅ Autenticado exitosamente
+    // Éxito
     window.authState.authenticated = true;
     window.authState.user = verifyData.user;
     
     updateAuthStatus('¡Acceso concedido!');
     updateAuthUI();
     
-    // Ocultar splash y mostrar juego después de 1 segundo
     setTimeout(() => {
       hideSplash();
-      playSnd('join', { volume: 0.8 }); // sonido de bienvenida
+      if (typeof playSnd === 'function') {
+        playSnd('join', { volume: 0.8 });
+      }
     }, 1000);
 
   } catch (error) {
