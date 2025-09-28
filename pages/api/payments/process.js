@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ UNIFIED AUTH: Usar mismo sistema que session.js
+    // ✅ UNIFIED AUTH: Usar mismo sistema que auth APIs
     const sessionToken = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
     
     if (!sessionToken) {
@@ -25,25 +25,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid payment parameters' });
     }
 
-    // Tipos de pago permitidos
     const allowedTypes = ['refill', 'ticket', 'booster'];
     if (!allowedTypes.includes(type)) {
       return res.status(400).json({ error: 'Invalid payment type' });
     }
 
-    // Precios fijos (en WLD)
-    const prices = {
-      refill: 0.10,    // Refill de energía
-      ticket: 1.00,    // Ticket para Ideas
-      booster: 0.50    // Boosters (futuro)
-    };
-
+    // Precios fijos
+    const prices = { refill: 0.10, ticket: 1.00, booster: 0.50 };
     const expectedAmount = prices[type];
+    
     if (Math.abs(amount - expectedAmount) > 0.001) {
       return res.status(400).json({ error: 'Invalid payment amount' });
     }
 
-    // Simulamos el pago exitoso
+    // Simular pago exitoso
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     console.log(`Payment processed: ${amount} WLD from ${sessionData.address} for ${type}`);
@@ -53,7 +48,7 @@ export default async function handler(req, res) {
       transactionId,
       amount,
       type,
-      treasuryWallet: '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a',
+      treasuryWallet: process.env.TREASURY_WALLET_ADDRESS,
       timestamp: new Date().toISOString()
     });
 
@@ -63,14 +58,14 @@ export default async function handler(req, res) {
   }
 }
 
-// pages/api/user/balance.js
+// pages/api/user/balance.js  
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // ✅ UNIFIED AUTH: Usar mismo sistema que session.js
+    // ✅ UNIFIED AUTH: Usar mismo sistema que auth APIs
     const sessionToken = req.cookies.session || req.headers.authorization?.replace('Bearer ', '');
     
     if (!sessionToken) {
@@ -85,8 +80,8 @@ export default async function handler(req, res) {
 
     // Balances simulados
     const balances = {
-      wld: parseFloat((Math.random() * 10 + 5).toFixed(2)), // 5-15 WLD simulado
-      rbgp: 0, // Este se maneja localmente en el frontend
+      wld: parseFloat((Math.random() * 10 + 5).toFixed(2)),
+      rbgp: 0, 
       address: sessionData.address,
       chainId: sessionData.chainId
     };
