@@ -9,7 +9,11 @@
 <meta name="theme-color" content="#1b103a">
 
 <!-- MiniKit SDK para World App -->
-<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@0.15.0/dist/minikit.js"></script>
+<script>
+// Inicializar MiniKit
+MiniKit.install();
+</script>
 
 <!-- Configuración para World App -->
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
@@ -745,7 +749,7 @@ body.has-drawer{
   </div>
 
  <button id="wldSignIn" data-i18n="signin_wld"
-  onclick="handleWorldcoinLogin()"
+  onclick="authenticateWithWorldID()"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
          color:#fff;font-weight:700;cursor:pointer">
@@ -2336,8 +2340,6 @@ function runNextNotice(){
   }, { once: true });
 }
 
-
-
 function handleVote(key){
 
   // bloquear doble clic
@@ -3023,8 +3025,6 @@ function loadProfileFields(){
 
     const markDirty = ()=>{
       const dirty = usernameInput.value !== getUsername();
-      if (saveBtn)   saveBtn.style.display   = dirty ? 'inline-flex' : 'none';
-      if (savedBadge) savedBadge.style.display = 'none';
     };
     usernameInput.addEventListener('input', markDirty);
     usernameInput.addEventListener('focus', markDirty);
@@ -3128,7 +3128,20 @@ document.addEventListener('visibilitychange', () => {
     noEnergyUntil = 0; // desbloquea al volver
   }
 });
+(function setupTrophyTip(){
+  const btn = document.getElementById('trophyBtn');
+  const tip = document.getElementById('trophyTip');
+  if (!btn || !tip) return;
 
+  let timer;
+  btn.addEventListener('click', () => {
+    tip.classList.add('show');     // aparece
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      tip.classList.remove('show'); // se desvanece
+    }, 1600); // 1.6s visible
+  });
+})();
 
 /* ===== AUTENTICACIÓN WORLD ID + SIWE ===== */
 // Agregar este script ANTES de tu script existente en index.html
@@ -3435,25 +3448,6 @@ setTimeout(() => {
   integrateRefillPayment();
   integrateTicketPayment();
 }, 1000);
-</script>
-
-<script>
-(function setupTrophyTip(){
-  const btn = document.getElementById('trophyBtn');
-  const tip = document.getElementById('trophyTip');
-  if (!btn || !tip) return;
-
-  let timer;
-  btn.addEventListener('click', () => {
-    tip.classList.add('show');     // aparece
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      tip.classList.remove('show'); // se desvanece
-    }, 1600); // 1.6s visible
-  });
-})();
-
-
 </script>
 </body>
 </html>
