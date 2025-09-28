@@ -8,6 +8,14 @@
 <title>RainbowGold — App</title>
 <meta name="theme-color" content="#1b103a">
 
+<!-- MiniKit SDK para World App -->
+<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.min.js"></script>
+
+<!-- Configuración para World App -->
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{
   -webkit-tap-highlight-color: transparent;
@@ -3447,5 +3455,355 @@ setTimeout(() => {
 
 
 </script>
+<script>
+// ===== WORLD APP AUTHENTICATION INTEGRATION =====
+// Agregar este script ANTES del cierre de </body> en tu index.html
+
+// Variables globales para World App
+let worldUser = null;
+let isWorldAuthenticated = false;
+
+// Inicializar MiniKit
+function initializeMiniKit() {
+  console.log('Initializing MiniKit...');
+  
+  if (typeof MiniKit === 'undefined') {
+    console.error('MiniKit no está disponible');
+    // Fallback: simular autenticación para desarrollo
+    simulateAuthForDev();
+    return;
+  }
+
+  try {
+    MiniKit.install({
+      app_id: 'app_33bb8068826b85d4cd56d2ec2caba7cc',
+      // En producción, actualiza este domain:
+      domain: window.location.hostname,
+    });
+
+    console.log('MiniKit initialized successfully');
+    
+    // Verificar si ya hay una sesión activa
+    checkExistingSession();
+    
+  } catch (error) {
+    console.error('Error initializing MiniKit:', error);
+    simulateAuthForDev();
+  }
+}
+
+// Verificar sesión existente
+async function checkExistingSession() {
+  try {
+    const response = await fetch('/api/auth/session');
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.authenticated && data.user) {
+        // Ya está autenticado
+        worldUser = data.user;
+        isWorldAuthenticated = true;
+        
+        console.log('User already authenticated:', worldUser);
+        
+        // Actualizar UI con datos del usuario
+        updateUIWithUser(worldUser);
+        
+        // Ocultar splash y mostrar juego
+        hideSplashShowGame();
+        
+        return;
+      }
+    }
+    
+    // No hay sesión válida, mostrar botón de login
+    showLoginButton();
+    
+  } catch (error) {
+    console.error('Error checking session:', error);
+    showLoginButton();
+  }
+}
+
+// Mostrar botón de login
+function showLoginButton() {
+  const wldState = document.getElementById('wldState');
+  const wldSignIn = document.getElementById('wldSignIn');
+  
+  if (wldState) {
+    wldState.style.opacity = '0';
+    wldState.style.transform = 'translateY(10px)';
+  }
+  
+  if (wldSignIn) {
+    wldSignIn.style.display = 'block';
+    wldSignIn.disabled = false;
+  }
+}
+
+// Proceso de autenticación World App
+async function authenticateWithWorld() {
+  const wldSignIn = document.getElementById('wldSignIn');
+  const wldState = document.getElementById('wldState');
+  
+  // Deshabilitar botón y mostrar estado
+  if (wldSignIn) {
+    wldSignIn.disabled = true;
+    wldSignIn.textContent = 'Conectando...';
+  }
+  
+  if (wldState) {
+    wldState.style.opacity = '1';
+    wldState.style.transform = 'translateY(0)';
+  }
+
+  try {
+    // Paso 1: Obtener nonce para SIWE
+    console.log('Getting nonce...');
+    const nonceResponse = await fetch('/api/auth/nonce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!nonceResponse.ok) {
+      throw new Error('Failed to get nonce');
+    }
+    
+    const { nonce } = await nonceResponse.json();
+    console.log('Nonce received:', nonce);
+
+    // Paso 2: Autenticación OIDC + SIWE con MiniKit
+    console.log('Starting World ID verification...');
+    
+    const authResult = await MiniKit.signInWithWorldID({
+      nonce: nonce,
+      requestDescription: 'Sign in to RainbowGold Tap Game'
+    });
+    
+    if (!authResult.success) {
+      throw new Error('World ID verification failed');
+    }
+    
+    console.log('World ID verification successful:', authResult);
+    
+    // Paso 3: Verificar con nuestro backend
+    console.log('Verifying with backend...');
+    
+    const verifyResponse = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: authResult.message,
+        signature: authResult.signature,
+        nullifier_hash: authResult.nullifier_hash,
+        merkle_proof: authResult.merkle_proof,
+        verification_level: authResult.verification_level,
+        credential_type: authResult.credential_type
+      })
+    });
+    
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json();
+      throw new Error(errorData.error || 'Verification failed');
+    }
+    
+    const userData = await verifyResponse.json();
+    console.log('Authentication successful:', userData);
+    
+    // Guardar datos del usuario
+    worldUser = userData.user;
+    isWorldAuthenticated = true;
+    
+    // Actualizar UI
+    updateUIWithUser(worldUser);
+    
+    // Reproducir sonido de éxito
+    try {
+      if (typeof playSnd === 'function') {
+        playSnd('join', { volume: 0.8 });
+      }
+    } catch(e) {}
+    
+    // Ocultar splash y mostrar juego con animación
+    setTimeout(() => {
+      hideSplashShowGame();
+    }, 800);
+    
+  } catch (error) {
+    console.error('Authentication error:', error);
+    
+    // Mostrar error al usuario
+    if (wldState) {
+      const span = wldState.querySelector('span');
+      if (span) {
+        span.textContent = 'Error de conexión. Intenta nuevamente.';
+      }
+    }
+    
+    // Restaurar botón después de 3 segundos
+    setTimeout(() => {
+      if (wldSignIn) {
+        wldSignIn.disabled = false;
+        wldSignIn.textContent = 'Entrar con World ID';
+      }
+      showLoginButton();
+    }, 3000);
+  }
+}
+
+// Actualizar UI con datos del usuario
+function updateUIWithUser(user) {
+  console.log('Updating UI with user:', user);
+  
+  // Actualizar saldo WLD si está disponible
+  const balWLD = document.getElementById('balWLD');
+  if (balWLD && user.wldBalance !== undefined) {
+    wld = parseFloat(user.wldBalance) || 0;
+    localStorage.setItem('wld', String(wld));
+  }
+  
+  // Actualizar username si está disponible
+  if (user.username) {
+    setUsername(user.username);
+  }
+  
+  // Actualizar perfil
+  const usernameInput = document.getElementById('usernameInput');
+  if (usernameInput && user.username) {
+    usernameInput.value = user.username;
+  }
+  
+  // Mostrar dirección de wallet en el perfil
+  const profWLD = document.getElementById('profWLD');
+  if (profWLD && user.address) {
+    // Mostrar dirección abreviada
+    const shortAddress = user.address.slice(0, 6) + '...' + user.address.slice(-4);
+    profWLD.textContent = shortAddress + ' 🔓';
+  }
+  
+  // Re-renderizar para actualizar toda la UI
+  if (typeof render === 'function') render();
+  if (typeof renderProfile === 'function') renderProfile();
+}
+
+// Ocultar splash y mostrar juego
+function hideSplashShowGame() {
+  const splash = document.getElementById('splash');
+  
+  if (splash) {
+    splash.classList.add('splash--hide');
+    
+    // Después de la animación, ocultar completamente
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 400);
+  }
+  
+  // Enviar mensaje de bienvenida al inbox
+  const welcome = isWorldAuthenticated ? 
+    `¡Bienvenido ${worldUser?.username || 'Player'}! Tu wallet está conectada. 🎮` :
+    '¡Bienvenido al juego! Empezando en modo demo. 🎮';
+    
+  if (typeof addMessage === 'function') {
+    addMessage(welcome, 'system');
+  }
+  
+  console.log('Game started successfully');
+}
+
+// Simulación para desarrollo (cuando MiniKit no está disponible)
+function simulateAuthForDev() {
+  console.log('Simulating auth for development...');
+  
+  // Simular usuario
+  worldUser = {
+    address: '0x1234567890abcdef1234567890abcdef12345678',
+    username: 'DevUser',
+    chainId: 1,
+    verificationLevel: 'orb',
+    nullifierHash: 'dev_nullifier'
+  };
+  
+  isWorldAuthenticated = false; // Marcamos como demo
+  
+  // Actualizar UI
+  updateUIWithUser(worldUser);
+  
+  // Ocultar splash después de 2 segundos
+  setTimeout(() => {
+    hideSplashShowGame();
+  }, 2000);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, setting up World App integration...');
+  
+  // Configurar botón de login
+  const wldSignIn = document.getElementById('wldSignIn');
+  if (wldSignIn) {
+    wldSignIn.addEventListener('click', authenticateWithWorld);
+  }
+  
+  // Inicializar después de que el DOM esté listo
+  setTimeout(() => {
+    initializeMiniKit();
+  }, 500);
+});
+
+// Función para obtener balance WLD del usuario (para los pagos)
+async function getWLDBalance() {
+  if (!worldUser || !worldUser.address) {
+    return 0;
+  }
+  
+  try {
+    // En producción, aquí harías una llamada a una API que consulte el balance real
+    // Por ahora retornamos el balance local
+    return wld;
+  } catch (error) {
+    console.error('Error getting WLD balance:', error);
+    return wld;
+  }
+}
+
+// Función para procesar pagos WLD (refill, tickets, etc.)
+async function processWLDPayment(amount, description) {
+  if (!isWorldAuthenticated) {
+    alert('Necesitas conectar tu wallet para realizar pagos.');
+    return false;
+  }
+  
+  if (wld < amount) {
+    alert(`Saldo insuficiente. Necesitas ${amount.toFixed(2)} WLD.`);
+    return false;
+  }
+  
+  try {
+    // En producción, aquí harías la transacción real
+    console.log(`Processing payment: ${amount} WLD for ${description}`);
+    
+    // Simular transacción
+    wld -= amount;
+    localStorage.setItem('wld', String(wld));
+    
+    // Re-renderizar UI
+    if (typeof render === 'function') render();
+    
+    return true;
+    
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Error procesando el pago. Intenta nuevamente.');
+    return false;
+  }
+}
+
+// Exponer funciones globalmente para uso en el resto del juego
+window.worldUser = worldUser;
+window.isWorldAuthenticated = isWorldAuthenticated;
+window.processWLDPayment = processWLDPayment;
+window.getWLDBalance = getWLDBalance; </script>
 </body>
 </html>
