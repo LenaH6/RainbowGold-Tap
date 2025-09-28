@@ -3143,7 +3143,6 @@ document.addEventListener('visibilitychange', () => {
 })();
 
 /* ===== AUTENTICACIÓN WORLD ID + SIWE ===== */
-// Agregar este script ANTES de tu script existente en index.html
 
 // Estado de autenticación global
 window.authState = {
@@ -3152,34 +3151,25 @@ window.authState = {
   wldBalance: 0
 };
 
-// Configuración
-const BACKEND_URL = 'https://rainbowgold-app.vercel.app';
-const APP_ID = 'app_33bb8068826b85d4cd56d2ec2caba7cc';
-
-// Inicializar MiniKit
-async function initMiniKit() {
-  try {
-    // Importar MiniKit SDK
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@0.15.0/dist/minikit.js';
-    script.onload = () => {
-      if (window.MiniKit) {
-        window.MiniKit.install({
-          app_id: APP_ID
-        });
-        console.log('✅ MiniKit instalado');
-      }
-    };
-    document.head.appendChild(script);
-  } catch (error) {
-    console.error('❌ Error inicializando MiniKit:', error);
+// Esperar a que MiniKit esté disponible
+async function waitForMiniKit(timeout = 10000) {
+  const startTime = Date.now();
+  
+  while (!window.MiniKit && (Date.now() - startTime) < timeout) {
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
+  
+  if (!window.MiniKit) {
+    throw new Error('MiniKit no se pudo cargar');
+  }
+  
+  return true;
 }
 
 // Verificar sesión existente
 async function checkExistingSession() {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/session`, {
+    const response = await fetch('/api/auth/session', {
       credentials: 'include'
     });
     const data = await response.json();
@@ -3187,8 +3177,6 @@ async function checkExistingSession() {
     if (data.authenticated) {
       window.authState.authenticated = true;
       window.authState.user = data.user;
-      
-      // Actualizar UI con datos del usuario
       updateAuthUI();
       hideSplash();
       return true;
@@ -3205,13 +3193,14 @@ async function authenticateWithWorldID() {
   const wldSignInBtn = document.getElementById('wldSignIn');
   
   try {
-    updateAuthStatus('Verificando MiniKit...');
+    updateAuthStatus('Esperando MiniKit...');
     wldSignInBtn.disabled = true;
     
-    if (!window.MiniKit) {
-      throw new Error('MiniKit no está disponible');
-    }
-
+    // Esperar a que MiniKit esté disponible
+    await waitForMiniKit();
+    
+    updateAuthStatus('Verificando World App...');
+    
     if (!window.MiniKit.isInstalled()) {
       throw new Error('Esta app debe ejecutarse en World App');
     }
@@ -3232,7 +3221,7 @@ async function authenticateWithWorldID() {
 
     updateAuthStatus('Autenticando con World ID...');
     
-    // API CORRECTA: siweSign (incluye OIDC + SIWE automáticamente)
+    // API CORRECTA para MiniKit 1.9.6
     const result = await window.MiniKit.siweSign({
       nonce: nonce,
       requestId: `auth_${Date.now()}`,
@@ -3286,28 +3275,24 @@ async function authenticateWithWorldID() {
   }
 }
 
-// Actualizar UI con datos del usuario
+// Funciones de UI
 function updateAuthUI() {
   const user = window.authState.user;
   if (!user) return;
 
-  // Actualizar balance WLD si está disponible
   const balWLDEl = document.getElementById('balWLD');
   if (balWLDEl && user.wldBalance !== undefined) {
     balWLDEl.textContent = user.wldBalance.toFixed(3);
   }
 
-  // Actualizar nombre de usuario en perfil
   const usernameInput = document.getElementById('usernameInput');
   if (usernameInput && user.username) {
     usernameInput.value = user.username;
   }
 
-  // Log para debug
   console.log('👤 Usuario autenticado:', user.username, user.address);
 }
 
-// Actualizar estado en splash
 function updateAuthStatus(message) {
   const wldStateEl = document.getElementById('wldState');
   if (wldStateEl) {
@@ -3315,7 +3300,6 @@ function updateAuthStatus(message) {
   }
 }
 
-// Ocultar splash y mostrar juego
 function hideSplash() {
   const splashEl = document.getElementById('splash');
   if (splashEl) {
@@ -3326,74 +3310,15 @@ function hideSplash() {
   }
 }
 
-// Logout
-async function logout() {
-  try {
-    await fetch(`${BACKEND_URL}/api/auth/session`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
-    
-    window.authState.authenticated = false;
-    window.authState.user = null;
-    
-    // Recargar página
-    window.location.reload();
-  } catch (error) {
-    console.error('❌ Error en logout:', error);
-  }
-}
-
-// Integrar con pagos WLD
-async function payWithWLD(amount, concept) {
-  if (!window.authState.authenticated) {
-    alert('Debes estar autenticado para realizar pagos');
-    return false;
-  }
-
-  try {
-    const paymentResult = await window.MiniKit.commands.pay({
-      to: '0x91bf252c335f2540871d0d2ef1476ae193a5bc8a', // tu treasury
-      tokens: [
-        {
-          symbol: 'WLD',
-          token_amount: amount.toString()
-        }
-      ],
-      description: concept
-    });
-
-    if (paymentResult.success) {
-      console.log('✅ Pago exitoso:', paymentResult);
-      return true;
-    } else {
-      console.error('❌ Pago fallido:', paymentResult);
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Error en pago:', error);
-    return false;
-  }
-}
-
-// Modo tick para FRENZY/Rainbow
-window.__tickUseMp3 = false;
-function setTickModeMp3(enabled) {
-  window.__tickUseMp3 = enabled;
-}
-
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Inicializando autenticación...');
-  
-  // Inicializar MiniKit
-  await initMiniKit();
   
   // Verificar sesión existente
   const hasSession = await checkExistingSession();
   
   if (!hasSession) {
-    // Mostrar splash y esperar click en botón
+    // Esperar click en botón
     const wldSignInBtn = document.getElementById('wldSignIn');
     if (wldSignInBtn) {
       wldSignInBtn.addEventListener('click', authenticateWithWorldID);
@@ -3401,49 +3326,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// Integrar refill con pago WLD
-function integrateRefillPayment() {
-  const originalRefillClick = window.refillClick || function() {};
-  
-  window.refillClick = async function() {
-    const price = 0.1; // 0.1 WLD
-    const success = await payWithWLD(price, 'Energy Refill');
-    
-    if (success) {
-      // Ejecutar refill original
-      originalRefillClick();
-    } else {
-      alert('Pago fallido. Inténtalo de nuevo.');
-    }
-  };
+// Modo tick para FRENZY/Rainbow
+window.__tickUseMp3 = false;
+function setTickModeMp3(enabled) {
+  window.__tickUseMp3 = enabled;
 }
-
-// Integrar compra de tickets
-function integrateTicketPayment() {
-  // Se integra cuando se haga click en el botón de Ideas
-  document.addEventListener('click', async (e) => {
-    if (e.target.id === 'payIdeasBtn' || e.target.closest('#payIdeasBtn')) {
-      e.preventDefault();
-      const price = 1.0; // 1 WLD
-      const success = await payWithWLD(price, 'Ideas Ticket');
-      
-      if (success) {
-        // Activar ticket como lo hace tu lógica original
-        if (typeof window.activateIdeasTicket === 'function') {
-          window.activateIdeasTicket();
-        }
-      } else {
-        alert('Pago fallido. Verifica tu saldo WLD.');
-      }
-    }
-  });
-}
-
-// Inicializar integraciones cuando el DOM esté listo
-setTimeout(() => {
-  integrateRefillPayment();
-  integrateTicketPayment();
-}, 1000);
 </script>
 </body>
 </html>
