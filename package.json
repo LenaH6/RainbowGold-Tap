@@ -13,9 +13,11 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "siwe": "^2.1.4",
-    "ethers": "^6.8.0"
+    "ethers": "^6.8.0",
+    "@worldcoin/minikit-js": "^0.0.56",
+    "jose": "^5.1.3"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }
