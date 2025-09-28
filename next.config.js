@@ -1,42 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  
-  // Configuración para APIs solamente (sin páginas de frontend)
+  reactStrictMode: false,
   trailingSlash: false,
   
-  // Headers CORS para que tu frontend pueda llamar las APIs
+  // Configurar headers CORS
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        source: "/api/:path*",
         headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*', // En producción, cambia por tu dominio específico
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET,POST,DELETE,OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+          { key: "Access-Control-Allow-Credentials", value: "true" },
         ],
       },
     ];
   },
 
-  // Variables de entorno públicas (si necesitas alguna)
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  // Servir tu index.html desde la raíz
+  async rewrites() {
+    return [
+      {
+        source: '/',
+        destination: '/index.html',
+      },
+    ];
   },
+};
 
-  // Configuración para Vercel
-  experimental: {
-    serverComponentsExternalPackages: ['@worldcoin/minikit-js']
-  }
-}
-
-module.exports = nextConfig
+module.exports = nextConfig;
