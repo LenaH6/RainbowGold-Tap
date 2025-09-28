@@ -1,8 +1,7 @@
 {
-  "name": "rainbowgold-backend",
+  "name": "rainbowgold-app",
   "version": "1.0.0",
-  "description": "Backend para RainbowGold Tap",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,22 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.0.0",
+    "next": "^15.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "siwe": "^2.1.4",
-    "ethers": "^6.8.0",
-    "@worldcoin/minikit-js": "^0.2.0"
+    "ethers": "^6.8.0"
   },
-  "devDependencies": {
-    "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0"
-  },
-  "keywords": [
-    "world-app",
-    "siwe",
-    "tap-to-earn"
-  ],
-  "author": "LenaH6",
-  "license": "MIT"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
