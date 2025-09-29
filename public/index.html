@@ -7,7 +7,8 @@
 
 <title>RainbowGold — App</title>
 <meta name="theme-color" content="#1b103a">
-
+<!-- MiniKit SDK para World App -->
+<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/dist/minikit.min.js"></script>
 <style>
 :root{
   -webkit-tap-highlight-color: transparent;
@@ -737,7 +738,7 @@ body.has-drawer{
   </div>
 
  <button id="wldSignIn" data-i18n="signin_wld"
-  onclick="authenticateWithWorldID()"
+  onclick="Login()"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
          color:#fff;font-weight:700;cursor:pointer">
@@ -3034,12 +3035,24 @@ function loadProfileFields(){
 function renderProfile(){
   const pWLD  = document.getElementById('profWLD');
   const pRBGp = document.getElementById('profRBGp');
+  const pRBG  = document.getElementById('profRBG');
+  
   if (pWLD)  pWLD.textContent  = wld.toFixed(2);
   if (pRBGp) pRBGp.textContent = rbgp.toFixed(3);
+  
+  // Mostrar dirección de wallet si hay sesión
+  if (pRBG && wldUser?.address) {
+    const short = wldUser.address.slice(0,6) + '...' + wldUser.address.slice(-4);
+    pRBG.textContent = short;
+  }
+  
+  // Mostrar username en el input
+  const usernameInput = document.getElementById('usernameInput');
+  if (usernameInput && wldUser?.username) {
+    usernameInput.value = wldUser.username;
+    usernameInput.disabled = true; // No editable si viene de World ID
+  }
 }
-
-
-  // Si mañana agregas un span para mostrar el username en el perfil, lo actualizas aquí.
 
 /* ===== Init ===== */
 (function init(){
@@ -3068,7 +3081,10 @@ if (!USE_TAP_SPAWN) {
   combo.nextSpawnAt = randInt(...SPAWN_TAPS[targetLevel()]);
 }
 updateBadge(); // inicia oculto en base
-
+// Cargar sesión guardada o mostrar splash
+if (!loadSavedSession()) {
+  document.getElementById('splash')?.classList.remove('splash--hide');
+}
 })(); 
 
 // === Sincroniza clase .open para animación de drawers ===
