@@ -80,57 +80,6 @@
     });
   }
 
-  function defaultCoinTap(e) {
-    // Fallback ultra-liviano: suma +0.001 RBGp visual y pequeño pop
-    try {
-      const lab = document.getElementById("balRBGp");
-      if (lab) {
-        const val = parseFloat(lab.textContent || "0") || 0;
-        const next = (val + 0.001);
-        lab.textContent = next.toFixed(3);
-      }
-      // animación "+1" (usa #gain si existe)
-      const gain = document.getElementById("gain");
-      const coin = document.getElementById("coin");
-      if (gain && coin) {
-        const rect = coin.getBoundingClientRect();
-        const x = (e.clientX || rect.left + rect.width / 2) - rect.left;
-        const y = (e.clientY || rect.top + rect.height / 2) - rect.top;
-        const el = document.createElement("div");
-        el.textContent = "+1";
-        el.style.position = "absolute";
-        el.style.left = x + "px";
-        el.style.top = y + "px";
-        el.style.transform = "translate(-50%,-50%)";
-        el.style.fontWeight = "900";
-        el.style.willChange = "transform, opacity";
-        el.style.transition = "all .6s ease";
-        el.style.opacity = "1";
-        gain.appendChild(el);
-        requestAnimationFrame(() => {
-          el.style.transform = "translate(-50%,-80px)";
-          el.style.opacity = "0";
-        });
-        setTimeout(() => el.remove(), 700);
-      }
-    } catch {}
-  }
-
-  function bindCoinTap() {
-    const coin = document.getElementById("coin");
-    if (!coin || coin.__rgBound) return;
-    coin.__rgBound = true;
-    coin.addEventListener("pointerdown", (e) => {
-      try {
-        if (typeof window.onCoinTap === "function") {
-          window.onCoinTap(e);
-        } else {
-          defaultCoinTap(e);
-        }
-      } catch { defaultCoinTap(e); }
-    });
-  }
-
   function ensureGameReady() {
     try { document.body.dataset.logged = "1"; } catch {}
     // oculta splash
