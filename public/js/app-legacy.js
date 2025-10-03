@@ -147,7 +147,7 @@
   const gainPool=[];
   function spawnGain(x,y,txt){
     const el = document.createElement('div');
-    el.className='gainItem';
+    el.className='gain';
     el.textContent = txt;
     el.style.position='fixed';
     el.style.left = (x-4)+'px';
@@ -532,9 +532,11 @@
     setTimeout(()=> spawn(fx.width/2, fx.height/2), 200);
     render(); updateBadge();
     // primer schedule de manchas (si quieres también por tiempo)
-    combo.tapCounter = 0;
-    combo.nextSpawnAt = randInt(...SPAWN_TAPS[targetLevel()]);
-  }
+  combo.tapCounter = 0;
+{
+  const R = SPAWN_TAPS[targetLevel()] || [5,12]; // fallback por si acaso
+  combo.nextSpawnAt = randInt(R[0], R[1]);       // primer umbral
+}
   window.__startGame = enterGame;  // la usa mk-hooks.js tras SIWE
 
   // ====== Eventos ======

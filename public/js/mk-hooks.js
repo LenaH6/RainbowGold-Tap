@@ -80,25 +80,18 @@
     });
   }
 
-  function ensureGameReady() {
-    try { document.body.dataset.logged = "1"; } catch {}
-    // oculta splash
-    try { const s = document.getElementById("splash"); if (s) s.style.display = "none"; } catch {}
-    // apaga posibles backdrops
-    closeAllDrawers();
-    // llama bootstrap del juego si existe con alguno de estos nombres
-    try {
-      const boot =
-        window.rgStart ||
-        window.initGame ||
-        window.startGame ||
-        window.boot ||
-        window.attachGameHandlers;
-      if (typeof boot === "function") boot();
-    } catch {}
-    // asegúrate de que la moneda responda
-    bindCoinTap();
-  }
+  // mk-hooks.js
+function ensureGameReady(){
+  // Oculta el splash y arranca el juego SIN tocar nada más
+  const splash = document.getElementById('splash');
+  const wldState = document.getElementById('wldState');
+  if (splash) splash.style.display = 'none';
+  if (wldState) wldState.style.display = 'none';
+
+  // Llama al hook del juego si existe
+  if (typeof window.__startGame === 'function') window.__startGame();
+  // 👇 IMPORTANTE: no llamar bindCoinTap aquí (no existe / lo hace app-legacy)
+}
 
   // ---------- UI post-login (rápido) ----------
   function postLoginUI(addr) {
