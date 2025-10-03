@@ -44,15 +44,12 @@
     }
     try{
       let nonce="dev";
-      try{
-        const r = await fetch('/api/nonce', { credentials:'include' });
-        if (r.ok){ const j=await r.json(); nonce=j.nonce||'dev'; }
-      }catch{}
+      try{ const r = await fetch('/api/nonce', { credentials:'include' }); if (r.ok){ const j=await r.json(); nonce=j.nonce||'dev'; } }catch{}
       const { finalPayload } = await mk.commandsAsync.walletAuth({ nonce });
       if (finalPayload?.status==='success'){
         const addr = mk.walletAddress || finalPayload?.address || "";
         postLoginUI(addr);
-        fetch('/api/complete-siwe', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ payload: finalPayload, nonce }) }).catch(()=>{});
+        fetch('/api/complete-siwe',{ method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ payload: finalPayload, nonce }) }).catch(()=>{});
         return true;
       }
     }catch(e){ console.error(e); }

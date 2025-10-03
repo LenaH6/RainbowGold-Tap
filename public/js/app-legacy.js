@@ -2131,5 +2131,4 @@ document.addEventListener('visibilitychange', () => {
   });
 })();
 
-// expose init for hooks
 try{ window.init = window.init || init; window.__startGame = window.__startGame || init; }catch{};

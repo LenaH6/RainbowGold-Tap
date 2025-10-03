@@ -11,10 +11,8 @@ export default async function handler(req, res) {
     if (!payload || payload.status !== 'success'){
       return res.status(400).json({ ok:false, error:'Invalid payload' });
     }
-
     const address = payload.address || '';
-    // crea sesión 7 días
-    const maxAge = 7 * 24 * 60 * 60;
+    const maxAge = 7 * 24 * 60 * 60; // 7 days
     const sessionValue = Buffer.from(JSON.stringify({ w: address, ts: Date.now() })).toString('base64url');
     res.setHeader('Set-Cookie', [
       `rg_session=${sessionValue}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=None; Secure`,
