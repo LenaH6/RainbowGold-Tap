@@ -13,15 +13,11 @@ export default async function handler(req, res) {
     }
 
     // Sesión 7 días
-    res.setHeader(
-      'Set-Cookie',
+    res.setHeader('Set-Cookie',
       `rg_session=${encodeURIComponent(fields.data.address)}; Path=/; Max-Age=${7 * 24 * 60 * 60}; HttpOnly; SameSite=None; Secure`
     );
 
-    res.status(200).json({
-      ok: true,
-      address: fields.data.address
-    });
+    res.status(200).json({ ok: true, address: fields.data.address });
   } catch (err) {
     res.status(500).json({ error: 'Verification failed', details: err.message });
   }
