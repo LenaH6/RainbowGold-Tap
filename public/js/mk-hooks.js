@@ -130,3 +130,7 @@
   // Exporta API global para que tu legacy la invoque o para binds en main.js
   window.RainbowGold = { login, payRefill, payBooster, payIdeaTicket };
 })();
+// Compat aliases para tu HTML legacy:
+window.Login = () => window.RainbowGold?.login();
+window.handleRefillPayment = () => window.RainbowGold?.payRefill();
+window.handleIdeaPayment = () => window.RainbowGold?.payIdeaTicket();
