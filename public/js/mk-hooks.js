@@ -1,4 +1,4 @@
-// mk-hooks.js — MiniKit: SIWE + WLD Pay + arranque instantáneo + audio desbloqueado
+// mk-hooks.js — MiniKit: SIWE + WLD Pay + arranque instantáneo + audio + fallback UI
 (function () {
   // === Config ===
   const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a"; // tesorería
@@ -15,40 +15,129 @@
 
   // ---------- Audio ----------
   let ENTER_SND = null;
-  function unlockAudio() {
+  let playOnNextTouch = false;
+
+  function ensureAudioObjects() {
     try {
-      // prepara <audio> join.mp3
       if (!ENTER_SND) {
-        ENTER_SND = new Audio("/snd/join.mp3");
+        ENTER_SND = new Audio("/snd/join.mp3"); // tu archivo
         ENTER_SND.preload = "auto";
         ENTER_SND.volume = 1.0;
       }
-      // en algunos navegadores hace falta “resume” de AudioContext
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) {
-        if (!window.__rg_ac) window.__rg_ac = new AC();
-        const resume = () => window.__rg_ac.resume().catch(()=>{});
-        const once = () => { resume(); document.removeEventListener("pointerdown", once); document.removeEventListener("touchstart", once); };
-        document.addEventListener("pointerdown", once, { once: true });
-        document.addEventListener("touchstart", once, { once: true });
+      if (AC && !window.__rg_ac) {
+        window.__rg_ac = new AC();
       }
     } catch {}
   }
-  function playEnterSound() {
-    try { if (ENTER_SND) ENTER_SND.play().catch(()=>{}); } catch {}
+
+  function requestAudioUnlock() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const resume = () => { try { window.__rg_ac && window.__rg_ac.resume(); } catch {} };
+    const tryPlay = () => {
+      resume();
+      if (playOnNextTouch && ENTER_SND) {
+        ENTER_SND.play().catch(()=>{});
+        playOnNextTouch = false;
+      }
+    };
+    document.addEventListener("pointerdown", tryPlay, { once: true });
+    document.addEventListener("touchstart", tryPlay, { once: true });
   }
 
-  // ---------- Arranque del juego y limpiezas ----------
-  function ensureGameReady() {
-    try { document.body.dataset.logged = "1"; } catch {}
-    // oculta splash si está visible
-    try { const s = document.getElementById("splash"); if (s) s.style.display = "none"; } catch {}
-    // apaga posibles backdrops/drawers que hayan quedado activos
+  function queueEnterSound() {
+    // No intentes reproducir inmediatamente (la vuelta del drawer SIWE no siempre cuenta como gesture)
+    // Marca para reproducir en el PRIMER toque siguiente.
+    playOnNextTouch = true;
+  }
+
+  // ---------- Arranque del juego / Fallbacks ----------
+  function openDrawer(key) {
+    const map = {
+      UP:  { drawer: "drawerUP",  backdrop: "backdropUP" },
+      IN:  { drawer: "drawerIN",  backdrop: "backdropIN" },
+      ID:  { drawer: "drawerID",  backdrop: "backdropID" },
+      PF:  { drawer: "drawerPF",  backdrop: "backdropPF" },
+    };
+    const m = map[key]; if (!m) return;
+    const d = document.getElementById(m.drawer);
+    const b = document.getElementById(m.backdrop);
+    if (b) { b.style.display = "block"; b.style.opacity = 1; b.style.pointerEvents = "auto"; }
+    if (d) { d.style.display = "block"; d.style.transform = "translateY(0)"; }
+  }
+
+  // define openDrawer global si no existía
+  if (typeof window.openDrawer !== "function") window.openDrawer = openDrawer;
+
+  function closeAllDrawers() {
     ["backdropUP","backdropIN","backdropID","backdropPF"].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.style.opacity = 0; el.style.pointerEvents = "none"; el.style.display = "none"; }
     });
-    // intenta llamar tu bootstrap si existe
+    ["drawerUP","drawerIN","drawerID","drawerPF"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = "none"; el.style.transform = ""; }
+    });
+  }
+
+  function defaultCoinTap(e) {
+    // Fallback ultra-liviano: suma +0.001 RBGp visual y pequeño pop
+    try {
+      const lab = document.getElementById("balRBGp");
+      if (lab) {
+        const val = parseFloat(lab.textContent || "0") || 0;
+        const next = (val + 0.001);
+        lab.textContent = next.toFixed(3);
+      }
+      // animación "+1" (usa #gain si existe)
+      const gain = document.getElementById("gain");
+      const coin = document.getElementById("coin");
+      if (gain && coin) {
+        const rect = coin.getBoundingClientRect();
+        const x = (e.clientX || rect.left + rect.width / 2) - rect.left;
+        const y = (e.clientY || rect.top + rect.height / 2) - rect.top;
+        const el = document.createElement("div");
+        el.textContent = "+1";
+        el.style.position = "absolute";
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.transform = "translate(-50%,-50%)";
+        el.style.fontWeight = "900";
+        el.style.willChange = "transform, opacity";
+        el.style.transition = "all .6s ease";
+        el.style.opacity = "1";
+        gain.appendChild(el);
+        requestAnimationFrame(() => {
+          el.style.transform = "translate(-50%,-80px)";
+          el.style.opacity = "0";
+        });
+        setTimeout(() => el.remove(), 700);
+      }
+    } catch {}
+  }
+
+  function bindCoinTap() {
+    const coin = document.getElementById("coin");
+    if (!coin || coin.__rgBound) return;
+    coin.__rgBound = true;
+    coin.addEventListener("pointerdown", (e) => {
+      try {
+        if (typeof window.onCoinTap === "function") {
+          window.onCoinTap(e);
+        } else {
+          defaultCoinTap(e);
+        }
+      } catch { defaultCoinTap(e); }
+    });
+  }
+
+  function ensureGameReady() {
+    try { document.body.dataset.logged = "1"; } catch {}
+    // oculta splash
+    try { const s = document.getElementById("splash"); if (s) s.style.display = "none"; } catch {}
+    // apaga posibles backdrops
+    closeAllDrawers();
+    // llama bootstrap del juego si existe con alguno de estos nombres
     try {
       const boot =
         window.rgStart ||
@@ -58,14 +147,8 @@
         window.attachGameHandlers;
       if (typeof boot === "function") boot();
     } catch {}
-    // si tu juego escucha onCoinTap, cableamos por si acaso
-    try {
-      const coin = document.getElementById("coin");
-      if (coin && !coin.__rgBound && typeof window.onCoinTap === "function") {
-        coin.__rgBound = true;
-        coin.addEventListener("pointerdown", (e) => window.onCoinTap(e));
-      }
-    } catch {}
+    // asegúrate de que la moneda responda
+    bindCoinTap();
   }
 
   // ---------- UI post-login (rápido) ----------
@@ -75,14 +158,15 @@
       const btn = document.getElementById("wldSignIn");
       if (btn && addr) btn.textContent = `Conectado: ${addr.slice(0,6)}…${addr.slice(-4)}`;
     } catch {}
-    ensureGameReady();   // entra al juego YA (sin esperar red)
-    playEnterSound();    // reproduce join.mp3
+    ensureGameReady();      // entra al juego YA
+    queueEnterSound();      // reproduce join.mp3 en el próximo toque
     try { typeof window.onLoginSuccess === "function" && window.onLoginSuccess(); } catch {}
   }
 
   // ---------- Restauración al abrir si ya había sesión ----------
   document.addEventListener("DOMContentLoaded", () => {
-    unlockAudio();
+    ensureAudioObjects();
+    requestAudioUnlock();
     try {
       if (localStorage.getItem("rg_siwe_ok") === "1" && isMini()) {
         const addr = MK().walletAddress || "";
@@ -100,11 +184,10 @@
 
       const { finalPayload } = await mk.commandsAsync.walletAuth({ nonce });
       if (finalPayload?.status === "success") {
-        // 1) Pasa a juego al instante
         const addr = mk.walletAddress || finalPayload?.address || "";
         postLoginUI(addr);
 
-        // 2) Verifica firma en backend sin bloquear UX
+        // Verifica firma en backend sin bloquear UX
         fetch("/api/complete-siwe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -144,7 +227,7 @@
     return false;
   }
 
-  // refill: +0.1% de la capacidad; precio por defecto configurable vía <html data-refill-wld="0.10">
+  // refill: +0.1% de la capacidad; precio configurable vía <html data-refill-wld="0.10">
   async function payRefill() {
     const priceWLD = Number(document.documentElement.dataset.refillWld || "0.10");
     const ok = await sendPayWLD({ description: "RainbowGold — Energy Refill", wldAmount: priceWLD }, "onEnergyRefilledCb");
@@ -180,5 +263,22 @@
     // Aliases para tus onclick
     window.handleRefillPayment = () => window.RainbowGold?.payRefill();
     window.handleIdeaPayment   = () => window.RainbowGold?.payIdeaTicket();
+    // Si no existe closeDrawer global, creamos uno compatible
+    if (typeof window.closeDrawer !== "function") {
+      window.closeDrawer = function (key) {
+        // usa el mismo mapa que openDrawer
+        const map = {
+          UP:  { drawer: "drawerUP",  backdrop: "backdropUP" },
+          IN:  { drawer: "drawerIN",  backdrop: "backdropIN" },
+          ID:  { drawer: "drawerID",  backdrop: "backdropID" },
+          PF:  { drawer: "drawerPF",  backdrop: "backdropPF" },
+        };
+        const m = map[key]; if (!m) return;
+        const d = document.getElementById(m.drawer);
+        const b = document.getElementById(m.backdrop);
+        if (b) { b.style.opacity = 0; b.style.pointerEvents = "none"; b.style.display = "none"; }
+        if (d) { d.style.display = "none"; d.style.transform = ""; }
+      };
+    }
   })();
 })();
