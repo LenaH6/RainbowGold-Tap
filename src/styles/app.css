@@ -15,14 +15,6 @@ body{
   /* negro carbón con leve degradado vertical */
   background: linear-gradient(180deg, #0b0b0e 0%, #000 100%);
 }
-
-/* Noise overlay (opcional) */
-.noise{
-  position:fixed; inset:0; pointer-events:none; opacity:0.08; mix-blend-mode:soft-light;
-  background-image:url("img/noise-512.png"); background-size:512px 512px; background-repeat:repeat;
-  z-index:0;
-}
-
 /* Topbar */
 
 .topbar{

@@ -285,14 +285,20 @@ const MARKUP = `<!-- === SPLASH / CARGA INICIAL === -->
 
 export default function IndexPage() {
   return (
-    <>
+     <>
       <Head>
         <title>RainbowGold — App</title>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+        <meta
+          name="viewport"
+          content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+        />
         <meta name="theme-color" content="#1b103a" />
       </Head>
-      <main dangerouslySetInnerHTML={ __html: MARKUP } />
+
+      {/* ESTA ES LA FORMA CORRECTA (doble llaves) */}
+      <main dangerouslySetInnerHTML={{ __html: MARKUP }} />
+
       <Script src="/js/app-legacy.js" strategy="afterInteractive" />
       <Script src="/js/mk-hooks.js"  strategy="afterInteractive" />
       <Script type="module" src="/js/main.js" strategy="afterInteractive" />
