@@ -9,7 +9,7 @@ const MARKUP = `<!-- === SPLASH / CARGA INICIAL === -->
   </div>
 
  <button id="wldSignIn" data-i18n="signin_wld"
-  onclick="Login()"
+  onclick="handleLogin()"
   style="margin-top:18px;padding:12px 16px;border-radius:12px;
          background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
          color:#fff;font-weight:700;cursor:pointer">
@@ -301,7 +301,6 @@ export default function IndexPage() {
 
       <Script src="/js/app-legacy.js" strategy="afterInteractive" />
       <Script src="/js/mk-hooks.js"  strategy="afterInteractive" />
-      <Script type="module" src="/js/main.js" strategy="afterInteractive" />
     </>
   );
 }

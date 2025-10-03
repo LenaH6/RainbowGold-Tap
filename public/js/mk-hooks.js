@@ -1,6 +1,6 @@
 // ====== RainbowGold — Hooks con MiniKit v1.9.x ======
 
-// Address de tu Developer Portal (whitelist)
+// Dirección de destino autorizada en tu Developer Portal
 const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";
 
 // === Utilidades ===
@@ -26,7 +26,6 @@ window.handleLogin = async function () {
     if (result?.finalPayload?.status === "success") {
       const addr = result.finalPayload.address;
       await hydrateProfile(addr);
-
       // Arrancar el juego (definido en app-legacy.js)
       if (typeof window.__startGame === "function") {
         window.__startGame();
@@ -38,6 +37,9 @@ window.handleLogin = async function () {
   }
 };
 
+// Exponer alias "Login" para retrocompatibilidad con el HTML existente
+window.Login = window.handleLogin;
+
 // === PAGO GENÉRICO ===
 async function payWLD({ description, amountWLD }) {
   try {
@@ -46,11 +48,12 @@ async function payWLD({ description, amountWLD }) {
       return false;
     }
 
-    // 1) Inicia en backend y obtén reference
+    // 1) Inicia en backend y obtén reference (respetando el precio indicado)
     const initRes = await fetch("/api/initiate-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "custom", refillPrice: amountWLD }),
+      // Enviamos refillPrice para que el backend devuelva exactamente este monto
+      body: JSON.stringify({ refillPrice: amountWLD }),
     });
     const { id: reference } = await initRes.json();
 
