@@ -26,6 +26,7 @@ window.handleLogin = async function () {
     if (result?.finalPayload?.status === "success") {
       const addr = result.finalPayload.address;
       await hydrateProfile(addr);
+
       // Arrancar el juego (definido en app-legacy.js)
       if (typeof window.__startGame === "function") {
         window.__startGame();
