@@ -1,6 +1,3 @@
-/* app-legacy.js (1:1 from original index.html) */
-(() => {
-
 /* ==== COMBOS/MANCHAS (config editable) ==== */
 const BONUS = { 1:0.025, 2:0.030, 3:0.035, 4:0.040, 5:0.045 };     // % sobre POWER_BASE
 const WINDOW_MS = { 1:700, 2:1200, 3:1600, 4:2000, 5:2400 };       // duración de ventana
@@ -2134,8 +2131,5 @@ document.addEventListener('visibilitychange', () => {
   });
 })();
 
-
-// ensure start is callable by SIWE hooks
-try { if (typeof init === 'function') window.__startGame = window.__startGame || init; } catch {}
-try { if (typeof init === 'function') window.init = window.init || init; } catch {}
-})();
+// expose init for hooks
+try{ window.init = window.init || init; window.__startGame = window.__startGame || init; }catch{};

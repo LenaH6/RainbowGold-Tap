@@ -1,10 +1,4 @@
-import "../src/styles/globals.css";
-import "../src/styles/app.css";
-import MiniKitProvider from "../components/MiniKitProvider";
+import '@/src/styles/app.css';
 export default function App({ Component, pageProps }) {
-  return (
-    <MiniKitProvider>
-      <Component {...pageProps} />
-    </MiniKitProvider>
-  );
+  return <Component {...pageProps} />;
 }
