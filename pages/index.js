@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Script from "next/script";
 
-const HTML = `<!-- === SPLASH / CARGA INICIAL === -->
+const MARKUP = `<!-- === SPLASH / CARGA INICIAL === -->
 <div id="splash" class="splash" aria-busy="true" aria-label="Cargando RainbowGold">
   <div class="splash__logo">
     <img src="img/logo-splash.png" alt="RainbowGold" data-critical fetchpriority="high" decoding="async">
