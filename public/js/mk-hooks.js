@@ -1,88 +1,134 @@
-(() => {
-  const MK = () => window.MiniKit || window.parent?.MiniKit;
-  const isMini = () => !!(MK() && MK().isInstalled && MK().isInstalled());
-  const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";
-  const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+// ====== RainbowGold — Hooks con MiniKit v1.9.x ======
 
-  const LS = { siweOk:"rg_siwe_ok", siweTs:"rg_siwe_ts", wallet:"rg_wallet" };
+// Address de tu Developer Portal (whitelist)
+const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";
 
-  function now(){ return Date.now(); }
-  function postLoginUI(addr=""){
-    const splash = document.getElementById('splash');
-    const wldState = document.getElementById('wldState');
-    if (splash) splash.style.display='none';
-    if (wldState) wldState.style.display='none';
-    const btn = document.getElementById('wldSignIn');
-    if (btn && addr) btn.textContent = `Conectado: ${addr.slice(0,6)}…${addr.slice(-4)}`;
-    localStorage.setItem(LS.siweOk,"1");
-    localStorage.setItem(LS.siweTs,String(now()));
-    if (addr) localStorage.setItem(LS.wallet, addr);
-    if (typeof window.__startGame==='function') window.__startGame();
-    else if (typeof window.init==='function') window.init();
-  }
+// === Utilidades ===
+function tokenToDecimals(amount) {
+  const [i, f = ""] = String(amount).split(".");
+  const frac = (f + "000000000000000000").slice(0, 18);
+  return (BigInt(i || "0") * (10n ** 18n) + BigInt(frac)).toString();
+}
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    const ok = localStorage.getItem(LS.siweOk)==="1";
-    const ts = Number(localStorage.getItem(LS.siweTs)||"0");
-    if (ok && (now()-ts)<SESSION_MS && isMini()){
-      const addr = MK().walletAddress || "";
-      postLoginUI(addr);
+// === LOGIN / SIWE ===
+window.handleLogin = async function () {
+  try {
+    if (!window.MiniKit?.isInstalled?.()) {
+      alert("Abre desde World App");
+      return;
     }
+
+    const result = await window.MiniKit.commandsAsync.walletAuth({
+      statement: "Inicia sesión en RainbowGold",
+      expirationTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
+    });
+
+    if (result?.finalPayload?.status === "success") {
+      const addr = result.finalPayload.address;
+      await hydrateProfile(addr);
+
+      // Arrancar el juego (definido en app-legacy.js)
+      if (typeof window.__startGame === "function") {
+        window.__startGame();
+      }
+    }
+  } catch (err) {
+    console.error("Error en login:", err);
+    alert("Falló el login");
+  }
+};
+
+// === PAGO GENÉRICO ===
+async function payWLD({ description, amountWLD }) {
+  try {
+    if (!window.MiniKit?.isInstalled?.()) {
+      alert("Abre desde World App");
+      return false;
+    }
+
+    // 1) Inicia en backend y obtén reference
+    const initRes = await fetch("/api/initiate-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "custom", refillPrice: amountWLD }),
+    });
+    const { id: reference } = await initRes.json();
+
+    // 2) Drawer nativo de pago
+    const payload = {
+      reference,
+      to: PAY_TO,
+      tokens: [{ symbol: "WLD", token_amount: tokenToDecimals(amountWLD) }],
+      description,
+    };
+
+    const { finalPayload } = await window.MiniKit.commandsAsync.pay(payload);
+
+    // 3) Validar en backend
+    if (finalPayload?.status === "success") {
+      const confirm = await fetch("/api/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: finalPayload }),
+      });
+      const out = await confirm.json();
+      return !!out.success;
+    }
+    return false;
+  } catch (err) {
+    console.error("Error en pago:", err);
+    return false;
+  }
+}
+
+// === RECHARGE / REFILL ===
+window.handleRefillPayment = async () => {
+  const cap = Number(document.getElementById("energyMax")?.textContent || 100);
+  const price = Math.max(0.1, cap * 0.001); // 0.1% de la capacidad
+  const ok = await payWLD({
+    description: "RainbowGold — Energy Refill",
+    amountWLD: price,
   });
 
-  function wldToDecimals(amount) {
-    const [i, f=""] = String(amount).split(".");
-    const frac = (f + "000000000000000000").slice(0,18);
-    return (BigInt(i||"0")*(10n**18n) + BigInt(frac)).toString();
+  if (ok) {
+    if (typeof window.onEnergyRefilled === "function") {
+      window.onEnergyRefilled(); // definido en tu lógica de energía
+    }
+  } else {
+    alert("Pago de refill no confirmado.");
+  }
+};
+
+// === IDEAS ===
+window.handleIdeaPayment = async () => {
+  const ok = await payWLD({
+    description: "RainbowGold — Idea Ticket",
+    amountWLD: 1,
+  });
+
+  if (ok) {
+    // ticket con expiración 5 min
+    const exp = Date.now() + 5 * 60 * 1000;
+    if (typeof window.onIdeaTicketGranted === "function") {
+      window.onIdeaTicketGranted(exp); // definido en tu lógica de ideas
+    }
+  } else {
+    alert("Pago de idea no confirmado.");
+  }
+};
+
+// === PERFIL / BALANCES ===
+async function hydrateProfile(address) {
+  const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
+  const userInput = document.getElementById("usernameInput");
+  if (userInput) {
+    userInput.value = short;
+    userInput.disabled = true;
   }
 
-  async function Login(){
-    const mk = MK();
-    if (!mk || !mk.isInstalled()){
-      postLoginUI("");
-      return true;
-    }
-    try{
-      let nonce="dev";
-      try{ const r = await fetch('/api/nonce', { credentials:'include' }); if (r.ok){ const j=await r.json(); nonce=j.nonce||'dev'; } }catch{}
-      const { finalPayload } = await mk.commandsAsync.walletAuth({ nonce });
-      if (finalPayload?.status==='success'){
-        const addr = mk.walletAddress || finalPayload?.address || "";
-        postLoginUI(addr);
-        fetch('/api/complete-siwe',{ method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ payload: finalPayload, nonce }) }).catch(()=>{});
-        return true;
-      }
-    }catch(e){ console.error(e); }
-    return false;
-  }
-  window.Login = Login;
-
-  async function pay({ description, wldAmount }){
-    if (!isMini()) return false;
-    let id = 'ref_'+Math.random().toString(36).slice(2,10);
-    try{ const r=await fetch('/api/initiate-payment',{method:'POST'}); if (r.ok){ const j=await r.json(); id=j.id||id; } }catch{}
-    const payload = { reference:id, to: PAY_TO, tokens:[{ symbol:'WLD', token_amount: wldToDecimals(wldAmount) }], description };
-    const { finalPayload } = await MK().commandsAsync.pay(payload);
-    if (finalPayload?.status==='success'){
-      fetch('/api/confirm-payment', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ payload: finalPayload }) }).catch(()=>{});
-      return true;
-    }
-    return false;
-  }
-  window.handleRefillPayment = async ()=> {
-    try{
-      const priceEl = document.getElementById('refillPrice');
-      let price = 0.10;
-      if (priceEl && /\d+(\.\d+)?/.test(priceEl.textContent||'')){ price = parseFloat(priceEl.textContent); }
-      const ok = await pay({ description:'RainbowGold — Energy Refill', wldAmount: price });
-      if (ok && typeof window.onEnergyRefilled==='function') window.onEnergyRefilled();
-    }catch(e){ console.error(e); }
-  };
-  window.handleIdeaPayment = async ()=>{
-    const ok = await pay({ description:'RainbowGold — Idea Ticket', wldAmount: 1 });
-    if (ok && typeof window.onIdeaTicketGranted==='function'){
-      const exp = Date.now() + 5*60*1000;
-      window.onIdeaTicketGranted(exp);
-    }
-  };
-})();
+  // TODO: sustituir por balance real desde tu backend / World App portal
+  const profW = document.getElementById("profWLD");
+  const topW = document.getElementById("balWLD");
+  if (profW) profW.textContent = "--"; // placeholder
+  if (topW) topW.textContent = "0.00"; // placeholder
+}

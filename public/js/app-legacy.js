@@ -2131,4 +2131,19 @@ document.addEventListener('visibilitychange', () => {
   });
 })();
 
-try{ window.init = window.init || init; window.__startGame = window.__startGame || init; }catch{};
+try { 
+  window.init = window.init || init; 
+  window.__startGame = window.__startGame || init; 
+} catch {}
+
+// === Callbacks de pagos ===
+window.onEnergyRefilled = function() {
+  energy = energyMax; 
+  updateUI();
+  pulseMessage("¡Energía recargada!");
+};
+
+window.onIdeaTicketGranted = function(exp) {
+  window.currentIdeaTicketExpiry = exp;
+  pulseMessage("Ticket de idea activado (5 min)!");
+};
