@@ -2,6 +2,5 @@
 .pulse{ animation:pulse 1.2s ease-in-out infinite; }
 @keyframes pulse{ 0%{transform:scale(1);} 50%{transform:scale(1.05);} 100%{transform:scale(1);} }
 .gain{ position:absolute; left:0; top:0; font-size:14px; font-weight:900; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 10px rgba(0,0,0,.35); pointer-events:none; z-index:1001; }
-.drawer{ display:none; }
-.drawer.show{ display:block; }
+.drawer{ display:none; } .drawer.show{ display:block; }
 .badge{ display:none; }
