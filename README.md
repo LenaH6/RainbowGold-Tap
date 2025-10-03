@@ -1,22 +1,10 @@
-# RainbowGold Tap — Next.js Frontend (World App MiniApp Ready)
+# RainbowGold Tap — Next.js Frontend (FIXED) — 2025-10-03T17:02:10.048194Z
 
-Frontend completo (Pages Router) listo para Vercel y para pruebas dentro de World App (modo test).
-
-## Estructura
-- pages/index.js          ← renderiza el DOM original del index.html
-- pages/_app.js           ← importa estilos + MiniKitProvider
-- pages/terminos.js
-- pages/privacidad.js
-- components/MiniKitProvider.js
-- public/img, public/snd
-- src/styles/app.css      ← CSS original
-- src/app-legacy.js       ← JS original
-- src/main.js             ← bootstrap
+• Conserva DOM/CSS/JS originales; corrige login → Wallet Auth (SIWE) y pagos (USDC) con MiniKit.
+• Hooks expuestos: RainbowGold.login(), .payRefill(), .payBooster(), .payIdeaTicket().
+• Autocableado si existen IDs: wldSignIn, buyRefill, buyBooster, buyIdeaTicket.
 
 ## Uso
 npm i
 npm run dev
 # http://localhost:3000
-
-## Deploy en Vercel
-Conecta el repo y deploy. El entry es pages/index.js

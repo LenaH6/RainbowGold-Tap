@@ -1,15 +1,7 @@
 import Head from "next/head";
 import Script from "next/script";
 
-export default function IndexPage() {
-  return (
-    <>
-      <Head>
-        <title>RainbowGold — App</title>
-        <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" name="viewport"/><meta content="#1b103a" name="theme-color"/>
-      </Head>
-
-      <main dangerouslySetInnerHTML={{ __html: `
+const HTML = `
 <!-- === SPLASH / CARGA INICIAL === -->
 <div aria-busy="true" aria-label="Cargando RainbowGold" class="splash" id="splash">
 <div class="splash__logo">
@@ -231,10 +223,21 @@ export default function IndexPage() {
 <button class="btn-icon" data-i18n="claim_soon" disabled="" id="claimBtn" style="opacity:.5;">Reclamar (Pronto)</button>
 </div></aside>
 
-` }} />
+`;
 
-      <Script src="/src/app-legacy.js" strategy="afterInteractive" />
-      <Script type="module" src="/src/main.js" strategy="afterInteractive" />
+export default function IndexPage() {
+  return (
+    <>
+      <Head>
+        <title>RainbowGold — App</title>
+        <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" name="viewport"/><meta content="#1b103a" name="theme-color"/>
+      </Head>
+
+      <main dangerouslySetInnerHTML={{ __html: HTML }} />
+
+      <Script src="/js/app-legacy.js" strategy="afterInteractive" />
+      <Script src="/js/mk-hooks.js" strategy="afterInteractive" />
+      <Script type="module" src="/js/main.js" strategy="afterInteractive" />
     </>
   );
 }

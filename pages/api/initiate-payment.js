@@ -1,0 +1,1 @@
+export default async (req,res)=> { if(req.method!=='POST') return res.status(405).json({}); const id=(Math.random().toString(36).slice(2)+Date.now().toString(36)); return res.status(200).json({ id }); }
