@@ -3,6 +3,18 @@
 // Dirección de destino autorizada en tu Developer Portal
 const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";
 
+/** Espera a que MiniKit esté disponible (evita falsos "no instalado") */
+async function waitForMiniKit(maxMs = 5000) {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    try {
+      if (window.MiniKit?.isInstalled?.()) return true;
+    } catch {}
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return !!(window.MiniKit?.isInstalled?.());
+}
+
 // === Utilidades ===
 function tokenToDecimals(amount) {
   const [i, f = ""] = String(amount).split(".");
@@ -13,8 +25,15 @@ function tokenToDecimals(amount) {
 // === LOGIN / SIWE ===
 window.handleLogin = async function () {
   try {
-    if (!window.MiniKit?.isInstalled?.()) {
-      alert("Abre desde World App");
+    // NUEVO: espera a MiniKit
+    const ready = await waitForMiniKit(5000);
+    if (!ready) {
+      const msg = [
+        "Abre desde World App.",
+        `Host: ${location.origin}`,
+        "Si estás en World App, dale reintentar en 2s (MiniKit aún no estaba listo)."
+      ].join("\n");
+      alert(msg);
       return;
     }
 
@@ -25,6 +44,23 @@ window.handleLogin = async function () {
 
     if (result?.finalPayload?.status === "success") {
       const addr = result.finalPayload.address;
+
+      // Completa SIWE en backend (opcional si ya lo tenías)
+      try {
+        await fetch("/api/complete-siwe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            message: result.finalPayload.message,
+            signature: result.finalPayload.signature
+          })
+        });
+      } catch (e) {
+        // si no tienes ese endpoint, no rompas el login visual
+        console.warn("complete-siwe falló (opcional):", e);
+      }
+
       await hydrateProfile(addr);
 
       // Arrancar el juego (definido en app-legacy.js)
@@ -38,14 +74,15 @@ window.handleLogin = async function () {
   }
 };
 
-// Exponer alias "Login" para retrocompatibilidad con el HTML existente
+// Alias por compat: si el HTML tenía onclick="Login()"
 window.Login = window.handleLogin;
 
 // === PAGO GENÉRICO ===
 async function payWLD({ description, amountWLD }) {
   try {
-    if (!window.MiniKit?.isInstalled?.()) {
-      alert("Abre desde World App");
+    const ready = await waitForMiniKit(5000);
+    if (!ready) {
+      alert("Abre desde World App (o reintenta en 2s)");
       return false;
     }
 
@@ -53,16 +90,16 @@ async function payWLD({ description, amountWLD }) {
     const initRes = await fetch("/api/initiate-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Enviamos refillPrice para que el backend devuelva exactamente este monto
+      credentials: "include",
       body: JSON.stringify({ refillPrice: amountWLD }),
     });
-    const { id: reference } = await initRes.json();
+    const { id: reference, amountWLD: serverAmount } = await initRes.json();
 
     // 2) Drawer nativo de pago
     const payload = {
       reference,
       to: PAY_TO,
-      tokens: [{ symbol: "WLD", token_amount: tokenToDecimals(amountWLD) }],
+      tokens: [{ symbol: "WLD", token_amount: tokenToDecimals(serverAmount ?? amountWLD) }],
       description,
     };
 
@@ -73,6 +110,7 @@ async function payWLD({ description, amountWLD }) {
       const confirm = await fetch("/api/confirm-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ payload: finalPayload }),
       });
       const out = await confirm.json();
@@ -127,12 +165,17 @@ async function hydrateProfile(address) {
   const userInput = document.getElementById("usernameInput");
   if (userInput) {
     userInput.value = short;
-    userInput.disabled = true;
+    userInput.disabled = true; // fijo (un móvil/un usuario)
   }
 
-  // TODO: sustituir por balance real desde tu backend / World App portal
-  const profW = document.getElementById("profWLD");
-  const topW = document.getElementById("balWLD");
-  if (profW) profW.textContent = "--"; // placeholder
-  if (topW) topW.textContent = "0.00"; // placeholder
+  // Balance WLD (placeholder; conecta a backend/portal si lo quieres real)
+  try {
+    const r = await fetch("/api/profile", { credentials: "include" });
+    const prof = await r.json(); // { wldBalance?: string }
+    const topW = document.getElementById("balWLD");
+    if (topW) topW.textContent = prof?.wldBalance ?? "--";
+  } catch {
+    const topW = document.getElementById("balWLD");
+    if (topW) topW.textContent = "--";
+  }
 }
