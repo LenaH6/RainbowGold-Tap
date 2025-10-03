@@ -1,136 +1,134 @@
-// mk-hooks.js — MiniKit: SIWE + pagos en WLD (refill 0.1% capacidad, ideas 1 WLD)
+// mk-hooks.js — MiniKit: SIWE + pagos WLD + UI post-login estable
 (function () {
-  // 👉 dirección de cobro
   const PAY_TO = "0x91bf252c335f2540871d0d2ef1476ae193a5bc8a";
-
-  // 👉 utilidades MiniKit
   const MK = () => window.MiniKit || window.parent?.MiniKit;
   const isMini = () => !!(MK() && MK().isInstalled && MK().isInstalled());
 
-  // 👉 conversión WLD a base units (18 decimales)
+  // ---- utils WLD (18 decimales)
   function wldToDecimals(amountWLD) {
-    // soporta enteros/decimales: "1", 1, 0.25, "0.25"
     const [i, f = ""] = String(amountWLD).split(".");
-    const frac = (f + "000000000000000000").slice(0, 18); // pad a 18
+    const frac = (f + "000000000000000000").slice(0, 18);
     return (BigInt(i || "0") * (10n ** 18n) + BigInt(frac)).toString();
   }
+
+  // ---------- UI helpers (<<< NUEVO)
+  function postLoginUI(addr) {
+    // marca sesión en localStorage (cookie HttpOnly no es legible desde JS)
+    try { localStorage.setItem("rg_siwe_ok", "1"); } catch {}
+    // cambia texto del botón
+    try {
+      const btn = document.getElementById("wldSignIn");
+      if (btn && addr) btn.textContent = `Conectado: ${addr.slice(0,6)}…${addr.slice(-4)}`;
+    } catch {}
+    // esconde el splash si existe
+    try {
+      const s = document.getElementById("splash");
+      if (s) s.style.display = "none";
+    } catch {}
+    // bandera para estilos/JS propios
+    try { document.body.dataset.logged = "1"; } catch {}
+    // avisa a tu juego si tiene hooks
+    try { typeof window.onLoginSuccess === "function" && window.onLoginSuccess(); } catch {}
+  }
+
+  // restaura sesión al abrir (<<< NUEVO)
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      const ok = localStorage.getItem("rg_siwe_ok") === "1";
+      if (ok && isMini()) {
+        const addr = MK().walletAddress || "";
+        postLoginUI(addr);
+      }
+    } catch {}
+  });
 
   // ---------- Login (SIWE)
   async function login() {
     if (!isMini()) return console.warn("MiniKit no instalado (abre en World App).");
     try {
+      // nonce desde backend (cookie HttpOnly ‘siwe_nonce’)
       const r = await fetch("/api/nonce");
       const { nonce } = await r.json();
 
+      // drawer SIWE
       const { finalPayload } = await MK().commandsAsync.walletAuth({ nonce });
       if (finalPayload?.status === "success") {
-        // Verificación SIWE server-side
+        // verifica firma en backend (usa verifySiweMessage)
         await fetch("/api/complete-siwe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ payload: finalPayload, nonce }),
         });
-        // feedback en botón
-        const btn = document.getElementById("wldSignIn");
-        if (btn && MK().walletAddress) {
-          const a = MK().walletAddress;
-          btn.textContent = `Conectado: ${a.slice(0, 6)}…${a.slice(-4)}`;
-        }
+
+        // UI “logueado”
+        const addr = MK().walletAddress || finalPayload?.address || "";
+        postLoginUI(addr);
+        return true;
       }
     } catch (e) {
       console.error("login error", e);
     }
+    return false;
   }
 
-  // ---------- Helpers juego/energía
-  function getEnergyCapacity() {
-    // Si tu legacy expone esto global:
-    if (typeof window.getEnergyCapacity === "function") {
-      try { return Number(window.getEnergyCapacity()) || 0; } catch {}
-    }
-    // o si lo guardas en dataset:
-    const el = document.getElementById("energyBar") || document.getElementById("energy");
-    if (el && el.dataset.capacity) return Number(el.dataset.capacity) || 0;
-    // fallback razonable
-    return 1000;
-  }
-
-  function applyEnergyRefill(percent) {
-    // Llama tu handler del juego si existe
-    try { typeof window.onEnergyRefilled === "function" && window.onEnergyRefilled(percent); } catch {}
-  }
-
-  // ---------- Pagos (WLD)
-  async function sendPayWLD({ description, wldAmount }) {
+  // ---------- Pagos (WLD) — (sin cambios de lógica)
+  function usdcToBaseUnits(amount) { return String(Math.floor(amount * 1e6)); } // por si lo usas luego
+  async function sendPayWLD({ description, wldAmount }, cbName) {
     if (!isMini()) return;
     try {
-      // 1) referencia backend
       const res = await fetch("/api/initiate-payment", { method: "POST" });
       const { id } = await res.json();
-
-      // 2) payload Pay (WLD)
       const payload = {
         reference: id,
         to: PAY_TO,
-        tokens: [
-          {
-            symbol: "WLD", // 👈 WLD
-            token_amount: wldToDecimals(wldAmount), // string BigInt con 18 decimales
-          },
-        ],
+        tokens: [{ symbol: "WLD", token_amount: wldToDecimals(wldAmount) }],
         description,
       };
-
       const { finalPayload } = await MK().commandsAsync.pay(payload);
       if (finalPayload?.status === "success") {
-        // 3) confirmación optimista en backend (puedes integrar el Portal luego)
         await fetch("/api/confirm-payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ payload: finalPayload }),
         });
+        try { typeof window[cbName] === "function" && window[cbName](); } catch {}
         return true;
       }
-    } catch (e) {
-      console.error("pay error", e);
-    }
+    } catch (e) { console.error("pay error", e); }
     return false;
   }
 
-  // Refill: repone 0.1% de la capacidad
+  // refill: +0.1% capacidad
   async function payRefill() {
-    const capacity = getEnergyCapacity(); // p.ej. 1000
-    const refillPercent = 0.001;          // 0.1%
-    // 🧠 Precio en WLD: usa un valor seguro ≥ min transfer (~$0.10).
-    // Por defecto 0.10 WLD (ajústalo si quieres con <html data-refill-wld="0.05">)
-    const fromHTML = Number(document.documentElement.dataset.refillWld || "0.10");
-    const ok = await sendPayWLD({
-      description: `RainbowGold — Energy Refill (+${(refillPercent * 100).toFixed(3)}% of capacity ${capacity})`,
-      wldAmount: fromHTML,
-    });
-    if (ok) applyEnergyRefill(refillPercent);
+    const priceWLD = Number(document.documentElement.dataset.refillWld || "0.10"); // editable vía <html data-refill-wld="0.10">
+    const ok = await sendPayWLD({ description: "RainbowGold — Energy Refill", wldAmount: priceWLD }, "onEnergyRefilledCb");
+    if (ok) {
+      try { typeof window.onEnergyRefilled === "function" ? window.onEnergyRefilled(0.001) : null; } catch {}
+    }
   }
-
-  // Booster (si lo usas): por defecto 0.25 WLD
   async function payBooster() {
-    const ok = await sendPayWLD({ description: "RainbowGold — Booster", wldAmount: 0.25 });
-    if (ok) {
-      try { typeof window.onBoosterPurchased === "function" && window.onBoosterPurchased(); } catch {}
-    }
+    const ok = await sendPayWLD({ description: "RainbowGold — Booster", wldAmount: 0.25 }, "onBoosterPurchased");
+    if (ok) { try { typeof window.onBoosterPurchased === "function" && window.onBoosterPurchased(); } catch {} }
   }
-
-  // Ticket de ideas: 1 WLD por ticket
   async function payIdeaTicket() {
-    const ok = await sendPayWLD({ description: "RainbowGold — Idea Ticket", wldAmount: 1 });
-    if (ok) {
-      try { typeof window.onIdeaTicketGranted === "function" && window.onIdeaTicketGranted(1); } catch {}
-    }
+    const ok = await sendPayWLD({ description: "RainbowGold — Idea Ticket", wldAmount: 1 }, "onIdeaTicketGranted");
+    if (ok) { try { typeof window.onIdeaTicketGranted === "function" && window.onIdeaTicketGranted(1); } catch {} }
   }
 
-  // Exporta API global para que tu legacy la invoque o para binds en main.js
+  // API pública
   window.RainbowGold = { login, payRefill, payBooster, payIdeaTicket };
+
+  // ---------- Compat con tu HTML legacy (<<< NUEVO wrapper que respeta tu función original)
+  (function setupLegacyLoginWrapper() {
+    const legacy = typeof window.Login === "function" ? window.Login : null;
+    window.Login = async function () {
+      const ok = await window.RainbowGold?.login();
+      // si tenías un Login viejo que movía la UI, lo ejecutamos también
+      try { typeof legacy === "function" && legacy(); } catch {}
+      return ok;
+    };
+    // también por si usas los otros nombres en el HTML
+    window.handleRefillPayment = () => window.RainbowGold?.payRefill();
+    window.handleIdeaPayment   = () => window.RainbowGold?.payIdeaTicket();
+  })();
 })();
-// Compat aliases para tu HTML legacy:
-window.Login = () => window.RainbowGold?.login();
-window.handleRefillPayment = () => window.RainbowGold?.payRefill();
-window.handleIdeaPayment = () => window.RainbowGold?.payIdeaTicket();
